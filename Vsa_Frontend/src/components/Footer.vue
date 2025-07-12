@@ -102,31 +102,31 @@
             <h3 class="text-xl font-bold text-gray-900">Policy's</h3>
           </div>
           <nav class="space-y-3">
-            <a href="/return-policy" class="flex items-center text-gray-700 hover:text-purple-600 transition-all duration-300 group">
+            <a @click="navigateTo('/return-policy')" class="flex items-center text-gray-700 hover:text-purple-600 transition-all duration-300 group">
               <svg class="w-4 h-4 mr-2 opacity-50 group-hover:opacity-100" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
               </svg>
               Return policy
             </a>
-            <a href="/terms-and-conditions" class="flex items-center text-gray-700 hover:text-purple-600 transition-all duration-300 group">
+            <a @click="navigateTo('/terms-and-conditions')" class="flex items-center text-gray-700 hover:text-purple-600 transition-all duration-300 group">
               <svg class="w-4 h-4 mr-2 opacity-50 group-hover:opacity-100" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
               </svg>
               Terms & Conditions
             </a>
-            <a href="/privacy-policy" class="flex items-center text-gray-700 hover:text-purple-600 transition-all duration-300 group">
+            <a @click="navigateTo('/privacy-policy')" class="flex items-center text-gray-700 hover:text-purple-600 transition-all duration-300 group">
               <svg class="w-4 h-4 mr-2 opacity-50 group-hover:opacity-100" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
               </svg>
               Privacy policy
             </a>
-            <a href="/shipping-policy" class="flex items-center text-gray-700 hover:text-purple-600 transition-all duration-300 group">
+            <a @click="navigateTo('/shipping-policy')" class="flex items-center text-gray-700 hover:text-purple-600 transition-all duration-300 group">
               <svg class="w-4 h-4 mr-2 opacity-50 group-hover:opacity-100" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
               </svg>
               Shipping policy
             </a>
-            <a href="/cancellation-refunds" class="flex items-center text-gray-700 hover:text-purple-600 transition-all duration-300 group">
+            <a @click="navigateTo('/cancellation-refunds')" class="flex items-center text-gray-700 hover:text-purple-600 transition-all duration-300 group">
               <svg class="w-4 h-4 mr-2 opacity-50 group-hover:opacity-100" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
               </svg>
@@ -394,7 +394,12 @@ export default {
         animationDelay: Math.random() * 5 + 's',
         animationDuration: (Math.random() * 10 + 8) + 's'
       }
-    }
+    },
+
+    navigateTo(path) {
+      this.$router.push(path);      
+    },
+
   }
 }
 </script>

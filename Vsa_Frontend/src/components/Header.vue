@@ -475,7 +475,7 @@ export default {
 .hamburger-line {
   width: 24px;
   height: 2px;
-  background: var(--text-primary);
+  background: black;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   margin: 2px 0;
   border-radius: 2px;
@@ -490,7 +490,7 @@ export default {
 }
 
 .mobile-menu-btn.active .hamburger-line:nth-child(3) {
-  transform: rotate(-45deg) translate(6px, -6px);
+  transform: rotate(-45deg) translate(3px, -3px);
 }
 
 /* Mobile Navigation */
@@ -513,6 +513,7 @@ export default {
 
 .mobile-nav-content {
   padding: 100px 0 2rem;
+  background-color: whitesmoke;
 }
 
 .mobile-nav-list {

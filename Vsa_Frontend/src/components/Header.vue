@@ -166,7 +166,7 @@ export default {
       isLoggedIn: false, 
       username: '', 
       cartCount: 0, 
-      logoIconPath: '/icons/VSA_LOGO.JPEG',
+      logoIconPath: '/icons/VSA_logo.png',
       logoTextPath: '/icons/vsa logo name.png'
     }
   },

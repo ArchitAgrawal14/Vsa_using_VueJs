@@ -17,4 +17,14 @@ const router = createRouter({
   ],
 })
 
+// Navigation guard to not allow the user to go to Login page after successfull login
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('token');
+  if (to.name === 'login' && token) {
+    return next({ name: 'dashboard' });
+  }
+  next();
+});
+
+
 export default router

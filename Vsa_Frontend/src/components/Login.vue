@@ -523,7 +523,7 @@ export default {
               }
                 this.showToast('success', response.data.message);
                 this.clearForms();
-                this.$router.push('/dashboard');
+                this.$router.replace('/dashboard');
             }
         }else {
             if (!this.signupForm.fullName || !this.signupForm.mobile || !this.signupForm.email || !this.signupForm.password) {

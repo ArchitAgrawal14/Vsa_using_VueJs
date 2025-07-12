@@ -163,9 +163,9 @@ export default {
     return {
       isMobileMenuOpen: false,
       isUserDropdownOpen: false,
-      isLoggedIn: false, // This should be connected to your auth system
-      username: 'John Doe', // This should come from your auth system
-      cartCount: 0, // This should come from your cart system
+      isLoggedIn: false, 
+      username: '', 
+      cartCount: 0, 
       logoIconPath: '/icons/VSA_LOGO.JPEG',
       logoTextPath: '/icons/vsa logo name.png'
     }
@@ -195,7 +195,9 @@ export default {
       this.closeMobileMenu();
     },
     logout() {
-      // Implement your logout logic here
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
       this.isLoggedIn = false;
       this.username = '';
       this.isUserDropdownOpen = false;
@@ -204,6 +206,19 @@ export default {
     }
   },
   mounted() {
+
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+
+    if(token && user){
+      this.isLoggedIn = true;
+      try {
+        const parsedUser = JSON.parse(user);
+        this.username = parsedUser.fullName.split(' ')[0];
+      } catch (error) {
+        console.error('Failed to parse user:', e);
+      }
+    }
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.user-menu')) {

@@ -144,6 +144,11 @@ app.post('/vsa/login', middlewares.validateLogin, middlewares.handleValidationEr
       return await isUserAdmin(password, user, false, res);
     }
   }else {
+    await db.query(
+        'INSERT INTO login_logs (user_id, email, success, failure_reason) VALUES (?, ?, ?, ?)',
+        [user?.id || null, email, false, 'User does not exists']
+    );
+
     return res.status(401).json({
           success: false,
           message: 'User does not exist , Please Sign up to continue your journey'
@@ -151,6 +156,10 @@ app.post('/vsa/login', middlewares.validateLogin, middlewares.handleValidationEr
   }
 }catch (error) {
     console.error('Login error:', error);
+    await db.query(
+        'INSERT INTO login_logs (user_id, email, success, failure_reason) VALUES (?, ?, ?, ?)',
+        [user?.id || null, email, false, 'Internal server error']
+    );
     res.status(500).json({
       success: false,
       message: 'Internal server error. Please try again later.'
@@ -221,6 +230,11 @@ const passwordValidation = await bcrypt.compare(password, user.password);
       const refreshToken = jwt.sign({
         userId: user.id
       }, JWT_SECRET, { expiresIn: '7d' });
+
+      await db.query(
+        'INSERT INTO login_logs (user_id, email, success) VALUES (?, ?, ?)',
+        [user?.id || null, email, true]
+      );
 
       res.json({
         success : true,
@@ -323,19 +337,6 @@ app.get("/verify-email", async (req, res) => {
 });
 
 
-app.post('/vsa/logout', middlewares.verifyToken, async (req, res) => {
-  try {
-    res.json({
-      success: true,
-      message: 'Logged out successfully'
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Logout failed'
-    });
-  }
-});
 
 app.listen(PORT, () => {
   console.log(`Backend running at http://localhost:${PORT}`);

@@ -229,3 +229,14 @@ INSERT INTO cancellation_refunds (title, content) VALUES
 ('Voluntary Cancellations', 'Refunds are not provided for voluntary cancellations or withdrawals after the program has begun.'),
 ('Medical Emergencies', 'Refund requests for medical emergencies will be reviewed on a case-by-case basis and must be supported by relevant documentation.'),
 ('Processing Time', 'Approved refunds will be processed within 15 working days.');
+
+
+CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  subscribed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  status ENUM('active', 'inactive', 'unsubscribed') DEFAULT 'active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+

@@ -378,7 +378,7 @@ export default {
       isLoading : false,
       showPassword: false,
       showConfirmPassword: false,
-      apiBaseUrl: 'http://localhost:3000/vsa',
+      apiBaseURL: 'http://localhost:3000/vsa',
       captcha: '',
       captchaCode: this.generateCaptcha(),
       toast: null,
@@ -420,7 +420,7 @@ export default {
 
             try {
               const refreshToken = localStorage.getItem('refreshToken');
-              const response = await axios.post(`${this.apiBaseUrl}/refresh-token`, {
+              const response = await axios.post(`${this.apiBaseURL}/refresh-token`, {
                 refreshToken
               });
 
@@ -508,7 +508,7 @@ export default {
                 this.isLoading = false;
                 return;
             }
-            const response = await axios.post(`${this.apiBaseUrl}/login`,{
+            const response = await axios.post(`${this.apiBaseURL}/login`,{
                 email : this.loginForm.email,
                 password : this.loginForm.password,
                 captcha : this.captcha
@@ -537,7 +537,7 @@ export default {
                 return;
             }   
 
-            const response  = await axios.post(`${this.apiBaseUrl}/signup`,{
+            const response  = await axios.post(`${this.apiBaseURL}/signup`,{
                 email : this.signupForm.email,
                 password : this.signupForm.password,
                 fullName : this.signupForm.fullName,
@@ -582,7 +582,7 @@ export default {
       this.isLoading = true;
   
       try {
-        const response = await axios.post(`${this.apiBaseUrl}/google-signin`, {
+        const response = await axios.post(`${this.apiBaseURL}/google-signin`, {
           // Add Google token here when implementing actual Google OAuth
           // googleToken: 'actual-google-token'
         });

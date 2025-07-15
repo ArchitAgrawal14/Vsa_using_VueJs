@@ -399,6 +399,48 @@ app.get('/vsa/cancellation-refunds', async (req, res) => {
   }
 });
 
+app.post('/vsa/newsletter-subscribe', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!email || !emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format'
+      });
+    }
+
+    const checkEmailQuery = 'SELECT id FROM newsletter_subscribers WHERE email = ?';
+    const [existingEmail] = await db.query(checkEmailQuery, [email]);
+
+    if (existingEmail.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'This email is already subscribed to our newsletter'
+      });
+    }
+
+    const insertQuery = `
+      INSERT INTO newsletter_subscribers (email, subscribed_at, status) 
+      VALUES (?, NOW(), 'active')
+    `;
+    
+    await db.query(insertQuery, [email]);
+    return res.status(201).json({
+      success: true,
+      message: 'Successfully subscribed to newsletter'
+    });
+
+  } catch (error) {
+    console.error('Newsletter subscription error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error. Please try again later.'
+    });
+  }
+});
+
 
 app.listen(PORT, () => {
   console.log(`Backend running at http://localhost:${PORT}`);

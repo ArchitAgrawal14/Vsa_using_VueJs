@@ -7,79 +7,77 @@
           <i class="fas fa-times"></i>
         </button>
       </div>
-      
+
       <div class="policy-content">
         <ul class="refund-list">
-          <li class="refund-item">
+          <li v-for="item in refundItems" :key="item.id" class="refund-item">
             <div class="item-icon">
-              <i class="fas fa-undo-alt"></i>
+              <i class="fas fa-circle"></i>
             </div>
             <div class="item-content">
-              <strong>VSA Cancellations:</strong>
-              If a program is canceled by VSA, participants may choose a full refund or an alternative program.
-            </div>
-          </li>
-          
-          <li class="refund-item">
-            <div class="item-icon">
-              <i class="fas fa-exclamation-triangle"></i>
-            </div>
-            <div class="item-content">
-              <strong>Voluntary Cancellations:</strong>
-              Refunds are not provided for voluntary cancellations or withdrawals after the program has begun.
-            </div>
-          </li>
-          
-          <li class="refund-item">
-            <div class="item-icon">
-              <i class="fas fa-plus-circle"></i>
-            </div>
-            <div class="item-content">
-              <strong>Medical Emergencies:</strong>
-              Refund requests for medical emergencies will be reviewed on a case-by-case basis and must be supported by relevant documentation.
-            </div>
-          </li>
-          
-          <li class="refund-item">
-            <div class="item-icon">
-              <i class="fas fa-clock"></i>
-            </div>
-            <div class="item-content">
-              <strong>Processing Time:</strong>
-              Approved refunds will be processed within 15 working days.
+              <strong>{{ item.heading }}:</strong>
+              {{ item.description }}
             </div>
           </li>
         </ul>
+
+        <div v-if="loading">Loading refund policy...</div>
+        <div v-if="error">{{ error }}</div>
       </div>
-      
+
       <div class="policy-footer" v-if="showCloseButton">
-        <button @click="closePolicy" class="close-policy-button">
-          Close
-        </button>
+        <button @click="closePolicy" class="close-policy-button">Close</button>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import { ref, onMounted } from 'vue'
+
 export default {
   name: 'RefundPolicy',
   props: {
     showCloseButton: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
-  data() {
+  setup(props, { emit }) {
+    const refundItems = ref([])
+    const loading = ref(true)
+    const error = ref(null)
+    const apiBaseURL = 'http://localhost:3000/vsa'
+    const fetchRefundPolicy = async () => {
+      try {
+        const response = await fetch(`${apiBaseURL}/refund-policy`)
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`)
+        const data = await response.json()
+        refundItems.value = data
+      } catch (err) {
+        console.error(err)
+        error.value = 'Failed to load refund policy.'
+      } finally {
+        loading.value = false
+      }
+    }
+
+    const closePolicy = () => {
+      emit('close-policy')
+    }
+
+    onMounted(() => {
+      fetchRefundPolicy()
+    })
+
     return {
-      // Component data can be added here if needed
+      refundItems,
+      loading,
+      error,
+      closePolicy,
+      props,
     }
   },
-  methods: {
-    closePolicy() {
-      this.$emit('close-policy');
-    }
-  }
 }
 </script>
 
@@ -223,27 +221,27 @@ export default {
   .refund-policy-container {
     padding: 10px;
   }
-  
+
   .policy-card {
     padding: 20px;
   }
-  
+
   .policy-header {
     font-size: 24px;
   }
-  
+
   .refund-item {
     padding: 15px;
     flex-direction: column;
     text-align: center;
   }
-  
+
   .item-icon {
     margin-right: 0;
     margin-bottom: 10px;
     align-self: center;
   }
-  
+
   .item-content {
     padding-top: 0;
   }
@@ -256,9 +254,19 @@ export default {
 }
 
 /* If Font Awesome is not available, use text fallbacks */
-.fa-undo-alt::before { content: "↺"; }
-.fa-exclamation-triangle::before { content: "⚠"; }
-.fa-plus-circle::before { content: "⊕"; }
-.fa-clock::before { content: "⏰"; }
-.fa-times::before { content: "×"; }
+.fa-undo-alt::before {
+  content: '↺';
+}
+.fa-exclamation-triangle::before {
+  content: '⚠';
+}
+.fa-plus-circle::before {
+  content: '⊕';
+}
+.fa-clock::before {
+  content: '⏰';
+}
+.fa-times::before {
+  content: '×';
+}
 </style>

@@ -1,13 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Dashboard from '@/components/Dashboard.vue'
 import Login from '@/components/Login.vue'
-import ReturnPolicy from '@/components/ReturnPolicy.vue'
-import PrivacyPolicy from '@/components/PrivacyPolicy.vue'
-import CancellationRefunds from '@/components/CancellationRefunds.vue'
-import ShippingPolicy from '@/components/ShippingPolicy.vue'
-import TermsConditions from '@/components/TermsConditions.vue'
-import RefundPolicy from '@/components/RefundPolicy.vue'
-import FAQ from '@/components/FAQ.vue'
+import ReturnPolicy from '@/components/footer_components/ReturnPolicy.vue'
+import PrivacyPolicy from '@/components/footer_components/PrivacyPolicy.vue'
+import CancellationRefunds from '@/components/footer_components/CancellationRefunds.vue'
+import ShippingPolicy from '@/components/footer_components/ShippingPolicy.vue'
+import TermsConditions from '@/components/footer_components/TermsConditions.vue'
+import RefundPolicy from '@/components/footer_components/RefundPolicy.vue'
+import FAQ from '@/components/footer_components/FAQ.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [

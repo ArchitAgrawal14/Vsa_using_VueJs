@@ -2,23 +2,14 @@
   <div class="cancellation-refunds-container">
     <div class="policy-card">
       <h2 class="policy-header">Cancellation and Refunds</h2>
-      <div class="policy-content">
+
+      <div v-if="loading">Loading...</div>
+      <div v-else-if="error">{{ error }}</div>
+      <div v-else class="policy-content">
         <ul class="policy-list">
-          <li class="policy-item">
-            <strong>VSA Cancellations:</strong>
-            If a program is canceled by VSA, participants may choose a full refund or an alternative program.
-          </li>
-          <li class="policy-item">
-            <strong>Voluntary Cancellations:</strong>
-            Refunds are not provided for voluntary cancellations or withdrawals after the program has begun.
-          </li>
-          <li class="policy-item">
-            <strong>Medical Emergencies:</strong>
-            Refund requests for medical emergencies will be reviewed on a case-by-case basis and must be supported by relevant documentation.
-          </li>
-          <li class="policy-item">
-            <strong>Processing Time:</strong>
-            Approved refunds will be processed within 15 working days.
+          <li v-for="item in policies" :key="item.id" class="policy-item">
+            <strong>{{ item.title }}:</strong>
+            {{ item.content }}
           </li>
         </ul>
       </div>
@@ -27,14 +18,44 @@
 </template>
 
 <script>
+import { ref, onMounted } from 'vue';
+
 export default {
   name: 'CancellationRefunds',
-  data() {
-    return {
-      // Component data can be added here if needed
-    }
+  setup() {
+    const policies = ref([]);
+    const loading = ref(true);
+    const error = ref(null);
+    const apiBaseURL = 'http://localhost:3000/vsa';
+
+    const fetchPolicies = async () => {
+      try {
+        const response = await fetch(`${apiBaseURL}/cancellation-refunds`);
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+
+        const data = await response.json();
+
+        // Assuming backend returns { success: true, data: [...] }
+        if (data.success) {
+          policies.value = data.data;
+        } else {
+          throw new Error('Failed to fetch cancellation refunds data.');
+        }
+      } catch (err) {
+        console.error(err);
+        error.value = 'Failed to load cancellation and refund policies.';
+      } finally {
+        loading.value = false;
+      }
+    };
+
+    onMounted(() => {
+      fetchPolicies();
+    });
+
+    return { policies, loading, error };
   }
-}
+};
 </script>
 
 <style scoped>

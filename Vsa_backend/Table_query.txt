@@ -98,3 +98,134 @@ INSERT INTO faqs (question, highlighted_part, answer) VALUES
  'cash credit/debit cards or online transfers', 
  'Payments can be made via cash, credit/debit cards, or online transfers. For detailed information please contact us via phone or email.');
 
+
+CREATE TABLE privacy_policies (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  heading VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO privacy_policies (heading, content) VALUES
+('Data Collection & Usage', 'Vaibhav Skating Academy (VSA) values customer privacy. Personal information collected during purchases and account registration is used solely for order processing, communication, and internal purposes.'),
+('Information We Collect', 'When you purchase from our store, we collect personal information such as your name, address, and email as part of the buying and selling process.'),
+('Data Sharing', 'We do not share customer data with third parties without consent, except where required by law.'),
+('Email Marketing', 'With your permission, we may send emails about new products, promotions, and other updates.');
+
+CREATE TABLE refund_policies (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  heading VARCHAR(255) NOT NULL,
+  description TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO refund_policies (heading, description) VALUES
+('VSA Cancellations', 'If a program is canceled by VSA, participants may choose a full refund or an alternative program.'),
+('Voluntary Cancellations', 'Refunds are not provided for voluntary cancellations or withdrawals after the program has begun.'),
+('Medical Emergencies', 'Refund requests for medical emergencies will be reviewed on a case-by-case basis and must be supported by relevant documentation.'),
+('Processing Time', 'Approved refunds will be processed within 15 working days.');
+
+
+CREATE TABLE return_policies (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  step_number INT NOT NULL,
+  description TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO return_policies (step_number, description) VALUES
+(1, 'Returns are accepted only for unused and undamaged products within 5 working days of delivery.'),
+(2, 'To initiate a return, participants must contact VSA customer support with proof of purchase and reason for return.'),
+(3, 'The cost of return shipping is the responsibility of the customer unless the product is defective or incorrect. The returns shall only be sent to the provided address by the customer themselves after the approval from VSA.'),
+(4, 'Refunds for approved returns will be processed within 15 working days after the returned product is received and inspected.'),
+(5, 'No returns or refunds will be provided for products that are used, damaged, or do not meet the return criteria.');
+
+
+CREATE TABLE shipping_policies (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO shipping_policies (content) VALUES
+('Products ordered through our website are shipped within India.'),
+('All orders are processed within 8 to 10 business days (excluding weekends and holidays) after receiving your order confirmation email. You will receive another notification when your order has shipped. In case of high demand the order can take up to 14 business days.'),
+('Delivery typically takes minimum 8 to 10 working days from order confirmation and may take up to a maximum of 14 days.'),
+('Free local delivery is available for orders over ₹8000 [Within Satna]. For orders under ₹8000, we charge ₹65 for local delivery.'),
+('<h5 class="subsection-header">In-store pickup</h5><p>You can skip the shipping fees with free local pickup at [Shri Rama krishna college Bharhut Nagar, Satna, Madhya Pradesh]. After placing your order and selecting local pickup at checkout, your order will be prepared and ready for pick up within 1 to 2 business days. We will send you an email when your order is ready along with instructions.</p><p>Our in-store pickup hours are [6PM] on [WeekDays]. Please have your order confirmation email with you when you come.</p>'),
+('No international shipping available right now.'),
+('Deliveries are made from [9AM - 7PM] on [All Days]. We will contact you via email with the email and phone number you provided at checkout to notify you on the day of our arrival.'),
+('Shipping charges vary based on the delivery location and are calculated at checkout.'),
+('VSA is not responsible for shipping delays caused by third-party services.');
+
+CREATE TABLE terms_and_conditions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL,  -- This allows HTML (like <ul>, <li>, <p>)
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert queries for terms_and_conditions table
+
+INSERT INTO terms_and_conditions (title, content) VALUES
+('General Information', 'The website content, including details about our programs, coaches, and events, may change without prior notice.'),
+
+('Modifications', '<ul><li>VSA reserves the right to modify these Terms and Conditions at any time. Updates will be posted on the website, and continued use of services implies acceptance of the revised terms.</li></ul>'),
+
+('Eligibility for Enrollment', '<ul><li>Enrollment in VSA programs is open to individuals of all ages, subject to medical clearance and a signed waiver of liability.</li><li>Minors (under 18) must have consent from a parent or legal guardian to enroll.</li><li>Participants must meet the age and skill requirements specified for each program.</li></ul>'),
+
+('Fees and Payments', '<ul><li>Program, camp, and event fees are displayed on the website and may change without notice.</li><li>Full payment is required before the start of any program.</li><li>Accepted payment methods include credit/debit cards and UPI.</li><li>Fees are non-refundable except in cases of program cancellation by VSA.</li><li>All prices are listed in Indian Rupees (INR).</li></ul>'),
+
+('Program and Service Delivery', '<ul><li>VSA strives to maintain the continuity of its programs, including regular classes, camps, and events.</li><li>Classes may be rescheduled or canceled due to unforeseen circumstances such as weather, emergencies, or government regulations.</li><li>VSA reserves the right to change coaches or instructors without prior notice.</li><li>Program schedules are subject to change based on availability and operational needs.</li></ul>'),
+
+('Code of Conduct', '<ul><li>Participants must behave respectfully and responsibly at all times.</li><li>Abusive language, violence, harassment, or disruptive behavior will result in immediate removal from the program without a refund.</li><li>VSA reserves the right to terminate participation for individuals who fail to comply with these terms or jeopardize the safety of others.</li></ul>'),
+
+('Use of Skating Gear and Equipment', '<ul><li>Participants may bring their safety gear, including helmets, knee pads, elbow pads, and wrist guards. Gear can also be purchased through VSA before or after enrollment.</li><li>Skating and sports equipment are available for purchase via our website.</li><li>Once sold, equipment cannot be returned if used or damaged.</li><li>VSA is not responsible for injuries, damage, or loss resulting from improper use of personal or purchased equipment.</li></ul>'),
+
+('Cancellations and Refunds', '<ul><li>If a program is canceled by VSA, participants may choose a full refund or an alternative program.</li><li>Refunds are not provided for voluntary cancellations or withdrawals after the program has begun.</li><li>Refund requests for medical emergencies will be reviewed on a case-by-case basis and must be supported by relevant documentation.</li><li>Approved refunds will be processed within 15 working days.</li></ul>'),
+
+('Waiver of Liability', '<ul><li>Participants acknowledge that inline skating is physically demanding and carries inherent risks, including injury.</li><li>VSA, its staff, and affiliates are not liable for any injuries, losses, or damages sustained during participation, except in cases of gross negligence.</li><li>All participants (or their guardians) must sign a waiver before joining any program. Failure to do so will result in exclusion from participation.</li></ul>'),
+
+('Health and Safety', '<ul><li>Participants must disclose any medical conditions or injuries that could affect their ability to participate safely.</li><li>VSA reserves the right to deny participation to individuals deemed unfit for physical activity.</li><li>VSA follows all local health and safety regulations. In emergencies, basic first aid will be administered, and medical help will be sought if needed.</li></ul>'),
+
+('Intellectual Property', '<ul><li>All website content, including text, images, videos, and logos, is the intellectual property of Vaibhav Skating Academy.</li><li>Unauthorized use, reproduction, or distribution of content is prohibited.</li><li>VSA may use photos and videos from training sessions and events for promotional purposes unless a participant explicitly opts out in writing.</li></ul>'),
+
+('Privacy Policy', '<ul><li>Vaibhav Skating Academy (VSA) values customer privacy. Personal information collected during purchases and account registration is used solely for order processing, communication, and internal purposes.</li><li>When you purchase from our store, we collect personal information such as your name, address, and email as part of the buying and selling process.</li><li>We do not share customer data with third parties without consent, except where required by law.</li><li>Email marketing (if applicable): With your permission, we may send emails about new products, promotions, and other updates.</li></ul>'),
+
+('Consent', '<ul><li>By providing personal information to complete a purchase, verify a payment method, or arrange for delivery, you consent to our collection and use of that information for the specified purpose.</li><li>If we require personal information for secondary purposes, such as marketing, we will ask for explicit consent or provide an option to opt out.</li><li>You may withdraw consent at any time by contacting us at info@vaibhavskatingacademy.com.</li></ul>'),
+
+('Disclosure', '<ul><li>We may disclose your personal information if required by law or if you violate our Terms of Service.</li></ul>'),
+
+('Payment', '<ul><li>We use Razorpay for payment processing. Razorpay and VSA do not store card details on their servers.</li><li>Payment data is encrypted in compliance with PCI-DSS standards for secure transactions.</li><li>For further details, please refer to Razorpay''s terms at <a href="https://razorpay.com" target="_blank">https://razorpay.com</a>.</li></ul>'),
+
+('Third-Party Services', '<ul><li>Third-party providers we use collect and handle customer data only to the extent necessary for their services.</li><li>Payment gateways and transaction processors have their own privacy policies, which we recommend reviewing.</li><li>Some third-party providers may be located in different jurisdictions, meaning your data may be subject to different laws.</li><li>Once you leave our website or are redirected to a third-party platform, our Privacy Policy and Terms of Service no longer apply.</li></ul>'),
+
+('Security', '<ul><li>We implement industry-standard security measures to protect personal information from unauthorized access, misuse, or loss.</li></ul>'),
+
+('Cookies', '<ul><li>We use cookies to maintain user sessions. Cookies do not personally identify users on external websites.</li></ul>'),
+
+('Age of Consent', '<ul><li>By using this website, you confirm that you are of legal age in your region or have parental consent to use this site.</li></ul>'),
+
+('Changes to This Policy', '<ul><li>We reserve the right to update this Privacy Policy at any time, with changes taking effect upon posting.</li><li>If significant changes occur, we will notify users accordingly.</li><li>If VSA is acquired or merged with another company, customer data may be transferred to the new entity.</li></ul>'),
+
+('Contact Information', '<ul><li>For inquiries regarding personal data access, updates, or deletion, contact our Privacy Compliance Officer at info@vaibhavskatingacademy.com</li><li>Vaibhav Skating Academy, Shri Rama Krishna college, Bharhut nagar, Satna (M.P)</li></ul>'),
+
+('Shipping Policy', '<ul><li>Products ordered through our website are shipped within India.</li><li>All orders are processed within 8 to 10 business days (excluding weekends and holidays) after receiving your order confirmation email. You will receive another notification when your order has shipped. In case of high demand the order can take up to 14 business days.</li><li>Delivery typically takes minimum 8 to 10 working days from order confirmation and may take up to a maximum of 14 days.</li><li>Free local delivery is available for orders over ₹8000 [Within Satna]. For orders under ₹8000, we charge ₹65 for local delivery.</li><li><h5>In-store pickup</h5><p>You can skip the shipping fees with free local pickup at [Shri Rama krishna college Bharhut Nagar, Satna, Madhya pradesh]. After placing your order and selecting local pickup at checkout, your order will be prepared and ready for pick up within 1 to 2 business days. We will send you an email when your order is ready along with instructions.</p><p>Our in-store pickup hours are [6PM] on [WeekDays]. Please have your order confirmation email with you when you come.</p></li><li>No international shipping available right now.</li><li>Deliveries are made from [9AM - 7PM] on [All Days]. We will contact you via email with the email and phone number you provided at checkout to notify you on the day of our arrival.</li><li>Shipping charges vary based on the delivery location and are calculated at checkout.</li><li>VSA is not responsible for shipping delays caused by third-party services.</li></ul>'),
+
+('Dispute Resolution and Jurisdiction', '<ul><li>Disputes will first be attempted to be resolved amicably. If unresolved, arbitration will follow Indian legal provisions.</li><li>These Terms and Conditions are governed by Indian law, and disputes fall under the jurisdiction of courts in Madhya Pradesh.</li></ul>'),
+
+('Return Policy', '<ul><li>Returns are accepted only for unused, undamaged products within 5 working days of delivery.</li><li>To initiate a return, customers must contact VSA customer support with proof of purchase.</li><li>Return shipping costs are the customer''s responsibility unless the product is defective or incorrect.</li><li>Refunds for approved returns will be processed within 15 working days after the returned item is received and inspected.</li><li>Used, damaged, or non-compliant products are not eligible for return or refund.</li></ul>'),
+
+('Exchange Policy', '<ul><li>Exchanges are allowed for incorrect size, color, or if the wrong item was received.</li><li>Items must be unused, with tags intact, and in original packaging.</li><li>Exchange requests must be made within 7 days of receiving the item.</li><li>Approved exchanges require customers to ship the item back at their own cost.</li><li>If an item is defective or incorrect, an exchange request must be made within 48 hours of delivery, and VSA will arrange a replacement at no extra cost.</li></ul>');
+
+CREATE TABLE cancellation_refunds (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255),
+  content TEXT
+);
+
+INSERT INTO cancellation_refunds (title, content) VALUES 
+('VSA Cancellations', 'If a program is canceled by VSA, participants may choose a full refund or an alternative program.'),
+('Voluntary Cancellations', 'Refunds are not provided for voluntary cancellations or withdrawals after the program has begun.'),
+('Medical Emergencies', 'Refund requests for medical emergencies will be reviewed on a case-by-case basis and must be supported by relevant documentation.'),
+('Processing Time', 'Approved refunds will be processed within 15 working days.');

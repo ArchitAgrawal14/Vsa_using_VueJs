@@ -4,50 +4,55 @@
       <h2 class="policy-header">Return Policy</h2>
       <div class="policy-content">
         <ol class="policy-list">
-          <li class="policy-item">
-            <span class="item-number">1.</span>
+          <li v-for="item in returnItems" :key="item.id" class="policy-item">
+            <span class="item-number">{{ item.step_number }}.</span>
             <div class="item-content">
-              Returns are accepted only for unused and undamaged products within 5 working days of delivery.
-            </div>
-          </li>
-          <li class="policy-item">
-            <span class="item-number">2.</span>
-            <div class="item-content">
-              To initiate a return, participants must contact VSA customer support with proof of purchase and reason for return.
-            </div>
-          </li>
-          <li class="policy-item">
-            <span class="item-number">3.</span>
-            <div class="item-content">
-              The cost of return shipping is the responsibility of the customer unless the product is defective or incorrect. The returns shall only be sent to the provided address by the customer themselves after the approval from VSA.
-            </div>
-          </li>
-          <li class="policy-item">
-            <span class="item-number">4.</span>
-            <div class="item-content">
-              Refunds for approved returns will be processed within 15 working days after the returned product is received and inspected.
-            </div>
-          </li>
-          <li class="policy-item">
-            <span class="item-number">5.</span>
-            <div class="item-content">
-              No returns or refunds will be provided for products that are used, damaged, or do not meet the return criteria.
+              {{ item.description }}
             </div>
           </li>
         </ol>
+
+        <div v-if="loading">Loading return policy...</div>
+        <div v-if="error">{{ error }}</div>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import { ref, onMounted } from 'vue'
+
 export default {
   name: 'ReturnPolicy',
-  data() {
-    return {
-      // Component data can be added here if needed
+  setup() {
+    const returnItems = ref([])
+    const loading = ref(true)
+    const error = ref(null)
+    const apiBaseURL = 'http://localhost:3000/vsa'
+    const fetchReturnPolicy = async () => {
+      try {
+        const response = await fetch(`${apiBaseURL}/return-policy`)
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`)
+        const data = await response.json()
+        returnItems.value = data
+      } catch (err) {
+        console.error(err)
+        error.value = 'Failed to load return policy.'
+      } finally {
+        loading.value = false
+      }
     }
-  }
+
+    onMounted(() => {
+      fetchReturnPolicy()
+    })
+
+    return {
+      returnItems,
+      loading,
+      error,
+    }
+  },
 }
 </script>
 

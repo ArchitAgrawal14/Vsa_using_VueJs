@@ -2,23 +2,14 @@
   <div class="privacy-policy-container">
     <div class="policy-card">
       <h2 class="policy-header">Privacy Policy</h2>
-      <div class="policy-content">
+
+      <div v-if="loading">Loading...</div>
+      <div v-else-if="error">{{ error }}</div>
+      <div v-else class="policy-content">
         <ul class="policy-list">
-          <li class="policy-item">
-            <strong>Data Collection & Usage:</strong>
-            Vaibhav Skating Academy (VSA) values customer privacy. Personal information collected during purchases and account registration is used solely for order processing, communication, and internal purposes.
-          </li>
-          <li class="policy-item">
-            <strong>Information We Collect:</strong>
-            When you purchase from our store, we collect personal information such as your name, address, and email as part of the buying and selling process.
-          </li>
-          <li class="policy-item">
-            <strong>Data Sharing:</strong>
-            We do not share customer data with third parties without consent, except where required by law.
-          </li>
-          <li class="policy-item">
-            <strong>Email Marketing:</strong>
-            With your permission, we may send emails about new products, promotions, and other updates.
+          <li v-for="item in policies" :key="item.id" class="policy-item">
+            <strong>{{ item.heading }}:</strong>
+            {{ item.content }}
           </li>
         </ul>
       </div>
@@ -27,15 +18,38 @@
 </template>
 
 <script>
+import { ref, onMounted } from 'vue'
+
 export default {
   name: 'PrivacyPolicy',
-  data() {
-    return {
-      // Component data can be added here if needed
+  setup() {
+    const policies = ref([])
+    const loading = ref(true)
+    const error = ref(null)
+    const apiBaseURL = 'http://localhost:3000/vsa';
+    const fetchPolicies = async () => {
+      try {
+        const response = await fetch(`${apiBaseURL}/privacy-policy`)
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`)
+        const data = await response.json()
+        policies.value = data
+      } catch (err) {
+        console.error(err)
+        error.value = 'Failed to load privacy policy.'
+      } finally {
+        loading.value = false
+      }
     }
+
+    onMounted(() => {
+      fetchPolicies()
+    })
+
+    return { policies, loading, error }
   }
 }
 </script>
+
 
 <style scoped>
 .privacy-policy-container {

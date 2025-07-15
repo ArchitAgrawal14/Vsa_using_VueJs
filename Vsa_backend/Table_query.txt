@@ -47,3 +47,54 @@ CREATE TABLE login_logs (
   failure_reason TEXT DEFAULT NULL,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
+
+
+CREATE TABLE faqs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  question TEXT NOT NULL,
+  highlighted_part VARCHAR(255),
+  answer TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO faqs (question, highlighted_part, answer) VALUES
+('How can I contact/join Vaibhav Skating Academy?', 
+ 'via phone visit our academy contact us through our social media', 
+ 'You can reach us via phone at +919301139998 email at vaibhavskatingacademy@gmail.com or visit our academy at Shri Rama Krishna College Bharhut Nagar Satna (M.P.) 485001. You can also contact us through our social media pages on Facebook Instagram LinkedIn and Twitter (@vaibhavskatingacademy).'),
+
+('Where is the Academy located?', 
+ 'Satna Madhya Pradesh.', 
+ 'Our academy is situated in Satna Madhya Pradesh. For detailed directions please visit the "Contact Us" page on our website.'),
+
+('Who is the Head Coach?', 
+ 'Vaibhav Agrawal', 
+ 'Our Head Coach is Vaibhav Agrawal who has over 22 years of experience in coaching roller skating around Vindhya Region. He is also a Sports Authority of India (NSNIS) Certified Coach International Player and is a Guinness Book of World Record Holder.'),
+
+('What facilities do you offer at the academy?', 
+ 'International Skating Banked Track Roller Skating Roll Ball and Ice Skating One-to-One Training Services purchase skates and sports accessories.', 
+ 'We offer a range of facilities including an International Skating Banked Track and a hub of excelling in different sports of skating including Roller Skating Roll Ball and Ice Skating. Members can also get Personal One-to-One Training Services. We also have collaborations with local fitness facilities along with specific Diet Guidance. We also offer facilities where you can purchase skates and sports accessories (Contact: +919301139998). SportsGym Café and Physiotherapy Coming Soon!!'),
+
+('What are the training schedules and timings?', 
+ 'evening sessions "Training Schedule"', 
+ 'Our training schedules vary based on the group and level. Generally, we offer evening sessions. Morning Sessions can be availed if you are in High Performance Groups or you opt for Personal Training. For detailed timings please refer to the "Training Schedule" section on our website.'),
+
+('How can I enroll in the academy?', 
+ '', 
+ 'You can enroll by filling out the registration form available by visiting our academy in person or by phone (Call: +919301139998). Our staff will guide you through the enrollment process.'),
+
+('Can I buy skates and skating gear from the academy?', 
+ 'Yes Beginner Intermediate (Semi-Professional) and Speed (Professional) Skates protective gear and other skating accessories', 
+ 'Yes, we have the facilities at the academy where you can buy Beginner, Intermediate (Semi-Professional), and Speed (Professional) Skates, protective gear, and other skating accessories.'),
+
+('Do you offer personal training sessions?', 
+ 'Yes', 
+ 'Yes, we offer personal training sessions tailored to individual needs. Please contact us for more details and to schedule a session with one of our coaches.'),
+
+('Do you offer trial classes?', 
+ 'Yes contact us', 
+ 'Yes, we offer trial classes for newcomers to experience our training before committing to a full session. Please contact us to schedule a trial class.'),
+
+('How can I make payments for training sessions and equipment?', 
+ 'cash credit/debit cards or online transfers', 
+ 'Payments can be made via cash, credit/debit cards, or online transfers. For detailed information please contact us via phone or email.');
+

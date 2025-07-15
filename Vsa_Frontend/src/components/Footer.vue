@@ -108,6 +108,12 @@
               </svg>
               Return policy
             </a>
+            <a @click="navigateTo('/refund-policy')" class="flex items-center text-gray-700 hover:text-purple-600 transition-all duration-300 group">
+              <svg class="w-4 h-4 mr-2 opacity-50 group-hover:opacity-100" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
+              </svg>
+              Refund policy
+            </a>
             <a @click="navigateTo('/terms-and-conditions')" class="flex items-center text-gray-700 hover:text-purple-600 transition-all duration-300 group">
               <svg class="w-4 h-4 mr-2 opacity-50 group-hover:opacity-100" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
@@ -273,8 +279,8 @@
               <a href="/about" class="text-gray-600 hover:text-blue-600 transition-colors">About</a>
               <a href="/contact" class="text-gray-600 hover:text-blue-600 transition-colors">Contact</a>
               <a href="/faq" class="text-gray-600 hover:text-blue-600 transition-colors">FAQ</a>
-              <a href="/privacy" class="text-gray-600 hover:text-blue-600 transition-colors">Privacy</a>
-              <a href="/terms" class="text-gray-600 hover:text-blue-600 transition-colors">Terms</a>              
+              <a href="/privacy-policy" class="text-gray-600 hover:text-blue-600 transition-colors">Privacy</a>
+              <a href="/terms-and-conditions" class="text-gray-600 hover:text-blue-600 transition-colors">Terms</a>              
             </div>
           </div>
           

@@ -178,8 +178,8 @@ async function verifyUserEmail(email) {
         await db.query('UPDATE users SET verification_token = ? WHERE email = ?',[verificationToken, user.email]);
       }
 
-      const verificationLink = `http://localhost:3000/verify-email?token=${verificationToken}`;
-      // const verificationLink = `https://vaibhavskatingacademy.com/verify-email?token=${verificationToken}`;
+      const verificationLink = `http://localhost:3000/vsa/verify-email?token=${verificationToken}`;
+      // const verificationLink = `https://vaibhavskatingacademy.com/vsa/verify-email?token=${verificationToken}`;
 
       const firstName = userCheck[0].full_name.split(' ')[0];
       const mailOptions = {
@@ -302,7 +302,7 @@ app.post('/vsa/refresh-token', async (req, res) => {
 });
 
 // Email verification route - after user clicks the link in their email
-app.get("/verify-email", async (req, res) => {
+app.get("/vsa/verify-email", async (req, res) => {
   const { token } = req.query;
 
   try {
@@ -336,6 +336,15 @@ app.get("/verify-email", async (req, res) => {
   }
 });
 
+app.get('/vsa/faq', async (req, res) => {
+  try {
+    const [faqs] = await db.query('SELECT * FROM faqs ORDER BY id ASC');
+    res.json(faqs);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch FAQs' });
+  }
+});
 
 
 app.listen(PORT, () => {

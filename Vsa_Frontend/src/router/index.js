@@ -6,6 +6,8 @@ import PrivacyPolicy from '@/components/PrivacyPolicy.vue'
 import CancellationRefunds from '@/components/CancellationRefunds.vue'
 import ShippingPolicy from '@/components/ShippingPolicy.vue'
 import TermsConditions from '@/components/TermsConditions.vue'
+import RefundPolicy from '@/components/RefundPolicy.vue'
+import FAQ from '@/components/FAQ.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -40,9 +42,19 @@ const router = createRouter({
       component: ShippingPolicy
     },
     {
+      path : '/refund-policy',
+      name : 'RefundPolicy',
+      component: RefundPolicy
+    },
+    {
       path : '/cancellation-refunds',
       name : 'CancellationRefunds',
       component: CancellationRefunds
+    },
+    {
+      path : '/faq',
+      name : 'FAQ',
+      component : FAQ
     }
   ],
 })

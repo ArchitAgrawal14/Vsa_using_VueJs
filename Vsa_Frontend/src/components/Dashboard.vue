@@ -2,17 +2,6 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 
-const products = ref([])
-
-onMounted(async () => {
-  try {
-    const res = await axios.get('http://localhost:3000/api/products')
-    products.value = res.data
-  } catch (error) {
-    products.value = 'Error connecting to backend'
-    console.error(error)
-  }
-})
 </script>
 
 <template>

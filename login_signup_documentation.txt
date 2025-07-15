@@ -1,0 +1,605 @@
+
+# 📘 Express.js API Documentation — `Signup Endpoint (/vsa/signup)`
+
+## 🛠 Technologies Used:
+
+* **Backend:** Express.js
+* **Frontend:** Vue.js
+* **Database:** MySQL
+* **Authentication:** JWT (JSON Web Token)
+* **Email Service:** Nodemailer (using SMTP via GoDaddy)
+* **Security:** bcryptjs (password hashing)
+* **Utility:** UUID for unique user IDs
+
+---
+
+## 🌐 Endpoint: `POST /vsa/signup`
+
+### 🔍 Description:
+
+This endpoint handles user registration. It validates input fields, checks for duplicate users, hashes passwords securely, stores user data in the MySQL database, and sends a verification email.
+
+---
+
+### 📥 Request Body (JSON):
+
+
+{
+  "email": "user@example.com",
+  "password": "Pass1234",
+  "confirmPassword": "Pass1234",
+  "fullName": "John Doe",
+  "mobile": "+1234567890"
+}
+
+
+---
+
+### ✅ Validations Performed:
+
+| Field             | Validation Rule                                                |
+| ----------------- | -------------------------------------------------------------- |
+| `email`           | Must be in proper email format (`abc@xyz.com`)                 |
+| `mobile`          | Must contain 6–14 digits, optionally with `+` and country code |
+| `password`        | Minimum 6 characters, must contain letters and numbers         |
+| `confirmPassword` | Must match the `password` field                                |
+
+---
+
+### 🧩 Middleware Involved:
+
+* `validateSignup`: Performs schema-level validation for incoming signup data.
+* `handleValidationErrors`: Returns a `400 Bad Request` if validation fails.
+
+---
+
+### 🧠 Internal Processing:
+
+1. **Input Logging (for debug)**:
+   Logs the input fields to the console (can be removed in production).
+
+2. **Regex Validation**:
+   Validates `email`, `mobile`, and `password` using regex.
+
+3. **Duplicate Email Check**:
+   Queries the database to check if the user with the same email already exists.
+
+4. **Password Hashing**:
+   Uses `bcryptjs` to securely hash the password with 12 salt rounds.
+
+5. **UUID Generation**:
+   Generates a unique `user_id` using `uuidv4()`.
+
+6. **MySQL Insert Query**:
+   Stores the new user into the `users` table with hashed password.
+
+7. **Email Verification Trigger**:
+   Calls `verifyUserEmail(email)` to send a verification link (implementation not shown here).
+
+---
+
+### 📨 Email Configuration:
+
+Uses **Nodemailer** to send emails through GoDaddy’s SMTP:
+
+js
+const transporter = nodemailer.createTransport({
+  host: "smtpout.secureserver.net",
+  port: 465,
+  secure: true,
+  auth: {
+    user: process.env.NODE_MAILER_EMAIL_VALIDATOR_EMAIL,
+    pass: process.env.NODE_MAILER_EMAIL_VALIDATOR_PASSWORD,
+  },
+});
+
+
+---
+
+### 📤 Sample Success Response:
+
+
+{
+  "success": true,
+  "message": "Account created successfully! We have sent a verification link click and login to continue."
+}
+
+
+---
+
+### ❌ Sample Error Responses:
+
+**Invalid Email Format:**
+
+
+{
+  "success": false,
+  "message": "Invalid email format"
+}
+
+
+**User Already Exists:**
+
+
+{
+  "success": false,
+  "message": "User already exists with this email, login to continue"
+}
+
+
+**Server Error:**
+
+
+{
+  "success": false,
+  "message": "Internal server error. Please try again later."
+}
+
+
+---
+
+### 🗃 Database Table: `users`
+
+Structure for `users` table:
+
+
+CREATE TABLE users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id VARCHAR(70),
+  full_name VARCHAR(255) NOT NULL,
+  mobile VARCHAR(15) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  is_admin BOOLEAN DEFAULT FALSE,
+  is_verified BOOLEAN DEFAULT FALSE,
+  verification_token TEXT DEFAULT NULL,
+  reset_otp VARCHAR(10),
+  otp_expiry TIMESTAMP NULL, 
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  last_login TIMESTAMP NULL,
+  login_attempts INT DEFAULT 0,
+  locked_until TIMESTAMP NULL,
+  created_by VARCHAR(50) DEFAULT 'self'
+);
+
+
+---
+
+### 📌 Notes:
+
+* The actual implementation of `verifyUserEmail(email)` is abstracted — it's expected to send an email with a tokenized verification link.
+* Make sure environment variables like `JWT_SECRET`, `NODE_MAILER_EMAIL_VALIDATOR_EMAIL`, and `NODE_MAILER_EMAIL_VALIDATOR_PASSWORD` are properly defined in `.env`.
+* Avoid logging sensitive info like raw passwords in production.
+
+
+Here's the **complete, clean, and developer-friendly documentation** for your `POST /vsa/login` route and the supporting helper functions: `verifyUserEmail` and `isUserAdmin`.
+
+---
+
+# 📘 Express.js API Documentation — `Login Endpoint (/vsa/login)`
+
+## 🛠 Technologies Used:
+
+* **Backend:** Express.js
+* **Frontend:** Vue.js
+* **Database:** MySQL
+* **Authentication:** JWT (Access + Refresh Token)
+* **Email:** Nodemailer for email verification
+* **Security:** bcryptjs for password hashing
+
+---
+
+## 🌐 Endpoint: `POST /vsa/login`
+
+### 🔍 Description:
+
+This endpoint allows users (admin or regular) to log into the system. It performs field validation, verifies email, checks credentials, logs login attempts, and returns a JWT token if successful.
+
+---
+
+### 📥 Request Body:
+
+
+{
+  "email": "user@example.com",
+  "password": "Pass1234",
+  "captcha": "gXg1fz"   // Expected from frontend for bot-prevention
+}
+
+
+---
+
+### ✅ Validations Performed:
+
+| Field      | Validation Rule                                                    |
+| ---------- | ------------------------------------------------------------------ |
+| `email`    | Must follow valid email format (`abc@xyz.com`)                     |
+| `captcha`  | Must not be null (server assumes CAPTCHA is validated client-side) |
+| `password` | Cannot be null or empty                                            |
+
+---
+
+### 🧩 Middleware Used:
+
+* `validateLogin`: Ensures required fields are present and formatted properly.
+* `handleValidationErrors`: Returns appropriate error messages for failed validations.
+
+---
+
+### 🧠 Processing Logic:
+
+1. **Field Null Checks**:
+   If any field is missing, return a `401 Unauthorized`.
+
+2. **Email Format Check**:
+   Uses regex to ensure a valid email format. Returns `400 Bad Request` if invalid.
+
+3. **Database Lookup**:
+   Checks if user exists in the `users` table by email.
+
+4. **Email Verification Check**:
+
+   * If the user is **not verified** (`is_verified !== 1`), sends a fresh verification email.
+   * Responds with status `400` and instructs the user to check their inbox.
+
+5. **Admin/User Handling**:
+   Calls `isUserAdmin(...)` with the `isAdmin` flag to complete login logic.
+
+6. **If User Not Found**:
+
+   * Logs failed login in `login_logs` table.
+   * Responds with `401 Unauthorized`.
+
+7. **Error Handling**:
+
+   * Logs errors to console and DB.
+   * Sends `500 Internal Server Error`.
+
+---
+
+### 📨 Helper: `verifyUserEmail(email)`
+
+Sends a verification email to the user with a unique token.
+
+#### 🔑 Steps:
+
+* Generates a 32-byte token using `crypto`.
+* Stores token in `users.verification_token`.
+* Constructs a verification link using the token.
+* Sends HTML-styled email using `nodemailer`.
+
+#### 📤 Email Content:
+
+Includes:
+
+* Personalized greeting
+* "Verify Email" button
+* Link: `http://localhost:3000/vsa/verify-email?token=<token>`
+
+> ⚠️ In production, the link should use the deployed frontend URL (e.g., `https://vaibhavskatingacademy.com/vsa/verify-email?...`).
+
+---
+
+### 🧠 Helper: `isUserAdmin(password, user, isAdmin, res)`
+
+Handles login logic for both **admin** and **regular** users.
+
+#### 📋 Steps:
+
+1. **Password Comparison**:
+   Uses `bcrypt.compare()` to match plaintext with hashed password.
+
+2. **Invalid Password**:
+   Returns `401 Unauthorized`.
+
+3. **Login Success**:
+
+   * Updates `last_login` timestamp.
+   * Generates:
+
+     * **JWT token** (`expiresIn: 1 day`)
+     * **Refresh token** (`expiresIn: 7 days`)
+   * Logs successful login in `login_logs`.
+
+4. **Response:**
+
+
+{
+  "success": true,
+  "message": "Login successful , Welcome back",
+  "data": {
+    "token": "<access-token>",
+    "refreshToken": "<refresh-token>",
+    "user": {
+      "id": 1,
+      "fullName": "John Doe",
+      "email": "john@example.com",
+      "isAdmin": false,
+      "mobile": "9876543210"
+    }
+  }
+}
+
+
+---
+
+### 🗃 Database Table: `login_logs`
+
+Logs every login attempt.
+
+#### 📌 Columns:
+
+sql
+CREATE TABLE login_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id VARCHAR(36),
+  email VARCHAR(100),
+  success BOOLEAN,
+  failure_reason TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+---
+
+### ❌ Sample Error Responses:
+
+**Invalid Email Format:**
+
+
+{ "success": false, "message": "Invalid email format" }
+
+
+**User Not Verified:**
+
+
+{ "success": false, "message": "User is not verified, Check email and click the verification link" }
+
+
+**User Doesn’t Exist:**
+
+
+{ "success": false, "message": "User does not exist , Please Sign up to continue your journey" }
+
+
+**Invalid Password:**
+
+
+{ "success": false, "message": "Invalid email or password" }
+
+
+**Internal Server Error:**
+
+
+{ "success": false, "message": "Internal server error. Please try again later." }
+
+
+---
+
+## 📌 Summary
+
+This login endpoint ensures:
+
+✅ Field validation
+✅ Password security
+✅ Email verification
+✅ Role-based logic
+✅ Audit trail via `login_logs`
+✅ Token-based authentication (JWT + refresh token)
+
+---
+
+
+Here is the **well-structured, professional documentation** for the last two endpoints you provided:
+
+---
+
+# 📘 Express.js API Documentation — Refresh Token & Email Verification
+
+## 🛠 Technologies Used:
+
+* **Backend:** Express.js
+* **Database:** MySQL
+* **Authentication:** JWT (Access + Refresh Token)
+* **Frontend (redirects):** Vue.js assumed
+* **Security:** JWT Signature Validation
+
+---
+
+## 🌐 1. `POST /vsa/refresh-token`
+
+### 🔍 Description:
+
+This endpoint is used to **refresh a user's JWT access token** using a valid refresh token. It is typically called silently by the frontend when the access token expires, allowing the user to stay logged in without needing to re-enter credentials.
+
+---
+
+### 📥 Request Body:
+
+
+{
+  "refreshToken": "<valid_refresh_token>"
+}
+
+
+---
+
+### ✅ Validations Performed:
+
+| Field          | Validation                                                                      |
+| -------------- | ------------------------------------------------------------------------------- |
+| `refreshToken` | Must be present and valid (JWT verified using secret)                           |
+| User existence | Checks if the user still exists in DB (helps with deleted/deactivated accounts) |
+
+---
+
+### 🧠 Processing Logic:
+
+1. **Token Validation**:
+   Decodes and verifies the JWT refresh token using the same secret.
+
+2. **User Lookup**:
+   Finds the user in the `users` table using the decoded `userId`.
+
+3. **New Tokens Issued**:
+
+   * **Access Token**: Valid for 15 minutes.
+   * **Refresh Token**: Valid for 7 days.
+
+---
+
+### 📤 Success Response:
+
+
+{
+  "success": true,
+  "data": {
+    "token": "<new_access_token>",
+    "refreshToken": "<new_refresh_token>"
+  }
+}
+
+
+---
+
+### ❌ Failure Responses:
+
+**Missing Token:**
+
+
+{ "success": false, "message": "Refresh token required" }
+
+
+**Invalid/Expired Token or User:**
+
+
+{ "success": false, "message": "Invalid refresh token" }
+
+
+---
+
+## 🔐 Token Structure (Payload)
+
+**Access Token:**
+
+
+{
+  "userId": 1,
+  "email": "user@example.com",
+  "isAdmin": false,
+  "firstName": "John",
+  "exp": 1234567890
+}
+
+
+**Refresh Token:**
+
+
+{
+  "userId": 1,
+  "exp": 1234567890
+}
+
+
+---
+
+## 🌐 2. `GET /vsa/verify-email`
+
+### 🔍 Description:
+
+This endpoint handles **email verification**. It is triggered when a user clicks the email verification link sent after signup. The token is matched against the `users.verification_token` field in the database.
+
+---
+
+### 📥 Query Parameters:
+
+http
+/vsa/verify-email?token=<verification_token>
+
+
+---
+
+### 🧠 Processing Logic:
+
+1. **Token Validation**:
+
+   * Looks up the user using the verification token.
+
+2. **User Exists & Not Verified**:
+
+   * Updates the `is_verified` column to `TRUE`.
+
+3. **User Already Verified**:
+
+   * Redirects with an appropriate message.
+
+4. **No Matching Token or Error**:
+
+   * Redirects with an error message.
+
+---
+
+### 🧾 Expected Frontend Redirects:
+
+The backend redirects to your frontend login page with query params:
+
+
+BASE_URL/login?verified=<status>&message=<text>
+
+
+| Status    | Description                     |
+| --------- | ------------------------------- |
+| `success` | User successfully verified      |
+| `error`   | Invalid token or error occurred |
+| `info`    | Email already verified          |
+
+---
+
+### 🔁 Examples:
+
+✅ **Successful Verification**:
+
+
+/vsa/verify-email?token=abcd1234
+→ Redirects to /login?verified=success&message=Your%20email%20has%20been%20verified%20successfully!
+
+
+❌ **Invalid or Expired Token**:
+
+
+/vsa/verify-email?token=invalid
+→ Redirects to /login?verified=error&message=Email%20verification%20failed.%20Invalid%20or%20expired%20token.
+
+
+---
+
+## 📦 Environment Variables Required:
+
+| Key                                    | Description                                     |
+| -------------------------------------- | ----------------------------------------------- |
+| `PORT`                                 | Server port                                     |
+| `JWT_SECRET`                           | Secret for signing access and refresh tokens    |
+| `BASE_URL`                             | Frontend base URL (used for email verification) |
+| `NODE_MAILER_EMAIL_VALIDATOR_EMAIL`    | SMTP email sender address                       |
+| `NODE_MAILER_EMAIL_VALIDATOR_PASSWORD` | SMTP email sender password                      |
+
+---
+
+## 🗃 Related Database Columns (in `users` table):
+
+sql
+COLUMN verification_token VARCHAR(64);
+COLUMN is_verified BOOLEAN DEFAULT FALSE;
+
+
+---
+
+## ✅ Summary
+
+| Endpoint                  | Purpose                       | Auth Required | Redirect | Token Rotation |
+| ------------------------- | ----------------------------- | ------------- | -------- | -------------- |
+| `POST /vsa/refresh-token` | Refreshes JWT token           | ❌ No          | ❌        | ✅ Yes          |
+| `GET /vsa/verify-email`       | Verifies user via email token | ❌ No          | ✅ Yes    | ❌ No           |
+
+---

@@ -341,7 +341,6 @@ app.get('/vsa/faq', async (req, res) => {
     const [faqs] = await db.query('SELECT * FROM faqs ORDER BY id ASC');
     res.json(faqs);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: 'Failed to fetch FAQs' });
   }
 });
@@ -350,8 +349,7 @@ app.get('/vsa/privacy-policy', async (req, res) => {
   try {
     const [policies] = await db.query('SELECT * FROM privacy_policies ORDER BY id ASC');
     res.json(policies);
-  } catch (err) {
-    console.error('Error fetching privacy policy:', err);
+  } catch (err) {    
     res.status(500).json({ error: 'Failed to fetch privacy policy' });
   }
 });
@@ -361,7 +359,6 @@ app.get('/vsa/refund-policy', async (req, res) => {
     const [refunds] = await db.query('SELECT * FROM refund_policies ORDER BY id ASC');
     res.json(refunds);
   } catch (err) {
-    console.error('Error fetching refund policy:', err);
     res.status(500).json({ error: 'Failed to fetch refund policy' });
   }
 });
@@ -371,7 +368,6 @@ app.get('/vsa/return-policy', async (req, res) => {
     const [returnPolicy] = await db.query('SELECT * FROM return_policies ORDER BY step_number ASC');
     res.json(returnPolicy);
   } catch (err) {
-    console.error('Error fetching return policy:', err);
     res.status(500).json({ error: 'Failed to fetch return policy' });
   }
 });
@@ -381,7 +377,6 @@ app.get('/vsa/shipping-policy', async (req, res) => {
     const [shippingPolicies] = await db.query('SELECT * FROM shipping_policies ORDER BY id ASC');
     res.json(shippingPolicies);
   } catch (err) {
-    console.error('Error fetching shipping policy:', err);
     res.status(500).json({ error: 'Failed to fetch shipping policy' });
   }
 });
@@ -391,7 +386,6 @@ app.get('/vsa/terms-conditions', async (req, res) => {
     const [terms] = await db.query('SELECT * FROM terms_and_conditions ORDER BY id ASC');
     res.json(terms);
   } catch (err) {
-    console.error('Error fetching terms:', err);
     res.status(500).json({ error: 'Failed to fetch terms and conditions' });
   }
 });
@@ -401,10 +395,10 @@ app.get('/vsa/cancellation-refunds', async (req, res) => {
     const [results] = await db.query('SELECT * FROM cancellation_refunds ORDER BY id ASC');
     res.json({ success: true, data: results });
   } catch (err) {
-    console.error('Error fetching cancellation and refunds:', err);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
 
 app.listen(PORT, () => {
   console.log(`Backend running at http://localhost:${PORT}`);

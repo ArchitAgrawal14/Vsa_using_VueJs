@@ -1,72 +1,32 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Dashboard from '@/components/Dashboard.vue'
-import Login from '@/components/Login.vue'
-import ReturnPolicy from '@/components/footer_components/ReturnPolicy.vue'
-import PrivacyPolicy from '@/components/footer_components/PrivacyPolicy.vue'
-import CancellationRefunds from '@/components/footer_components/CancellationRefunds.vue'
-import ShippingPolicy from '@/components/footer_components/ShippingPolicy.vue'
-import TermsConditions from '@/components/footer_components/TermsConditions.vue'
-import RefundPolicy from '@/components/footer_components/RefundPolicy.vue'
-import FAQ from '@/components/footer_components/FAQ.vue'
+import authRoutes from './authRoutes'
+import footerRoutes from './footerRoutes'
+import shopRoutes from './shopRoutes'
+
+const routes = [
+  {
+    path: '/',
+    name: 'dashboard',
+    component: Dashboard
+  },
+  ...authRoutes,
+  ...footerRoutes,
+  ...shopRoutes
+]
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [
-    {
-      path: '/',
-      name: 'dashboard',
-      component: Dashboard
-    },
-    {
-      path : '/login',
-      name : 'login',
-      component : Login
-    },
-    {
-      path : '/return-policy',
-      name : 'ReturnPolicy',
-      component: ReturnPolicy
-    },
-    {
-      path : '/terms-and-conditions',
-      name : 'TermsConditions',
-      component: TermsConditions
-    },
-    {
-      path : '/privacy-policy',
-      name : 'PrivacyPolicy',
-      component: PrivacyPolicy
-    },
-    {
-      path : '/shipping-policy',
-      name : 'ShippingPolicy',
-      component: ShippingPolicy
-    },
-    {
-      path : '/refund-policy',
-      name : 'RefundPolicy',
-      component: RefundPolicy
-    },
-    {
-      path : '/cancellation-refunds',
-      name : 'CancellationRefunds',
-      component: CancellationRefunds
-    },
-    {
-      path : '/faq',
-      name : 'FAQ',
-      component : FAQ
-    }
-  ],
+  routes
 })
 
-// Navigation guard to not allow the user to go to Login page after successfull login
+// Navigation guard
 router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('token')
   if (to.name === 'login' && token) {
-    return next({ name: 'dashboard' });
+    return next({ name: 'dashboard' })
   }
-  next();
-});
-
+  next()
+})
 
 export default router

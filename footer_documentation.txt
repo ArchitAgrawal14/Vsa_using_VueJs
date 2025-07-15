@@ -1,0 +1,143 @@
+Here’s a clear and well-organized documentation for your various policy and FAQ GET endpoints:
+
+---
+
+# 📘 Express.js API Documentation — Static Content Endpoints
+
+## 🛠 Technologies Used:
+
+* **Backend:** Express.js
+* **Database:** MySQL
+* **Frontend:** Vue.js (assumed)
+
+---
+
+## Overview
+
+These endpoints serve static informational content such as FAQs, privacy policies, refund policies, return policies, shipping policies, terms & conditions, and cancellation/refund details. Data is fetched from respective MySQL tables and returned as JSON.
+
+All endpoints use simple `GET` requests and **do not require authentication**.
+
+---
+
+## 🌐 Endpoints:
+
+---
+
+### 1. `GET /vsa/faq`
+
+* **Description:** Returns the list of Frequently Asked Questions (FAQs).
+* **Response:**
+
+  * **Success (200):** Array of FAQ objects sorted by ascending `id`.
+  * **Failure (500):** `{ error: 'Failed to fetch FAQs' }`
+* **Sample Response:**
+
+
+[
+  { "id": 1, "question": "How to sign up?", "answer": "Use the signup form..." },
+  { "id": 2, "question": "What payment methods are accepted?", "answer": "We accept..." }
+]
+
+
+---
+
+### 2. `GET /vsa/privacy-policy`
+
+* **Description:** Returns privacy policy entries.
+* **Response:**
+
+  * **Success (200):** Array of privacy policy paragraphs sorted by `id`.
+  * **Failure (500):** `{ error: 'Failed to fetch privacy policy' }`
+
+---
+
+### 3. `GET /vsa/refund-policy`
+
+* **Description:** Returns refund policy content.
+* **Response:**
+
+  * **Success (200):** Array of refund policy items sorted by `id`.
+  * **Failure (500):** `{ error: 'Failed to fetch refund policy' }`
+
+---
+
+### 4. `GET /vsa/return-policy`
+
+* **Description:** Returns return policy steps.
+* **Response:**
+
+  * **Success (200):** Array of return policy steps sorted by `step_number`.
+  * **Failure (500):** `{ error: 'Failed to fetch return policy' }`
+
+---
+
+### 5. `GET /vsa/shipping-policy`
+
+* **Description:** Returns shipping policy information.
+* **Response:**
+
+  * **Success (200):** Array of shipping policy details sorted by `id`.
+  * **Failure (500):** `{ error: 'Failed to fetch shipping policy' }`
+
+---
+
+### 6. `GET /vsa/terms-conditions`
+
+* **Description:** Returns terms and conditions content.
+* **Response:**
+
+  * **Success (200):** Array of terms and conditions items sorted by `id`.
+  * **Failure (500):** `{ error: 'Failed to fetch terms and conditions' }`
+
+---
+
+### 7. `GET /vsa/cancellation-refunds`
+
+* **Description:** Returns cancellation and refund policy entries.
+* **Response:**
+
+  * **Success (200):** JSON object containing:
+
+    
+    {
+      "success": true,
+      "data": [ ...cancellation/refund entries... ]
+    }
+    
+  * **Failure (500):**
+
+    
+    {
+      "success": false,
+      "message": "Server error"
+    }
+    
+
+---
+
+## 🗃 Database Tables (Example Structures)
+
+| Endpoint             | Table Name             | Sorting Column    |
+| -------------------- | ---------------------- | ----------------- |
+| FAQ                  | `faqs`                 | `id ASC`          |
+| Privacy Policy       | `privacy_policies`     | `id ASC`          |
+| Refund Policy        | `refund_policies`      | `id ASC`          |
+| Return Policy        | `return_policies`      | `step_number ASC` |
+| Shipping Policy      | `shipping_policies`    | `id ASC`          |
+| Terms & Conditions   | `terms_and_conditions` | `id ASC`          |
+| Cancellation Refunds | `cancellation_refunds` | `id ASC`          |
+
+---
+
+## 🔑 Notes:
+
+* These endpoints return raw content data from the database for frontend consumption.
+* Error handling returns a **500 Internal Server Error** with a clear message on failure.
+* Frontend can display these policies on respective static informational pages.
+* No authentication or authorization is required.
+
+---
+
+
+

@@ -526,10 +526,7 @@
           <!-- Quick Links -->
           <div class="text-center">
             <div class="flex flex-wrap justify-center gap-4 text-sm">
-              <a href="/about" class="text-gray-600 hover:text-blue-600 transition-colors">About</a>
-              <a href="/contact" class="text-gray-600 hover:text-blue-600 transition-colors"
-                >Contact</a
-              >
+              <a href="/about" class="text-gray-600 hover:text-blue-600 transition-colors">About</a>              
               <a href="/faq" class="text-gray-600 hover:text-blue-600 transition-colors">FAQ</a>
               <a href="/privacy-policy" class="text-gray-600 hover:text-blue-600 transition-colors"
                 >Privacy</a

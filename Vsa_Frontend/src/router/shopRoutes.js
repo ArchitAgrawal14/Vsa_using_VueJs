@@ -29,5 +29,5 @@ export default [
     path: '/accessories',
     name: 'Accessories',
     component: Accessories
-  }
+  },
 ]

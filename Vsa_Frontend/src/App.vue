@@ -9,8 +9,7 @@ const route = useRoute();
 <template>
   <div>
     <Header v-if="route.path !== '/login'" />
-    <router-view />
-    <Dashboard />
+    <router-view />    
     <Footer></Footer>
   </div>
 </template>

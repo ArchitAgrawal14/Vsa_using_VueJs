@@ -46,5 +46,5 @@ export default [
     path: '/about',
     name: 'About',
     component: About
-  }
+  },
 ]

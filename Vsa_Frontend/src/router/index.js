@@ -3,6 +3,7 @@ import Dashboard from '@/components/Dashboard.vue'
 import authRoutes from './authRoutes'
 import footerRoutes from './footerRoutes'
 import shopRoutes from './shopRoutes'
+import AdminDashboard from '@/components/AdminDashboard.vue'
 
 const routes = [
   {
@@ -10,9 +11,14 @@ const routes = [
     name: 'dashboard',
     component: Dashboard
   },
+  {
+    path: '/admin-dashboard',
+    name: 'AdminDashboard',
+    component: AdminDashboard
+  },
   ...authRoutes,
   ...footerRoutes,
-  ...shopRoutes
+  ...shopRoutes,
 ]
 
 const router = createRouter({

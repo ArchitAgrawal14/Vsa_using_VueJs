@@ -473,7 +473,11 @@ export default {
             }
             this.showToast('success', response.data.message);
             this.clearForms();
-            this.$router.replace('/dashboard');
+            if (!response.data.data.user.isAdmin) {
+              this.$router.replace('/');
+            } else {
+              this.$router.replace('/admin-dashboard');
+            } 
           }
         } else {
           if (!this.signupForm.fullName || !this.signupForm.mobile || !this.signupForm.email || !this.signupForm.password) {
@@ -560,7 +564,7 @@ export default {
             }
 
             this.showToast('success', response.data.message);
-            this.$router.push('/dashboard');
+            this.$router.push('/');
           }
         } catch (error) {
           console.error('Token exchange failed:', error);

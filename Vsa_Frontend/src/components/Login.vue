@@ -36,7 +36,8 @@
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
             <polyline points="22,4 12,14.01 9,11.01"></polyline>
           </svg>
-          <svg v-else-if="toast.type === 'error'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg v-else-if="toast.type === 'error'" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="15" y1="9" x2="9" y2="15"></line>
             <line x1="9" y1="9" x2="15" y2="15"></line>
@@ -72,16 +73,10 @@
 
       <!-- Toggle Buttons -->
       <div class="toggle-container">
-        <button 
-          :class="['toggle-btn', { active: isLogin }]"
-          @click="switchMode(true)"
-        >
+        <button :class="['toggle-btn', { active: isLogin }]" @click="switchMode(true)">
           Sign In
         </button>
-        <button 
-          :class="['toggle-btn', { active: !isLogin }]"
-          @click="switchMode(false)"
-        >
+        <button :class="['toggle-btn', { active: !isLogin }]" @click="switchMode(false)">
           Sign Up
         </button>
       </div>
@@ -98,13 +93,7 @@
                   <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                   <polyline points="22,6 12,13 2,6"></polyline>
                 </svg>
-                <input 
-                  v-model="loginForm.email"
-                  type="email" 
-                  placeholder="Email"
-                  class="form-input"
-                  required
-                />
+                <input v-model="loginForm.email" type="email" placeholder="Email" class="form-input" required />
               </div>
             </div>
 
@@ -116,20 +105,13 @@
                   <circle cx="12" cy="16" r="1"></circle>
                   <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                 </svg>
-                <input 
-                  v-model="loginForm.password"
-                  :type="showPassword ? 'text' : 'password'"
-                  placeholder="Password"
-                  class="form-input"
-                  required
-                />
-                <button 
-                  type="button"
-                  @click="showPassword = !showPassword"
-                  class="password-toggle"
-                >
+                <input v-model="loginForm.password" :type="showPassword ? 'text' : 'password'" placeholder="Password"
+                  class="form-input" required />
+                <button type="button" @click="showPassword = !showPassword" class="password-toggle">
                   <svg v-if="showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94L17.94 17.94z"></path>
+                    <path
+                      d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94L17.94 17.94z">
+                    </path>
                     <line x1="1" y1="1" x2="23" y2="23"></line>
                   </svg>
                   <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -145,22 +127,16 @@
               <div class="captcha-container">
                 <div class="captcha-code">{{ captchaCode }}</div>
                 <button type="button" @click="refreshCaptcha" class="captcha-refresh">
-                    <i class="fas fa-sync-alt"></i>
+                  <i class="fas fa-sync-alt"></i>
                 </button>
               </div>
-              <input 
-                v-model="captcha"
-                type="text" 
-                placeholder="Enter CAPTCHA"
-                class="form-input"
-                required
-              />
+              <input v-model="captcha" type="text" placeholder="Enter CAPTCHA" class="form-input" required />
             </div>
 
             <button type="submit" class="submit-btn" :disabled="isLoading">
-                <span v-if="isLoading" class="loading-spinner"></span>
-                <span v-if="!isLoading">Sign In</span>
-                <span v-else>Signing In...</span>
+              <span v-if="isLoading" class="loading-spinner"></span>
+              <span v-if="!isLoading">Sign In</span>
+              <span v-else>Signing In...</span>
             </button>
 
             <div class="divider">
@@ -168,19 +144,23 @@
             </div>
 
             <button type="button" @click="handleGoogleSignIn" class="google-btn" :disabled="isLoading">
-                <span v-if="isLoading" class="loading-spinner"></span>
-                <svg v-if="!isLoading" class="google-icon" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-               </svg>
-                <span v-if="!isLoading">Continue with Google</span>
-                <span v-else>Signing In...</span>
+              <span v-if="isLoading" class="loading-spinner"></span>
+              <svg v-if="!isLoading" class="google-icon" viewBox="0 0 24 24">
+                <path fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                <path fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+              </svg>
+              <span v-if="!isLoading">Continue with Google</span>
+              <span v-else>Signing In...</span>
             </button>
 
             <p class="form-footer">
-              Don't have an account? 
+              Don't have an account?
               <button type="button" @click="switchMode(false)" class="switch-link">
                 Sign up here
               </button>
@@ -198,13 +178,7 @@
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                   <circle cx="12" cy="7" r="4"></circle>
                 </svg>
-                <input 
-                  v-model="signupForm.fullName"
-                  type="text" 
-                  placeholder="Full name"
-                  class="form-input"
-                  required
-                />
+                <input v-model="signupForm.fullName" type="text" placeholder="Full name" class="form-input" required />
               </div>
             </div>
 
@@ -212,15 +186,11 @@
               <label class="form-label">Mobile Number</label>
               <div class="input-group">
                 <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                  <path
+                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
+                  </path>
                 </svg>
-                <input 
-                  v-model="signupForm.mobile"
-                  type="tel" 
-                  placeholder="Mobile number"
-                  class="form-input"
-                  required
-                />
+                <input v-model="signupForm.mobile" type="tel" placeholder="Mobile number" class="form-input" required />
               </div>
             </div>
 
@@ -231,13 +201,7 @@
                   <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                   <polyline points="22,6 12,13 2,6"></polyline>
                 </svg>
-                <input 
-                  v-model="signupForm.email"
-                  type="email" 
-                  placeholder="Email"
-                  class="form-input"
-                  required
-                />
+                <input v-model="signupForm.email" type="email" placeholder="Email" class="form-input" required />
               </div>
             </div>
 
@@ -249,20 +213,13 @@
                   <circle cx="12" cy="16" r="1"></circle>
                   <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                 </svg>
-                <input 
-                  v-model="signupForm.password"
-                  :type="showPassword ? 'text' : 'password'"
-                  placeholder="Create a password"
-                  class="form-input"
-                  required
-                />
-                <button 
-                  type="button"
-                  @click="showPassword = !showPassword"
-                  class="password-toggle"
-                >
+                <input v-model="signupForm.password" :type="showPassword ? 'text' : 'password'"
+                  placeholder="Create a password" class="form-input" required />
+                <button type="button" @click="showPassword = !showPassword" class="password-toggle">
                   <svg v-if="showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94L17.94 17.94z"></path>
+                    <path
+                      d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94L17.94 17.94z">
+                    </path>
                     <line x1="1" y1="1" x2="23" y2="23"></line>
                   </svg>
                   <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -281,20 +238,14 @@
                   <circle cx="12" cy="16" r="1"></circle>
                   <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                 </svg>
-                <input 
-                  v-model="signupForm.confirmPassword"
-                  :type="showConfirmPassword ? 'text' : 'password'"
-                  placeholder="Confirm your password"
-                  class="form-input"
-                  required
-                />
-                <button 
-                  type="button"
-                  @click="showConfirmPassword = !showConfirmPassword"
-                  class="password-toggle"
-                >
-                  <svg v-if="showConfirmPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94L17.94 17.94z"></path>
+                <input v-model="signupForm.confirmPassword" :type="showConfirmPassword ? 'text' : 'password'"
+                  placeholder="Confirm your password" class="form-input" required />
+                <button type="button" @click="showConfirmPassword = !showConfirmPassword" class="password-toggle">
+                  <svg v-if="showConfirmPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <path
+                      d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94L17.94 17.94z">
+                    </path>
                     <line x1="1" y1="1" x2="23" y2="23"></line>
                   </svg>
                   <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -310,22 +261,16 @@
               <div class="captcha-container">
                 <div class="captcha-code">{{ captchaCode }}</div>
                 <button type="button" @click="refreshCaptcha" class="captcha-refresh">
-                    <i class="fas fa-sync-alt"></i>
+                  <i class="fas fa-sync-alt"></i>
                 </button>
               </div>
-              <input 
-                v-model="captcha"
-                type="text" 
-                placeholder="Enter CAPTCHA"
-                class="form-input"
-                required
-              />
+              <input v-model="captcha" type="text" placeholder="Enter CAPTCHA" class="form-input" required />
             </div>
 
             <button type="submit" class="submit-btn" :disabled="isLoading">
-                <span v-if="isLoading" class="loading-spinner"></span>
-                <span v-if="!isLoading">Create Account</span>
-                <span v-else>Creating Account...</span>
+              <span v-if="isLoading" class="loading-spinner"></span>
+              <span v-if="!isLoading">Create Account</span>
+              <span v-else>Creating Account...</span>
             </button>
 
             <div class="divider">
@@ -333,19 +278,23 @@
             </div>
 
             <button type="button" @click="handleGoogleSignIn" class="google-btn" :disabled="isLoading">
-                <span v-if="isLoading" class="loading-spinner"></span>
-                <svg v-if="!isLoading" class="google-icon" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-               </svg>
-                <span v-if="!isLoading">Continue with Google</span>
-                <span v-else>Signing In...</span>
+              <span v-if="isLoading" class="loading-spinner"></span>
+              <svg v-if="!isLoading" class="google-icon" viewBox="0 0 24 24">
+                <path fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                <path fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+              </svg>
+              <span v-if="!isLoading">Continue with Google</span>
+              <span v-else>Signing In...</span>
             </button>
 
             <p class="form-footer">
-              Already have an account? 
+              Already have an account?
               <button type="button" @click="switchMode(true)" class="switch-link">
                 Sign in here
               </button>
@@ -362,7 +311,7 @@ import axios from 'axios';
 
 export default {
   name: 'Login',
-  created(){
+  created() {
     this.setupAxiosInterceptors();
   },
   mounted() {
@@ -371,11 +320,12 @@ export default {
         this.checkVerificationStatus();
       }, 100);
     });
+    this.handleGoogleCallback();
   },
   data() {
     return {
       isLogin: true,
-      isLoading : false,
+      isLoading: false,
       showPassword: false,
       showConfirmPassword: false,
       apiBaseURL: 'http://localhost:3000/vsa',
@@ -427,7 +377,7 @@ export default {
               if (response.data.success) {
                 localStorage.setItem('token', response.data.data.token);
                 localStorage.setItem('refreshToken', response.data.data.refreshToken);
-                
+
                 // Retry original request with new token
                 originalRequest.headers.Authorization = `Bearer ${response.data.data.token}`;
                 return axios(originalRequest);
@@ -442,23 +392,23 @@ export default {
     },
 
     handleLogout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    this.$router.push('/login');
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      this.$router.push('/login');
     },
 
     generateCaptcha() {
       return Math.random().toString(36).substr(2, 6).toUpperCase();
     },
-    
+
     showToast(type, message) {
       this.toast = { type, message };
       setTimeout(() => {
         this.toast = null;
       }, 4000);
     },
-    
+
     switchMode(login) {
       this.isLogin = login;
       this.showPassword = false;
@@ -500,110 +450,136 @@ export default {
         this.refreshCaptcha();
         return;
       }
-      this.isLoading =true;
+      this.isLoading = true;
       try {
-        if(this.isLogin){
-            if(!this.loginForm.email || !this.loginForm.password){
-                this.showToast('error', 'Please fill in all fields.');
-                this.isLoading = false;
-                return;
+        if (this.isLogin) {
+          if (!this.loginForm.email || !this.loginForm.password) {
+            this.showToast('error', 'Please fill in all fields.');
+            this.isLoading = false;
+            return;
+          }
+          const response = await axios.post(`${this.apiBaseURL}/login`, {
+            email: this.loginForm.email,
+            password: this.loginForm.password,
+            captcha: this.captcha
+          });
+          if (response.data.success) {
+            try {
+              localStorage.setItem('token', response.data.data.token);
+              localStorage.setItem('refreshToken', response.data.data.refreshToken);
+              localStorage.setItem('user', JSON.stringify(response.data.data.user));
+            } catch (error) {
+              console.error('Failed to save to localStorage:', error);
             }
-            const response = await axios.post(`${this.apiBaseURL}/login`,{
-                email : this.loginForm.email,
-                password : this.loginForm.password,
-                captcha : this.captcha
-            });
-            if(response.data.success){
-              try{
-                localStorage.setItem('token', response.data.data.token);
-                localStorage.setItem('refreshToken', response.data.data.refreshToken);
-                localStorage.setItem('user' , JSON.stringify(response.data.data.user));
-              }catch (error) {
-                 console.error('Failed to save to localStorage:', error);
-              }
-                this.showToast('success', response.data.message);
-                this.clearForms();
-                this.$router.replace('/dashboard');
-            }
-        }else {
-            if (!this.signupForm.fullName || !this.signupForm.mobile || !this.signupForm.email || !this.signupForm.password) {
-                this.showToast('error', 'Please fill in all fields.');
-                this.isLoading = false;
-                return;
-            }
-            if(this.signupForm.password != this.signupForm.confirmPassword){
-                this.showToast('error', 'Passwords do not match.');
-                this.isLoading = false;
-                return;
-            }   
+            this.showToast('success', response.data.message);
+            this.clearForms();
+            this.$router.replace('/dashboard');
+          }
+        } else {
+          if (!this.signupForm.fullName || !this.signupForm.mobile || !this.signupForm.email || !this.signupForm.password) {
+            this.showToast('error', 'Please fill in all fields.');
+            this.isLoading = false;
+            return;
+          }
+          if (this.signupForm.password != this.signupForm.confirmPassword) {
+            this.showToast('error', 'Passwords do not match.');
+            this.isLoading = false;
+            return;
+          }
 
-            const response  = await axios.post(`${this.apiBaseURL}/signup`,{
-                email : this.signupForm.email,
-                password : this.signupForm.password,
-                fullName : this.signupForm.fullName,
-                mobile : this.signupForm.mobile,
-                captcha : this.captcha,
-                confirmPassword : this.signupForm.confirmPassword
-            });
+          const response = await axios.post(`${this.apiBaseURL}/signup`, {
+            email: this.signupForm.email,
+            password: this.signupForm.password,
+            fullName: this.signupForm.fullName,
+            mobile: this.signupForm.mobile,
+            captcha: this.captcha,
+            confirmPassword: this.signupForm.confirmPassword
+          });
 
-            if(response.data.success){
-              try {                
-                localStorage.setItem('token', response.data.data.token);
-                localStorage.setItem('refreshToken', response.data.data.refreshToken);
-                localStorage.setItem('user', JSON.stringify(response.data.data.user));
-              } catch (error) {
-                console.error('Failed to save to localStorage:', error);
-              }
-                this.showToast('success', response.data.message);
-                this.clearForms();
-                this.$router.push('/login');
+          if (response.data.success) {
+            try {
+              localStorage.setItem('token', response.data.data.token);
+              localStorage.setItem('refreshToken', response.data.data.refreshToken);
+              localStorage.setItem('user', JSON.stringify(response.data.data.user));
+            } catch (error) {
+              console.error('Failed to save to localStorage:', error);
             }
+            this.showToast('success', response.data.message);
+            this.clearForms();
+            this.$router.push('/login');
+          }
         }
       } catch (error) {
-        console.error('API error :',error);
+        console.error('API error :', error);
 
-        if(error.response && error.response.data){
-            this.showToast('error', error.response.data.message || 'An error occurred');
-            if(error.response.data.errors){
-                const errorMessages = error.response.data.error.map(err => err.msg).join(', ');
-                this.showToast('error', errorMessages);
-            }
-        }else {
-            this.showToast('error', 'Network error. Please check your connection.');
+        if (error.response && error.response.data) {
+          this.showToast('error', error.response.data.message || 'An error occurred');
+          if (error.response.data.errors) {
+            const errorMessages = error.response.data.error.map(err => err.msg).join(', ');
+            this.showToast('error', errorMessages);
+          }
+        } else {
+          this.showToast('error', 'Network error. Please check your connection.');
         }
         this.refreshCaptcha();
-        
-      }finally {
-         this.isLoading = false;
-      }      
+
+      } finally {
+        this.isLoading = false;
+      }
     },
-    // Below is incomplete
     async handleGoogleSignIn() {
       this.isLoading = true;
-  
-      try {
-        const response = await axios.post(`${this.apiBaseURL}/google-signin`, {
-          // Add Google token here when implementing actual Google OAuth
-          // googleToken: 'actual-google-token'
-        });
 
-        if (response.data.success) {
-          try {
-            localStorage.setItem('token', response.data.data.token);
-            localStorage.setItem('refreshToken', response.data.data.refreshToken);
-            localStorage.setItem('user', JSON.stringify(response.data.data.user));
-          } catch (error) {
-            console.error('Failed to save to localStorage:', error);
-          }
-          
-          this.showToast('success', response.data.message);
-          this.$router.push('/dashboard');
-        }
+      try {
+        window.location.href = `${this.apiBaseURL}/auth/google`;
       } catch (error) {
         console.error('Google Sign-In Error:', error);
         this.showToast('error', 'Google Sign-In failed. Please try again.');
-      } finally {
         this.isLoading = false;
+      }
+    },
+    async handleGoogleCallback() {
+      // Check if we're on the success page with a token
+      const urlParams = new URLSearchParams(window.location.search);
+      const tempToken = urlParams.get('token');
+
+      if (tempToken && this.$route.path === '/auth/google/success') {
+        try {
+          const response = await axios.post(`${this.apiBaseURL}/google-auth-exchange`, {
+            tempToken
+          });
+
+          if (response.data.success) {
+            // Store auth data
+            try {
+              localStorage.setItem('token', response.data.data.token);
+              localStorage.setItem('refreshToken', response.data.data.refreshToken);
+              localStorage.setItem('user', JSON.stringify(response.data.data.user));
+            } catch (error) {
+              console.error('Failed to save to localStorage:', error);
+            }
+
+            this.showToast('success', response.data.message);
+            this.$router.push('/dashboard');
+          }
+        } catch (error) {
+          console.error('Token exchange failed:', error);
+          this.showToast('error', 'Google Sign-In failed. Please try again.');
+          this.$router.push('/login');
+        }
+      }
+
+      // Handle error cases
+      const errorParam = urlParams.get('error');
+      if (errorParam) {
+        let errorMessage = 'Google Sign-In failed. Please try again.';
+        if (errorParam === 'google_auth_failed') {
+          errorMessage = 'Google authentication was cancelled or failed.';
+        } else if (errorParam === 'callback_failed') {
+          errorMessage = 'Authentication callback failed.';
+        }
+        this.showToast('error', errorMessage);
+        this.$router.push('/login');
       }
     },
     checkVerificationStatus() {
@@ -616,7 +592,7 @@ export default {
       if (verified && message) {
         const decodedMessage = decodeURIComponent(message);
         console.log('Showing toast:', verified, decodedMessage); // Debug log
-        
+
         if (verified === 'success') {
           this.showToast('success', decodedMessage);
         } else if (verified === 'error') {
@@ -624,7 +600,7 @@ export default {
         } else if (verified === 'info') {
           this.showToast('info', decodedMessage);
         }
-        
+
         // Clean up URL parameters
         const newUrl = window.location.pathname;
         window.history.replaceState({}, document.title, newUrl);
@@ -651,8 +627,13 @@ export default {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Button Loading States */
@@ -728,8 +709,15 @@ export default {
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-20px) rotate(5deg); }
+
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-20px) rotate(5deg);
+  }
 }
 
 /* Toast Notification */
@@ -786,7 +774,8 @@ export default {
   opacity: 1;
 }
 
-.toast-enter-active, .toast-leave-active {
+.toast-enter-active,
+.toast-leave-active {
   transition: all 0.3s ease;
 }
 
@@ -881,7 +870,8 @@ export default {
   width: 100%;
 }
 
-.slide-enter-active, .slide-leave-active {
+.slide-enter-active,
+.slide-leave-active {
   transition: all 0.4s ease;
 }
 
@@ -1121,26 +1111,27 @@ export default {
   .auth-container {
     padding: 16px;
   }
-  
+
   .form-container {
     padding: 24px;
     border-radius: 16px;
   }
-  
+
   .brand-title {
     font-size: 24px;
   }
-  
+
   .form-input {
     padding: 14px 14px 14px 44px;
     font-size: 16px;
   }
-  
-  .submit-btn, .google-btn {
+
+  .submit-btn,
+  .google-btn {
     padding: 14px;
     font-size: 15px;
   }
-  
+
   .skate-icon {
     width: 80px;
     height: 80px;
@@ -1152,12 +1143,12 @@ export default {
     padding: 10px 16px;
     font-size: 14px;
   }
-  
+
   .captcha-container {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .captcha-code {
     min-width: auto;
   }
@@ -1170,12 +1161,29 @@ export default {
   transform: translateY(20px);
 }
 
-.form-group:nth-child(1) { animation-delay: 0.1s; }
-.form-group:nth-child(2) { animation-delay: 0.2s; }
-.form-group:nth-child(3) { animation-delay: 0.3s; }
-.form-group:nth-child(4) { animation-delay: 0.4s; }
-.form-group:nth-child(5) { animation-delay: 0.5s; }
-.form-group:nth-child(6) { animation-delay: 0.6s; }
+.form-group:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.form-group:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.form-group:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.form-group:nth-child(4) {
+  animation-delay: 0.4s;
+}
+
+.form-group:nth-child(5) {
+  animation-delay: 0.5s;
+}
+
+.form-group:nth-child(6) {
+  animation-delay: 0.6s;
+}
 
 .captcha-group {
   animation: slideInUp 0.6s ease forwards;

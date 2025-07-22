@@ -8,6 +8,9 @@ import crypto from "crypto";
 import nodemailer from 'nodemailer';
 import * as middlewares from './middleware.js';
 import { v4 as uuidv4 } from "uuid";
+import passport from "passport";
+import GoogleStrategy from "passport-google-oauth2";
+
 dotenv.config();
 
 const app = express();
@@ -27,6 +30,76 @@ const transporter = nodemailer.createTransport({
           pass: process.env.NODE_MAILER_EMAIL_VALIDATOR_PASSWORD,
         },
 });
+
+passport.use("google", new GoogleStrategy({
+  clientID: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  callbackURL: process.env.GOOGLE_CALLBACK_URL,
+  userProfileURL: process.env.USER_PROFILE_URL,
+  passReqToCallback: true,
+}, async (req, accessToken, refreshToken, profile, done) => {
+  try {
+    console.log('Google Profile:', profile);
+    
+    // Check if user exists
+    const [duplicateCheck] = await db.query(
+      `SELECT * FROM users WHERE email = ?`,
+      [profile.emails[0].value]
+    );
+
+    let user;
+    if (duplicateCheck.length > 0) {
+      // Existing user
+      user = duplicateCheck[0];
+      
+      // Update last login
+      await db.query('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
+    } else {
+      // New user - create account
+      const userId = uuidv4();
+      const [newUserResult] = await db.query(
+        "INSERT INTO users (user_id, full_name, email, password, is_verified, created_by) VALUES (?, ?, ?, ?, ?, ?)",
+        [
+          userId,
+          profile.displayName,
+          profile.emails[0].value,
+          "google_oauth", // Password placeholder for Google users
+          true, // Auto-verify Google users
+          "google_oauth"
+        ]
+      );
+      
+      // Get the newly inserted user
+      const [newUser] = await db.query(
+        "SELECT * FROM users WHERE id = ?",
+        [newUserResult.insertId]
+      );
+      user = newUser[0];
+    }
+
+    const token = jwt.sign({
+      userId: user.id,
+      email: user.email,
+      isAdmin: user.is_admin === 1,
+      firstName: user.full_name.split(" ")[0],
+    }, JWT_SECRET, { expiresIn: '1d' });
+
+    const refreshToken = jwt.sign({
+      userId: user.id
+    }, JWT_SECRET, { expiresIn: '7d' });
+
+    // Log successful login
+    await db.query(
+      'INSERT INTO login_logs (user_id, email, success) VALUES (?, ?, ?)',
+      [user.id, user.email, true]
+    );
+
+    return done(null, { user, token, refreshToken });
+  } catch (error) {
+    console.error('Google OAuth Error:', error);
+    return done(error);
+  }
+}));
 
 app.post('/vsa/signup', middlewares.validateSignup, middlewares.handleValidationErrors, async (req,res) => {
   try {
@@ -333,6 +406,79 @@ app.get("/vsa/verify-email", async (req, res) => {
   } catch (error) {
     console.error("Error during email verification:", error);
     return res.redirect(`${process.env.BASE_URL}/login?verified=error&message=${encodeURIComponent('Email verification failed. Please try again.')}`);
+  }
+});
+
+app.get("/vsa/auth/google",
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+    session: false,
+  })
+);
+
+// Google OAuth callback route
+app.get("/auth/google/callback",
+  passport.authenticate("google", {
+    failureRedirect: "/login?error=google_auth_failed",
+    session: false,
+  }),
+  (req, res) => {
+    try {
+      // For Vue.js, we'll redirect to a special page that handles the token
+      const { token, refreshToken, user } = req.user;
+      
+      // Create a temporary token for the frontend to retrieve
+      const tempToken = jwt.sign({
+        token,
+        refreshToken,
+        user: {
+          id: user.id,
+          fullName: user.full_name,
+          email: user.email,
+          isAdmin: user.is_admin === 0,
+          mobile: user.mobile || ''
+        }
+      }, JWT_SECRET, { expiresIn: '5m' }); // Short-lived token for data transfer
+      
+      // Redirect to Vue.js frontend with the temporary token
+      res.redirect(`http://localhost:8080/auth/google/success?token=${tempToken}`);
+    } catch (error) {
+      console.error('Callback error:', error);
+      res.redirect('/login?error=callback_failed');
+    }
+  }
+);
+
+// API endpoint to exchange temporary token for actual auth data
+app.post('/vsa/google-auth-exchange', async (req, res) => {
+  try {
+    const { tempToken } = req.body;
+    
+    if (!tempToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Temporary token is required'
+      });
+    }
+
+    // Verify and decode the temporary token
+    const decoded = jwt.verify(tempToken, JWT_SECRET);
+    
+    res.json({
+      success: true,
+      message: 'Google Sign-In successful! Welcome back',
+      data: {
+        token: decoded.token,
+        refreshToken: decoded.refreshToken,
+        user: decoded.user
+      }
+    });
+  } catch (error) {
+    console.error('Token exchange error:', error);
+    res.status(400).json({
+      success: false,
+      message: 'Invalid or expired token'
+    });
   }
 });
 

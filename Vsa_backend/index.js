@@ -6,11 +6,10 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from "crypto";
 import nodemailer from 'nodemailer';
-import * as middlewares from './middleware.js';
+import * as middlewares from './middlewares/middleware.js';
+import './middlewares/passportConfig.js';
 import { v4 as uuidv4 } from "uuid";
 import passport from "passport";
-import GoogleStrategy from "passport-google-oauth2";
-
 dotenv.config();
 
 const app = express();
@@ -30,76 +29,6 @@ const transporter = nodemailer.createTransport({
           pass: process.env.NODE_MAILER_EMAIL_VALIDATOR_PASSWORD,
         },
 });
-
-passport.use("google", new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: process.env.GOOGLE_CALLBACK_URL,
-  userProfileURL: process.env.USER_PROFILE_URL,
-  passReqToCallback: true,
-}, async (req, accessToken, refreshToken, profile, done) => {
-  try {
-    console.log('Google Profile:', profile);
-    
-    // Check if user exists
-    const [duplicateCheck] = await db.query(
-      `SELECT * FROM users WHERE email = ?`,
-      [profile.emails[0].value]
-    );
-
-    let user;
-    if (duplicateCheck.length > 0) {
-      // Existing user
-      user = duplicateCheck[0];
-      
-      // Update last login
-      await db.query('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
-    } else {
-      // New user - create account
-      const userId = uuidv4();
-      const [newUserResult] = await db.query(
-        "INSERT INTO users (user_id, full_name, email, password, is_verified, created_by) VALUES (?, ?, ?, ?, ?, ?)",
-        [
-          userId,
-          profile.displayName,
-          profile.emails[0].value,
-          "google_oauth", // Password placeholder for Google users
-          true, // Auto-verify Google users
-          "google_oauth"
-        ]
-      );
-      
-      // Get the newly inserted user
-      const [newUser] = await db.query(
-        "SELECT * FROM users WHERE id = ?",
-        [newUserResult.insertId]
-      );
-      user = newUser[0];
-    }
-
-    const token = jwt.sign({
-      userId: user.id,
-      email: user.email,
-      isAdmin: user.is_admin === 1,
-      firstName: user.full_name.split(" ")[0],
-    }, JWT_SECRET, { expiresIn: '1d' });
-
-    const refreshToken = jwt.sign({
-      userId: user.id
-    }, JWT_SECRET, { expiresIn: '7d' });
-
-    // Log successful login
-    await db.query(
-      'INSERT INTO login_logs (user_id, email, success) VALUES (?, ?, ?)',
-      [user.id, user.email, true]
-    );
-
-    return done(null, { user, token, refreshToken });
-  } catch (error) {
-    console.error('Google OAuth Error:', error);
-    return done(error);
-  }
-}));
 
 app.post('/vsa/signup', middlewares.validateSignup, middlewares.handleValidationErrors, async (req,res) => {
   try {
@@ -241,7 +170,6 @@ app.post('/vsa/login', middlewares.validateLogin, middlewares.handleValidationEr
 });
 
 async function verifyUserEmail(email) {
-// Generate email verification token
       const verificationToken = crypto.randomBytes(32).toString("hex");
 
       const [userCheck] = await db.query('SELECT * FROM users WHERE email=?',[email]);
@@ -306,7 +234,7 @@ const passwordValidation = await bcrypt.compare(password, user.password);
 
       await db.query(
         'INSERT INTO login_logs (user_id, email, success) VALUES (?, ?, ?)',
-        [user?.id || null, email, true]
+        [user?.id || null, user.email, true]
       );
 
       res.json({
@@ -482,66 +410,74 @@ app.post('/vsa/google-auth-exchange', async (req, res) => {
   }
 });
 
-app.get('/vsa/faq', async (req, res) => {
-  try {
-    const [faqs] = await db.query('SELECT * FROM faqs ORDER BY id ASC');
-    res.json(faqs);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch FAQs' });
+const staticContentConfig = {
+  'faq': { 
+    table: 'faqs', 
+    orderBy: 'id',
+    errorMessage: 'Failed to fetch FAQs',
+    useWrappedResponse: false 
+  },
+  'privacy-policy': { 
+    table: 'privacy_policies', 
+    orderBy: 'id',
+    errorMessage: 'Failed to fetch privacy policy',
+    useWrappedResponse: false 
+  },
+  'refund-policy': { 
+    table: 'refund_policies', 
+    orderBy: 'id',
+    errorMessage: 'Failed to fetch refund policy',
+    useWrappedResponse: false 
+  },
+  'return-policy': { 
+    table: 'return_policies', 
+    orderBy: 'step_number',
+    errorMessage: 'Failed to fetch return policy',
+    useWrappedResponse: false 
+  },
+  'shipping-policy': { 
+    table: 'shipping_policies', 
+    orderBy: 'id',
+    errorMessage: 'Failed to fetch shipping policy',
+    useWrappedResponse: false 
+  },
+  'terms-conditions': { 
+    table: 'terms_and_conditions', 
+    orderBy: 'id',
+    errorMessage: 'Failed to fetch terms and conditions',
+    useWrappedResponse: false 
+  },
+  'cancellation-refunds': { 
+    table: 'cancellation_refunds', 
+    orderBy: 'id',
+    errorMessage: 'Server error',
+    useWrappedResponse: true 
   }
-});
+};
 
-app.get('/vsa/privacy-policy', async (req, res) => {
-  try {
-    const [policies] = await db.query('SELECT * FROM privacy_policies ORDER BY id ASC');
-    res.json(policies);
-  } catch (err) {    
-    res.status(500).json({ error: 'Failed to fetch privacy policy' });
+app.get('/vsa/:policyType', async (req, res) => {
+  const { policyType } = req.params;
+  const config = staticContentConfig[policyType];
+
+  if (!config) {
+    return res.status(404).json({ success: false, message: 'Invalid policy type' });
   }
-});
 
-app.get('/vsa/refund-policy', async (req, res) => {
   try {
-    const [refunds] = await db.query('SELECT * FROM refund_policies ORDER BY id ASC');
-    res.json(refunds);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch refund policy' });
-  }
-});
-
-app.get('/vsa/return-policy', async (req, res) => {
-  try {
-    const [returnPolicy] = await db.query('SELECT * FROM return_policies ORDER BY step_number ASC');
-    res.json(returnPolicy);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch return policy' });
-  }
-});
-
-app.get('/vsa/shipping-policy', async (req, res) => {
-  try {
-    const [shippingPolicies] = await db.query('SELECT * FROM shipping_policies ORDER BY id ASC');
-    res.json(shippingPolicies);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch shipping policy' });
-  }
-});
-
-app.get('/vsa/terms-conditions', async (req, res) => {
-  try {
-    const [terms] = await db.query('SELECT * FROM terms_and_conditions ORDER BY id ASC');
-    res.json(terms);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch terms and conditions' });
-  }
-});
-
-app.get('/vsa/cancellation-refunds', async (req, res) => {
-  try {
-    const [results] = await db.query('SELECT * FROM cancellation_refunds ORDER BY id ASC');
-    res.json({ success: true, data: results });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Server error' });
+    const [results] = await db.query(`SELECT * FROM ${config.table} ORDER BY ${config.orderBy} ASC`);
+    if (config.useWrappedResponse) {
+      res.json({ success: true, data: results });
+    } else {
+      res.json(results);
+    }
+  } catch (error) {
+    console.error(`Error fetching ${policyType}:`, error);
+    
+    if (config.useWrappedResponse) {
+      res.status(500).json({ success: false, message: config.errorMessage });
+    } else {
+      res.status(500).json({ error: config.errorMessage });
+    }
   }
 });
 

@@ -5,7 +5,7 @@ import ShippingPolicy from '@/components/footer_components/ShippingPolicy.vue'
 import TermsConditions from '@/components/footer_components/TermsConditions.vue'
 import RefundPolicy from '@/components/footer_components/RefundPolicy.vue'
 import FAQ from '@/components/footer_components/FAQ.vue'
-
+import About from '@/components/footer_components/About.vue'
 export default [
   {
     path: '/return-policy',
@@ -41,5 +41,10 @@ export default [
     path: '/faq',
     name: 'FAQ',
     component: FAQ
+  },
+  {
+    path: '/about',
+    name: 'About',
+    component: About
   }
 ]

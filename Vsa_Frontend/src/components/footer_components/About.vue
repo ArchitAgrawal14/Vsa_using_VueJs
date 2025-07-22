@@ -60,7 +60,14 @@
               ref="teamCards"
             >
               <div class="team-avatar">
-                <i class="fas fa-user"></i>
+                <img 
+                  v-if="member.image" 
+                  :src="member.image" 
+                  :alt="member.name"
+                  class="team-image"
+                  @error="handleImageError"
+                />
+                <i class="fas fa-user team-fallback-icon" :style="{ display: member.image ? 'none' : 'flex' }"></i>
               </div>
               <h4>{{ member.name }}</h4>
               <p class="role">{{ member.role }}</p>
@@ -97,9 +104,21 @@ export default {
         }
       ],
       defaultTeam: [
-        { name: 'Visheshta Singh', role: 'Lead Coach & Founder' },
-        { name: 'Harsh Kasaudhan', role: 'Technical Director' },
-        { name: 'Our Team', role: 'The Backbone of Excellence' }
+       { 
+          name: 'Visheshta Singh', 
+          role: 'Lead Coach',
+          image: '/images/VisheshtaPic.jpg'
+        },
+        { 
+          name: 'Harsh Kasaudhan', 
+          role: 'Coach',
+          image: '/images/HarshPic.jpg'
+        },
+        { 
+          name: 'Our Team', 
+          role: 'The Backbone of Excellence',
+          image: '/images/national_players.jpg'
+        }
       ],
       observer: null
     };
@@ -171,6 +190,10 @@ export default {
       animatedElements.forEach(el => {
         this.observer.observe(el);
       });
+    },
+    handleImageError(event) {
+      event.target.style.display = 'none';
+      event.target.nextElementSibling.style.display = 'flex';
     }
   }
 };
@@ -613,6 +636,27 @@ export default {
 .team-card:hover .team-avatar::before {
   width: 200%;
   height: 200%;
+}
+
+.team-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.3s ease;
+}
+
+.team-card:hover .team-image {
+  transform: scale(1.05);
+}
+
+.team-fallback-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
 }
 
 .team-card h4 {

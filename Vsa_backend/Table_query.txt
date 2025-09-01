@@ -17,7 +17,7 @@ CREATE TABLE users (
   locked_until TIMESTAMP NULL,
   created_by VARCHAR(50) DEFAULT 'self'
 );
-
+ALTER TABLE users ADD UNIQUE (user_id);
 
 CREATE TABLE user_address (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -36,6 +36,29 @@ CREATE TABLE user_address (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE admin_access (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  user_id VARCHAR(70),
+  show_order_status BOOLEAN,
+  show_edit_shop BOOLEAN,
+  show_edit_achievements BOOLEAN,
+  show_invoice_generation BOOLEAN,
+  show_online_sales BOOLEAN,
+  show_offline_customers BOOLEAN,
+  show_online_users BOOLEAN,
+  show_available_stocks BOOLEAN,
+  show_offline_sales BOOLEAN,
+  show_send_mails BOOLEAN,
+  show_new_student BOOLEAN,
+  show_attendance BOOLEAN,
+  show_manage_students BOOLEAN,
+  show_students_achievements BOOLEAN,
+  show_attendance_records BOOLEAN,
+  show_news_letter BOOLEAN,
+  show_manage_admins BOOLEAN,
+  FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
 CREATE TABLE login_logs (

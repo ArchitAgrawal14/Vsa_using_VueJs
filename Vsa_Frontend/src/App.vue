@@ -2,7 +2,6 @@
 import Header from './components/Header.vue';
 import { useRoute } from 'vue-router';
 import Footer from './components/Footer.vue';
-import Dashboard from './components/Dashboard.vue';
 const route = useRoute();
 </script>
 

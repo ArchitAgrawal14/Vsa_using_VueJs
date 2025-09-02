@@ -176,7 +176,7 @@
     <div
       v-if="toast.show"
       :class="[
-        'fixed top-4 right-4 px-6 py-4 rounded-lg shadow-lg z-50 transition-all duration-300',
+        'fixed top-24 right-4 px-6 py-4 rounded-lg shadow-lg z-50 transition-all duration-300',
         toast.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white',
       ]"
     >
@@ -318,7 +318,7 @@ export default {
         this.isLoading = false
       }
     },
-    
+
     async updatePermission(user, permissionKey, value) {
       try {
         const updateKey = `${user.id}-${permissionKey}`

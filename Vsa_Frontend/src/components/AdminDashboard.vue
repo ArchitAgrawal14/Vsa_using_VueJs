@@ -370,7 +370,7 @@ export default {
           headerIcon: 'fas fa-globe',
           icon: 'fas fa-users',
           description: 'Download the complete list of online users in PDF format.',
-          endpoint: '/downloadOnlineUserData',
+          endpoint: '/vsa/download-online-user-data',
           buttonIcon: 'fas fa-file-download',
           buttonText: 'Download List',
           permission: 'show_online_users'
@@ -416,7 +416,7 @@ export default {
           headerIcon: 'fas fa-user-plus',
           icon: 'fas fa-user-graduate',
           description: 'Register a new student who wants to join the academy.',
-          link: '/registerNewStudent',
+          link: '/vsa/register-new-student',
           buttonIcon: 'fas fa-plus-circle',
           buttonText: 'Register Student',
           permission: 'show_new_student'

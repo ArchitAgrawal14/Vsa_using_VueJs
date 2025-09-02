@@ -294,7 +294,7 @@ async function isUserAdmin(password, user, isAdmin, res) {
       };
     }
   }
-
+  console.log('JWT in isUserAdmin ' + JWT_SECRET);
   const token = jwt.sign(
     {
       userId: user.id,
@@ -711,6 +711,106 @@ app.get('/vsa/admin/manage-admins', middlewares.verifyToken, async (req, res) =>
       success: false,
       message: "Internal server error",
     });
+  }
+});
+
+//Endpoint to toggle permission for individual users for admin-
+app.post('/vsa/admin/update-permission', middlewares.verifyToken, async (req, res) => {
+  const connection = await db.getConnection();
+  
+  try {
+    await connection.beginTransaction();
+
+    if (!req.user.isAdmin) {
+      await connection.rollback();
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const { userId, permissionKey, value } = req.body;
+
+    // Input validation
+    if (!userId || !permissionKey || (value !== 0 && value !== 1)) {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Missing or invalid required fields: userId, permissionKey, value",
+      });
+    }
+
+    const allowedPermissions = [
+      'show_order_status', 'show_edit_shop', 'show_edit_achievements',
+      'show_invoice_generation', 'show_online_sales', 'show_offline_customers',
+      'show_online_users', 'show_available_stocks', 'show_offline_sales',
+      'show_send_mails', 'show_new_student', 'show_attendance',
+      'show_manage_students', 'show_students_achievements', 
+      'show_attendance_records', 'show_news_letter', 'show_manage_admins'
+    ];
+
+    if (!allowedPermissions.includes(permissionKey)) {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Invalid permission key"
+      });
+    }
+
+    // Check if user exists
+    const [user] = await connection.query('SELECT is_admin FROM users WHERE user_id = ?', [userId]);
+    if (user.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Update the permission
+    await connection.query(`UPDATE admin_access SET ${permissionKey} = ? WHERE user_id = ?`, [value, userId]);
+
+    // Count total permissions
+    const permissionColumns = allowedPermissions.join(' + ');
+    const [permissionCount] = await connection.query(`
+      SELECT (${permissionColumns}) AS total_permissions
+      FROM admin_access 
+      WHERE user_id = ?`, [userId]);
+
+    const totalPermissions = permissionCount[0]?.total_permissions || 0;
+    const currentAdminStatus = user[0].is_admin;
+
+    // Update admin status if needed
+    if (totalPermissions === 0 && currentAdminStatus === 1) {
+      await connection.query('UPDATE users SET is_admin = 0 WHERE user_id = ?', [userId]);
+    } else if (totalPermissions > 0 && currentAdminStatus === 0) {
+      await connection.query('UPDATE users SET is_admin = 1 WHERE user_id = ?', [userId]);
+    }
+
+    await connection.commit();
+
+    res.json({
+      success: true,
+      message: "Permission updated successfully",
+      data: {
+        userId,
+        permissionKey,
+        value,
+        totalPermissions,
+        isAdmin: totalPermissions > 0
+      }
+    });
+
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error updating permission:', error);
+    
+    res.status(500).json({
+      success: false,
+      message: "Failed to update permission",
+    });
+  } finally {
+    connection.release();
   }
 });
 

@@ -1,4 +1,5 @@
 import { body, validationResult } from 'express-validator';
+import jwt from "jsonwebtoken";
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // Validation middleware
@@ -38,7 +39,6 @@ const handleValidationErrors = (req, res, next) => {
 // Add this middleware function
 const verifyToken = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1]; // Bearer token
-  console.log('token' + token);
   if (!token) {
     return res.status(401).json({
       success: false,
@@ -47,13 +47,11 @@ const verifyToken = (req, res, next) => {
   }
 
   try {
-    console.log("             ___________________");
-    console.log('JWT ' +  JWT_SECRET);
     const decoded = jwt.verify(token, JWT_SECRET);
-    console.log("___________________", JSON.stringify(decoded, null, 2));
     req.user = decoded;
     next();
   } catch (error) {
+    console.error('Token verification error:', error.message);
     return res.status(401).json({
       success: false,
       message: 'Invalid token'

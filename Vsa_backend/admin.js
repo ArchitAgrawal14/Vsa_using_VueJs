@@ -1,5 +1,7 @@
 import express from "express";
 import PDFDocument from "pdfkit";
+import path from "path";
+import fs from "fs";
 
 const app = express();
 app.use(express.json());
@@ -267,4 +269,203 @@ export async function updateAdminPermission(userId, permissionKey, value, connec
   } catch (error) {
     throw error; // Re-throw to be handled by the route handler
   }
+}
+
+export async function registerNewStudent(body, file ,connection) {
+  const [existingUsersChild] = await connection.query('SELECT * FROM users WHERE email = ?', [body.email]);
+  let usersUserId = null;
+
+  if (existingUsersChild.length > 0) {
+    usersUserId = existingUsersChild[0].user_id;
+  }
+
+  const [existingStudent] = await connection.query(
+    `SELECT * FROM students 
+    WHERE full_name = ? AND father_name = ? AND mother_name = ? AND email = ?`,
+    [body.fullName, body.fatherName, body.motherName, body.email]
+  );
+
+  if (existingStudent.length > 0) {
+    return {
+      success: false,
+      message: 'Student already exists'
+    }
+  }
+
+  // Fix: Handle dob properly for generateStudentId
+  const dobDate = body.dob ? new Date(body.dob) : new Date();
+  const studentId = generateStudentId(body.fullName, dobDate, body.motherName);
+  const doj = body.dateOfJoining ? new Date(body.dateOfJoining) : new Date();
+  let imagePath = null;
+  if (file) {
+    // Rename file to include studentId
+    const oldPath = file.path;
+    const fileExt = path.extname(file.originalname);
+    const newFilename = `${studentId}${fileExt}`;
+    const newPath = path.join(path.dirname(oldPath), newFilename);
+    // Rename the file
+    fs.renameSync(oldPath, newPath);
+    imagePath = `/images/students/${newFilename}`;
+  }
+
+  // Calculate next payment date based on initial payment
+  const initialPayment = body.amountPaid || 0;
+  
+  // Fix: Handle case where feeStructure might be 0 or null
+  if (!body.feeStructure || body.feeStructure <= 0) {
+    return {
+      success: false,
+      message: 'Fee structure must be greater than 0'
+    };
+  }
+
+  const nextPaymentDate = calculateNextPaymentDate(
+    doj, 
+    body.feeCycle, 
+    body.feeStructure, 
+    initialPayment
+  );
+  
+  // Calculate pending fee
+  const pendingFee = Math.max(0, body.feeStructure - initialPayment);
+  let transportation = 0;
+  if(body.transportation === true) {
+    transportation = 1;
+  }
+  
+  try {
+    // Insert student
+    const [studentResult] = await connection.query(`
+      INSERT INTO students 
+      (student_id, users_user_id, img, full_name, father_name, mother_name, email, mobile_number,
+       whatsapp_number, dob, class, gender, school_name, hobbies, date_of_joining, student_group, 
+       skate_type, fee_structure, fee_cycle, next_payment_date, pending_fee, transportation, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [studentId, usersUserId, imagePath, body.fullName, body.fatherName, body.motherName,
+       body.email, body.mobileNumber, body.whatsappNumber, body.dob, body.className, body.gender, 
+       body.schoolName, body?.hobbies, doj, body.studentGroup, body.skateType, body.feeStructure, 
+       body.feeCycle, nextPaymentDate, pendingFee, transportation || false, 'active']
+    );
+
+    // Add address record for the student
+    await connection.query(
+      `INSERT INTO student_address 
+      (student_id, address_line1, address_line2, city, state, postal_code, country) 
+      VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        studentId,
+        body?.addressLine1 || '', // Handle null values
+        body?.addressLine2 || '',
+        body.city || 'Satna',
+        body.state || 'Madhya Pradesh',
+        body.postalCode || '485001',
+        body.country || 'Bharat'
+      ]
+    );
+      
+    // If initial payment was made, record it in student_fee table
+    if (initialPayment > 0) {
+      const remarks = body.remarks || 'Initial registration payment';
+      await connection.query(`
+        INSERT INTO student_fee 
+        (student_id, amount_paid, remarks, payment_mode, status, payment_date)
+        VALUES (?, ?, ?, ?, ?, ?)`,
+        [studentId, initialPayment, remarks, body.paymentMode || 'cash', 'success', doj.toISOString().split('T')[0]]
+      );
+    }
+
+    return {
+      success: true,
+      message: 'Student registered successfully',
+      data: {
+        studentId: studentId,
+        nextPaymentDate: nextPaymentDate,
+        pendingFee: pendingFee
+      }
+    };
+
+  } catch (error) {
+    // Don't handle rollback here since it's handled in the API route
+    throw error;
+  }
+}
+
+function calculateNextPaymentDate(dateOfJoining, feeCycle, feeStructure, amountPaid) {
+  const doj = new Date(dateOfJoining);
+  
+  if (amountPaid >= feeStructure) {
+    let nextPaymentDate = new Date(doj);
+    
+    switch(feeCycle.toLowerCase()) {
+      case 'monthly':
+        nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
+        break;
+      case 'quarterly':
+        nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 3);
+        break;
+      case 'half-yearly':
+        nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 6);
+        break;
+      case 'yearly':
+        nextPaymentDate.setFullYear(nextPaymentDate.getFullYear() + 1);
+        break;
+      default:
+        nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
+    }
+    
+    return nextPaymentDate.toISOString().split('T')[0];
+  }
+  
+  // Calculate how much of the cycle period is covered by the amount paid
+  const coverageRatio = amountPaid / feeStructure;
+  
+  let nextPaymentDate = new Date(doj);
+  
+  switch(feeCycle.toLowerCase()) {
+    case 'monthly':
+      // Add days based on coverage ratio for monthly
+      const daysInMonth = new Date(doj.getFullYear(), doj.getMonth() + 1, 0).getDate();
+      const additionalDays = Math.floor(coverageRatio * daysInMonth);
+      nextPaymentDate.setDate(nextPaymentDate.getDate() + additionalDays);
+      break;
+      
+    case 'quarterly':
+      // Add days based on coverage ratio (quarterly = ~90 days)
+      const quarterlyDays = Math.floor(coverageRatio * 90);
+      nextPaymentDate.setDate(nextPaymentDate.getDate() + quarterlyDays);
+      break;
+      
+    case 'half-yearly':
+      // Add days based on coverage ratio (half-yearly = ~180 days)
+      const halfYearlyDays = Math.floor(coverageRatio * 180);
+      nextPaymentDate.setDate(nextPaymentDate.getDate() + halfYearlyDays);
+      break;
+      
+    case 'yearly':
+      // Add days based on coverage ratio (yearly = 365 days)
+      const yearlyDays = Math.floor(coverageRatio * 365);
+      nextPaymentDate.setDate(nextPaymentDate.getDate() + yearlyDays);
+      break;
+      
+    default:
+      // Default to monthly if cycle is not recognized
+      const defaultDaysInMonth = new Date(doj.getFullYear(), doj.getMonth() + 1, 0).getDate();
+      const defaultAdditionalDays = Math.floor(coverageRatio * defaultDaysInMonth);
+      nextPaymentDate.setDate(nextPaymentDate.getDate() + defaultAdditionalDays);
+  }
+  
+  return nextPaymentDate.toISOString().split('T')[0];
+}
+
+function generateStudentId(fullName, dob, motherName) {
+  const studentsFirstTwoLettersOfName = fullName ? fullName.substring(0, 2).toUpperCase() : "XX";
+  const mothersFirstTwoLettersOfName = motherName ? motherName.substring(0, 2).toUpperCase() : "XX";
+  const dobDate = dob instanceof Date ? dob : new Date(dob);
+  
+  const day = String(dobDate.getDate()).padStart(2, "0");
+  const month = String(dobDate.getMonth() + 1).padStart(2, "0");
+
+  const studentId = 'VSA' + studentsFirstTwoLettersOfName + day + month + mothersFirstTwoLettersOfName;
+
+  return studentId;
 }

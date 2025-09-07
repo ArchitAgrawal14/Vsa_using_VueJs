@@ -13,7 +13,7 @@ export default [
     component: ManageAdmins,
   },
   {
-    path: '/vsa/register-new-student',
+    path: '/vsa/admin/register-new-student',
     name: 'RegisterNewStudent',
     component: RegisterNewStudent,
   }

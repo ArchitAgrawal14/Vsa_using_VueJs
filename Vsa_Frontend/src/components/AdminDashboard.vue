@@ -416,7 +416,7 @@ export default {
           headerIcon: 'fas fa-user-plus',
           icon: 'fas fa-user-graduate',
           description: 'Register a new student who wants to join the academy.',
-          link: '/vsa/register-new-student',
+          link: '/vsa/admin/register-new-student',
           buttonIcon: 'fas fa-plus-circle',
           buttonText: 'Register Student',
           permission: 'show_new_student'

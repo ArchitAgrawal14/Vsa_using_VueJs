@@ -11,13 +11,19 @@ import "./middlewares/passportConfig.js";
 import { v4 as uuidv4 } from "uuid";
 import passport from "passport";
 import * as admin from "./admin.js";
+import { dirname } from "path";
+import path from "path";
+import { fileURLToPath } from "url";
+import multer from "multer";
+
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
+const __dirname = dirname(fileURLToPath(import.meta.url));
 app.use(cors());
 app.use(express.json());
+app.use('/images', express.static(path.join(__dirname, 'public/images')));
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -839,6 +845,191 @@ app.get(
     }
   }
 );
+
+// Multer config to upload image/files
+const storage = multer.diskStorage({
+  destination: path.join(__dirname, "public/images/students"),
+  filename: function (req, file, cb) {
+    const timestamp = Date.now();
+    const fileExt = path.extname(file.originalname);
+    const filename = `student-${timestamp}${fileExt}`;
+    cb(null, filename);
+  },
+});
+
+const upload = multer({ storage: storage });
+
+// Endpoint to register a new student admin side
+app.post('/vsa/admin/register-new-student', middlewares.verifyToken , 
+  upload.single('studentImage'), 
+  async (req, res)=> {
+  const connection = await db.getConnection();
+
+  try {
+     // Check admin access
+    if (!req.user.isAdmin) {
+      await connection.rollback();
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const validationErrors = validateStudent(req.body);
+    if (validationErrors.length > 0) {
+      return res.status(400).json({ 
+        success: false,
+        validationErrors 
+      });
+    }
+    await connection.beginTransaction();
+    const result  = await admin.registerNewStudent(req.body, req.file, connection);
+
+    if (result.success) {
+      await connection.commit();
+      res.json(result);
+    } else {
+      await connection.rollback();
+      res.status(400).json(result);
+    }
+
+  } catch (error) {
+    await connection.rollback();
+    console.error('Registration error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during registration'
+    });
+  } finally {
+    connection.release();
+  }
+});
+
+// Function to validate student - 
+function validateStudent(data) {
+  const errors = [];
+
+  // img (optional)
+  if (data.img && typeof data.img !== 'string') {
+    errors.push('Image must be a string');
+  }
+
+  // fullName
+  if (!data.fullName || data.fullName.trim().length < 2) {
+    errors.push('Full name is required and must be at least 2 characters long');
+  }
+
+  // fatherName
+  if (data.fatherName && typeof data.fatherName !== 'string') {
+    errors.push('Father name must be a string');
+  }
+
+  // motherName
+  if (data.motherName && typeof data.motherName !== 'string') {
+    errors.push('Mother name must be a string');
+  }
+
+  // email
+  if (!data.email) {
+    errors.push('Email is required');
+  } else if (!/^\S+@\S+\.\S+$/.test(data.email)) {
+    errors.push('Invalid email format');
+  }
+
+  // mobileNumber
+  if (!data.mobileNumber) {
+    errors.push('Mobile number is required');
+  } else if (!/^\d{10}$/.test(data.mobileNumber)) {
+    errors.push('Mobile number must be 10 digits');
+  }
+
+  // whatsappNumber
+  if (data.whatsappNumber && !/^\d{10}$/.test(data.whatsappNumber)) {
+    errors.push('WhatsApp number must be 10 digits');
+  }
+
+  // dob
+  if (!data.dob) {
+    errors.push('Date of birth is required');
+  } else if (isNaN(Date.parse(data.dob))) {
+    errors.push('Invalid date of birth format');
+  }
+
+  // className
+  if (!data.className) {
+    errors.push('Class is required');
+  }
+
+  // gender
+  if (!data.gender) {
+    errors.push('Gender is required');
+  } else if (!['Male', 'Female', 'Other'].includes(data.gender)) {
+    errors.push('Gender must be Male, Female, or Other');
+  }
+
+  // schoolName (optional)
+  if (data.schoolName && typeof data.schoolName !== 'string') {
+    errors.push('School name must be a string');
+  }
+
+  // studentGroup (optional)
+  if (data.studentGroup && typeof data.studentGroup !== 'string') {
+    errors.push('Student group must be a string');
+  }
+
+  // skateType (optional)
+  if (data.skateType && typeof data.skateType !== 'string') {
+    errors.push('Skate type must be a string');
+  }
+
+  // feeStructure (optional)
+  if (data.feeStructure && typeof data.feeStructure !== 'string') {
+    errors.push('Fee structure must be a string');
+  }
+
+  // feeCycle (optional but must be valid if given)
+  if (data.feeCycle && !['Monthly', 'Quarterly','Half-Yearly' , 'Yearly'].includes(data.feeCycle)) {
+    errors.push('Fee cycle must be Monthly, Quarterly, or Yearly');
+  }
+
+  // transportation (optional boolean)
+  // if (data.transportation !== undefined && typeof data.transportation !== 'boolean') {
+  //   errors.push('Transportation must be true or false');
+  // }
+
+  // status (optional, default to Active/Inactive)
+  if (data.status && !['Active', 'Inactive'].includes(data.status)) {
+    errors.push('Status must be Active or Inactive');
+  }
+
+  // addressLine1 (optional)
+  if (data.addressLine1 && typeof data.addressLine1 !== 'string') {
+    errors.push('Address Line 1 must be a string');
+  }
+
+  // addressLine2 (optional)
+  if (data.addressLine2 && typeof data.addressLine2 !== 'string') {
+    errors.push('Address Line 2 must be a string');
+  }
+
+  // city (optional)
+  if (data.city && typeof data.city !== 'string') {
+    errors.push('City must be a string');
+  }
+
+  // state (optional)
+  if (data.state && typeof data.state !== 'string') {
+    errors.push('State must be a string');
+  }
+
+  // postalCode (optional, but if present must be valid)
+  if (data.postalCode && !/^\d{6}$/.test(data.postalCode)) {
+    errors.push('Postal code must be 6 digits');
+  }
+
+  return errors;
+}
+
 
 app.listen(PORT, () => {
   console.log(`Backend running at http://localhost:${PORT}`);

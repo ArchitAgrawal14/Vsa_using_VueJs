@@ -332,7 +332,7 @@ export async function registerNewStudent(body, file ,connection) {
   if(body.transportation === true) {
     transportation = 1;
   }
-  
+
   try {
     // Insert student
     const [studentResult] = await connection.query(`

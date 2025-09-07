@@ -320,3 +320,15 @@ CREATE TABLE student_fee (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE
 );
+
+CREATE TABLE students_attendance (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id VARCHAR(70) NOT NULL,
+    status ENUM('Present', 'Absent', 'Sick') NOT NULL,
+    attendance_date DATE NOT NULL,
+    marked_by VARCHAR(70) DEFAULT NULL, -- FK to users/admins if needed
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE,
+    UNIQUE(student_id, attendance_date) -- prevent duplicates
+);

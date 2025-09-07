@@ -427,7 +427,7 @@ export default {
           headerIcon: 'fas fa-clipboard-check',
           icon: 'fas fa-calendar-check',
           description: 'Mark and manage daily attendance for students.',
-          link: '/markingAttendance',
+          link: '/vsa/admin/mark-attendance',
           buttonIcon: 'fas fa-check-circle',
           buttonText: 'Mark Attendance',
           permission: 'show_attendance'

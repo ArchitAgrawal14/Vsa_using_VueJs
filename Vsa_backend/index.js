@@ -1030,6 +1030,185 @@ function validateStudent(data) {
   return errors;
 }
 
+// Endpoint to populate students attendance-page
+app.get('/vsa/admin/get-students-for-attendance', middlewares.verifyToken , async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    let choosenDate = req.query.date || new Date().toISOString().slice(0, 10);    
+    // Get attendance details as per the date
+
+   const [attendanceDetails] = await db.query(
+      `SELECT s.student_id, s.full_name, s.mother_name, sa.status, sa.attendance_date
+       FROM students s
+       LEFT JOIN students_attendance sa
+        ON s.student_id = sa.student_id
+        AND sa.attendance_date = ? WHERE s.status = 'active'`,
+      [choosenDate]
+    );
+
+    res.status(200).json({
+      success : true,
+      date : choosenDate,
+      attendanceDetails : attendanceDetails
+    });
+
+  } catch (error) {
+    console.error('Error fetching attendance:', error);
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong while fetching attendance",
+      error: error.message
+    });
+  }
+});
+
+// Endpoint to mark attendance of student
+app.post('/vsa/admin/mark-attendance', middlewares.verifyToken, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const { date, studentId, status } = req.body;
+
+    // Validate required fields
+    if (!date || !studentId || !status) {
+      return res.status(400).json({
+        success: false,
+        message: 'Date, student ID, and status are required fields'
+      });
+    }
+
+    // Validate status enum
+    const validStatuses = ['Present', 'Absent', 'Sick'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status must be one of: Present, Absent, Sick'
+      });
+    }
+
+    // Validate date format (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(date)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Date must be in YYYY-MM-DD format'
+      });
+    }
+
+    // Check if the student exists and is active
+    const [studentCheck] = await db.query(
+      'SELECT student_id, full_name FROM students WHERE student_id = ? AND status = "active"',
+      [studentId]
+    );
+
+    if (studentCheck.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found or inactive'
+      });
+    }
+
+    const markedBy = req.user.userId || req.user.email;
+
+    // Check if attendance record already exists for this student and date
+    const [existingRecord] = await db.query(
+      'SELECT id FROM students_attendance WHERE student_id = ? AND attendance_date = ?',
+      [studentId, date]
+    );
+
+    if (existingRecord.length > 0) {
+      // Update existing record
+      const [updateResult] = await db.query(
+        `UPDATE students_attendance 
+         SET status = ?, marked_by = ?, updated_at = CURRENT_TIMESTAMP 
+         WHERE student_id = ? AND attendance_date = ?`,
+        [status, markedBy, studentId, date]
+      );
+
+      if (updateResult.affectedRows > 0) {
+        return res.status(200).json({
+          success: true,
+          message: `Attendance updated successfully for ${studentCheck[0].full_name}`,
+          data: {
+            studentId: studentId,
+            studentName: studentCheck[0].full_name,
+            status: status,
+            date: date,
+            action: 'updated'
+          }
+        });
+      } else {
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to update attendance record'
+        });
+      }
+    } else {
+      // Insert new record
+      const [insertResult] = await db.query(
+        `INSERT INTO students_attendance (student_id, status, attendance_date, marked_by) 
+         VALUES (?, ?, ?, ?)`,
+        [studentId, status, date, markedBy]
+      );
+
+      if (insertResult.insertId) {
+        return res.status(201).json({
+          success: true,
+          message: `Attendance marked successfully for ${studentCheck[0].full_name}`,
+          data: {
+            attendanceId: insertResult.insertId,
+            studentId: studentId,
+            studentName: studentCheck[0].full_name,
+            status: status,
+            date: date,
+            action: 'created'
+          }
+        });
+      } else {
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to create attendance record'
+        });
+      }
+    }
+
+  } catch (error) {
+    console.error('Error marking attendance:', error);
+    
+    // Handle specific database errors
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({
+        success: false,
+        message: 'Attendance record already exists for this student and date'
+      });
+    }
+    
+    if (error.code === 'ER_NO_REFERENCED_ROW_2') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid student ID or foreign key constraint violation'
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while marking attendance",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Backend running at http://localhost:${PORT}`);

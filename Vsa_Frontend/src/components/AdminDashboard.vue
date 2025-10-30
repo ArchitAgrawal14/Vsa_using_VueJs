@@ -460,7 +460,7 @@ export default {
           headerIcon: 'fas fa-search',
           icon: 'fas fa-history',
           description: 'Search and view students\' monthly attendance records.',
-          link: '/monthlyAttendance',
+          link: '/vsa/admin/monthly-attendance',
           buttonIcon: 'fas fa-search',
           buttonText: 'Search Records',
           permission: 'show_attendance_records'

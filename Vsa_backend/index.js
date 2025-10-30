@@ -1649,7 +1649,7 @@ app.put(
   }
 );
 
-// Endpoint to get all students for ManageStudentAchievements.vue
+// Endpoint to get all students for ManageAchievements.vue
 app.get(
   "/vsa/admin/get-students-for-manage-achievements",
   middlewares.verifyToken,
@@ -1796,7 +1796,7 @@ app.post("/vsa/admin/add-new-achievement", middlewares.verifyToken, async (req, 
   }
 });
 
-//Endpoint to delete a achievement
+// Endpoint to delete a achievement
 app.delete("/vsa/admin/delete-achievement/:achievementId", middlewares.verifyToken, async (req, res) => {
 
   if (!req.user?.isAdmin) {
@@ -1848,6 +1848,92 @@ app.delete("/vsa/admin/delete-achievement/:achievementId", middlewares.verifyTok
     });
   } finally {
     connection.release();
+  }
+});
+
+// Endpoint to get all the students to display on attendance records page
+app.get(
+  "/vsa/admin/get-students-for-attendance-records",
+  middlewares.verifyToken,
+  async (req, res) => {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const [studentDetails] = await db.query(
+      `SELECT s.student_id, s.full_name, s.mother_name, s.student_group
+      FROM students AS s`
+    );
+
+    if (studentDetails.length === 0) {
+      return res.status(204).json({
+        success: false,
+        message: "No data found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      studentDetails: studentDetails,
+    });
+  }
+);
+
+// Endpoint to fetch particular student attendance record
+app.get("/vsa/admin/get-student-attendance/:studentId", middlewares.verifyToken, async (req, res) => {
+  if (!req.user?.isAdmin) {
+    return res.status(403).json({
+      success: false,
+      message: "Access denied. Admins only.",
+    });
+  }
+
+  const { studentId } = req.params;
+  const { month, year } = req.query;
+
+  if (!month || !year) {
+    return res.status(400).json({
+      success: false,
+      message: "Month and year are required.",
+    });
+  }
+
+  try {
+    const [attendanceDetails] = await db.query(
+      `
+      SELECT *
+      FROM students_attendance
+      WHERE student_id = ?
+        AND MONTH(attendance_date) = ?
+        AND YEAR(attendance_date) = ?
+      ORDER BY attendance_date ASC
+      `,
+      [studentId, month, year]
+    );
+
+    if (attendanceDetails.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No attendance records found for the selected month and year.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Attendance records retrieved successfully.",
+      count: attendanceDetails.length,
+      attendanceDetails,
+    });
+
+  } catch (error) {
+    console.error("Error fetching attendance:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error. Please try again later.",
+    });
   }
 });
 

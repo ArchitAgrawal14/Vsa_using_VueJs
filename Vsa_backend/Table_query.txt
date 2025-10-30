@@ -347,3 +347,45 @@ CREATE TABLE student_achievements (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE
 );
+
+CREATE TABLE deleted_student_achievements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id VARCHAR(30) NOT NULL,
+    achievement_title VARCHAR(255) NOT NULL,
+    achievement_type ENUM('competition','certificate','performance','record','other') DEFAULT 'competition',
+    achievement_level ENUM('school','block','district','division','state','national','international') DEFAULT 'school',
+    event_name VARCHAR(255) DEFAULT NULL,
+    remarks TEXT DEFAULT NULL,
+    link TEXT DEFAULT NULL,
+    date_of_achievement DATE NOT NULL,
+    deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+DELIMITER $$
+
+CREATE TRIGGER after_achievement_delete
+AFTER DELETE ON student_achievements
+FOR EACH ROW
+BEGIN
+    INSERT INTO deleted_student_achievements (
+        student_id,
+        achievement_title,
+        achievement_type,
+        achievement_level,
+        event_name,
+        remarks,
+        link,
+        date_of_achievement
+    ) VALUES (
+        OLD.student_id,
+        OLD.achievement_title,
+        OLD.achievement_type,
+        OLD.achievement_level,
+        OLD.event_name,
+        OLD.remarks,
+        OLD.link,
+        OLD.date_of_achievement
+    );
+END $$
+
+DELIMITER ;

@@ -1796,6 +1796,61 @@ app.post("/vsa/admin/add-new-achievement", middlewares.verifyToken, async (req, 
   }
 });
 
+//Endpoint to delete a achievement
+app.delete("/vsa/admin/delete-achievement/:achievementId", middlewares.verifyToken, async (req, res) => {
+
+  if (!req.user?.isAdmin) {
+    return res.status(403).json({
+      success: false,
+      message: "Access denied. Admins only.",
+    });
+  }
+
+  const { achievementId } = req.params;
+
+  if (!achievementId) {
+    return res.status(400).json({
+      success: false,
+      message: "Achievement ID is required.",
+    });
+  }
+
+  const connection = await db.getConnection();
+
+  try {
+    const [[achievement]] = await connection.query(
+      "SELECT id FROM student_achievements WHERE id = ?",
+      [achievementId]
+    );
+
+    if (!achievement) {
+      return res.status(404).json({
+        success: false,
+        message: "Achievement not found. Invalid Achievement ID.",
+      });
+    }
+
+    await connection.query(
+      "DELETE FROM student_achievements WHERE id = ?",
+      [achievementId]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Achievement deleted successfully.",
+    });
+
+  } catch (error) {
+    console.error("Error deleting achievement:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error. Please try again later.",
+    });
+  } finally {
+    connection.release();
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Backend running at http://localhost:${PORT}`);
 });

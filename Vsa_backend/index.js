@@ -1307,7 +1307,7 @@ app.get(
   }
 );
 
-// Endpoint to update student data from ManageStudents.vue page needs to be fixed
+// Endpoint to update student data from ManageStudents.vue page NEEDS TO BE FIXED
 app.put(
   "/vsa/admin/update-student",
   middlewares.verifyToken,
@@ -1863,79 +1863,30 @@ app.get(
       });
     }
 
-    const [studentDetails] = await db.query(
-      `SELECT s.student_id, s.full_name, s.mother_name, s.student_group
-      FROM students AS s`
-    );
-
-    if (studentDetails.length === 0) {
-      return res.status(204).json({
-        success: false,
-        message: "No data found",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      studentDetails: studentDetails,
-    });
+    const result = await admin.getStudentsForAttendanceRecords(db);
+    return res.status(result.statusCode).json(result);
   }
 );
 
 // Endpoint to fetch particular student attendance record
-app.get("/vsa/admin/get-student-attendance/:studentId", middlewares.verifyToken, async (req, res) => {
-  if (!req.user?.isAdmin) {
-    return res.status(403).json({
-      success: false,
-      message: "Access denied. Admins only.",
-    });
-  }
-
-  const { studentId } = req.params;
-  const { month, year } = req.query;
-
-  if (!month || !year) {
-    return res.status(400).json({
-      success: false,
-      message: "Month and year are required.",
-    });
-  }
-
-  try {
-    const [attendanceDetails] = await db.query(
-      `
-      SELECT *
-      FROM students_attendance
-      WHERE student_id = ?
-        AND MONTH(attendance_date) = ?
-        AND YEAR(attendance_date) = ?
-      ORDER BY attendance_date ASC
-      `,
-      [studentId, month, year]
-    );
-
-    if (attendanceDetails.length === 0) {
-      return res.status(404).json({
+app.get(
+  "/vsa/admin/get-student-attendance/:studentId",
+  middlewares.verifyToken,
+  async (req, res) => {
+    if (!req.user?.isAdmin) {
+      return res.status(403).json({
         success: false,
-        message: "No attendance records found for the selected month and year.",
+        message: "Access denied. Admins only.",
       });
     }
 
-    return res.status(200).json({
-      success: true,
-      message: "Attendance records retrieved successfully.",
-      count: attendanceDetails.length,
-      attendanceDetails,
-    });
+    const { studentId } = req.params;
+    const { month, year } = req.query;
 
-  } catch (error) {
-    console.error("Error fetching attendance:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error. Please try again later.",
-    });
+    const result = await admin.getStudentAttendance(db, studentId, month, year);
+    return res.status(result.statusCode).json(result);
   }
-});
+);
 
 app.listen(PORT, () => {
   console.log(`Backend running at http://localhost:${PORT}`);

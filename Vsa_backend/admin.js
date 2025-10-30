@@ -469,3 +469,73 @@ function generateStudentId(fullName, dob, motherName) {
 
   return studentId;
 }
+
+// Get all students for attendance records page
+export async function getStudentsForAttendanceRecords(db) {
+  const [studentDetails] = await db.query(
+    `SELECT s.student_id, s.full_name, s.mother_name, s.student_group
+    FROM students AS s`
+  );
+
+  if (studentDetails.length === 0) {
+    return {
+      success: false,
+      message: "No data found",
+      statusCode: 204,
+    };
+  }
+
+  return {
+    success: true,
+    studentDetails: studentDetails,
+    statusCode: 200,
+  };
+}
+
+// Get particular student attendance record
+export async function getStudentAttendance(db, studentId, month, year) {
+  if (!month || !year) {
+    return {
+      success: false,
+      message: "Month and year are required.",
+      statusCode: 400,
+    };
+  }
+
+  try {
+    const [attendanceDetails] = await db.query(
+      `
+      SELECT *
+      FROM students_attendance
+      WHERE student_id = ?
+        AND MONTH(attendance_date) = ?
+        AND YEAR(attendance_date) = ?
+      ORDER BY attendance_date ASC
+      `,
+      [studentId, month, year]
+    );
+
+    if (attendanceDetails.length === 0) {
+      return {
+        success: false,
+        message: "No attendance records found for the selected month and year.",
+        statusCode: 404,
+      };
+    }
+
+    return {
+      success: true,
+      message: "Attendance records retrieved successfully.",
+      count: attendanceDetails.length,
+      attendanceDetails,
+      statusCode: 200,
+    };
+  } catch (error) {
+    console.error("Error fetching attendance:", error);
+    return {
+      success: false,
+      message: "Internal server error. Please try again later.",
+      statusCode: 500,
+    };
+  }
+}

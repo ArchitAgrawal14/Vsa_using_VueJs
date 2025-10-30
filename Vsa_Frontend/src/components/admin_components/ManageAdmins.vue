@@ -273,7 +273,7 @@ export default {
       try {
         const token = localStorage.getItem('token')
         if (!token) {
-          this.$router.push('/newLogin')
+          this.$router.push('/login')
           return
         }
 
@@ -289,7 +289,7 @@ export default {
         this.hasAccess = true
       } catch (error) {
         console.error('Error checking permissions:', error)
-        this.$router.push('/newLogin')
+        this.$router.push('/login')
       }
     },
 
@@ -310,7 +310,7 @@ export default {
       } catch (error) {
         console.error('Error fetching users:', error)
         if (error.response?.status === 401) {
-          this.$router.push('/newLogin')
+          this.$router.push('/login')
         } else {
           this.error = error.response?.data?.message || 'Failed to fetch users'
         }

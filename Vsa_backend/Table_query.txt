@@ -265,7 +265,7 @@ CREATE TABLE IF NOT EXISTS newsletter_subscribers (
 
 CREATE TABLE students (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  student_id VARCHAR(70) UNIQUE,
+  student_id VARCHAR(30) UNIQUE,
   users_user_id VARCHAR(70) DEFAULT NULL,
   img VARCHAR(255),
   full_name VARCHAR(255) NOT NULL,
@@ -295,7 +295,7 @@ CREATE TABLE students (
 
 CREATE TABLE student_address (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  student_id VARCHAR(70) DEFAULT NULL,
+  student_id VARCHAR(30) DEFAULT NULL,
   address_line1 VARCHAR(255) NOT NULL,
   address_line2 VARCHAR(255),
   city VARCHAR(100) NOT NULL,
@@ -309,7 +309,7 @@ CREATE TABLE student_address (
 
 CREATE TABLE student_fee (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    student_id VARCHAR(70) NOT NULL,
+    student_id VARCHAR(30) NOT NULL,
     transaction_id VARCHAR(100) UNIQUE DEFAULT NULL,
     amount_paid DECIMAL(10,2) NOT NULL,
     remarks TEXT DEFAULT NULL,
@@ -323,7 +323,7 @@ CREATE TABLE student_fee (
 
 CREATE TABLE students_attendance (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    student_id VARCHAR(70) NOT NULL,
+    student_id VARCHAR(30) NOT NULL,
     status ENUM('Present', 'Absent', 'Sick') NOT NULL,
     attendance_date DATE NOT NULL,
     marked_by VARCHAR(70) DEFAULT NULL, -- FK to users/admins if needed
@@ -331,4 +331,19 @@ CREATE TABLE students_attendance (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE,
     UNIQUE(student_id, attendance_date) -- prevent duplicates
+);
+
+CREATE TABLE student_achievements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id VARCHAR(30) NOT NULL,
+    achievement_title VARCHAR(255) NOT NULL,
+    achievement_type ENUM('competition','certificate','performance','record','other') DEFAULT 'competition',
+    achievement_level ENUM('school', 'block','district', 'division', 'state','national','international') DEFAULT 'school',
+    event_name VARCHAR(255) DEFAULT NULL,
+    remarks TEXT DEFAULT NULL,
+    link TEXT DEFAULT NULL,
+    date_of_achievement DATE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE
 );

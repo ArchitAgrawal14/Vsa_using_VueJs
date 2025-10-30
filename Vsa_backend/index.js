@@ -23,7 +23,7 @@ const PORT = process.env.PORT || 3000;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 app.use(cors());
 app.use(express.json());
-app.use('/images', express.static(path.join(__dirname, 'public/images')));
+app.use("/images", express.static(path.join(__dirname, "public/images")));
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -300,14 +300,14 @@ async function isUserAdmin(password, user, isAdmin, res) {
       };
     }
   }
-  console.log('JWT in isUserAdmin ' + JWT_SECRET);
+  console.log("JWT in isUserAdmin " + JWT_SECRET);
   const token = jwt.sign(
     {
       userId: user.id,
       email: user.email,
       isAdmin: isAdmin,
       firstName: user.full_name.split(" ")[0],
-      permissions : adminPermissions
+      permissions: adminPermissions,
     },
     JWT_SECRET,
     { expiresIn: "1d" }
@@ -337,7 +337,7 @@ async function isUserAdmin(password, user, isAdmin, res) {
         email: user.email,
         isAdmin: isAdmin,
         mobile: user.mobile,
-        permissions : adminPermissions
+        permissions: adminPermissions,
       },
     },
   });
@@ -659,25 +659,28 @@ app.post("/vsa/newsletter-subscribe", async (req, res) => {
 });
 
 // Admin functionlaity endpoint
-app.get('/vsa/admin/manage-admins', middlewares.verifyToken, async (req, res) => {
-  try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied. Admins only.",
-      });
-    }
+app.get(
+  "/vsa/admin/manage-admins",
+  middlewares.verifyToken,
+  async (req, res) => {
+    try {
+      if (!req.user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Admins only.",
+        });
+      }
 
-    // Check if user has permission to manage admins
-    if (!req.user.permissions || !req.user.permissions.show_manage_admins) {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied. You do not have access to this section.",
-      });
-    }
+      // Check if user has permission to manage admins
+      if (!req.user.permissions || !req.user.permissions.show_manage_admins) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. You do not have access to this section.",
+        });
+      }
 
-    // Fetch all users + their permissions
-    const [allUsers] = await db.query(`
+      // Fetch all users + their permissions
+      const [allUsers] = await db.query(`
       SELECT 
         u.id,
         u.user_id,
@@ -706,78 +709,86 @@ app.get('/vsa/admin/manage-admins', middlewares.verifyToken, async (req, res) =>
       ORDER BY u.created_at DESC
     `);
 
-    return res.status(200).json({
-      success: true,
-      users: allUsers,
-    });
-
-  } catch (error) {
-    console.error("Error fetching users with permissions:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
+      return res.status(200).json({
+        success: true,
+        users: allUsers,
+      });
+    } catch (error) {
+      console.error("Error fetching users with permissions:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+      });
+    }
   }
-});
+);
 
 //Endpoint to toggle permission for individual users for admin-
-app.post('/vsa/admin/update-permission', middlewares.verifyToken, async (req, res) => {
-  const connection = await db.getConnection();
-  
-  try {
-    await connection.beginTransaction();
+app.post(
+  "/vsa/admin/update-permission",
+  middlewares.verifyToken,
+  async (req, res) => {
+    const connection = await db.getConnection();
 
-    // Check admin access
-    if (!req.user.isAdmin) {
+    try {
+      await connection.beginTransaction();
+
+      // Check admin access
+      if (!req.user.isAdmin) {
+        await connection.rollback();
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Admins only.",
+        });
+      }
+
+      const { userId, permissionKey, value } = req.body;
+
+      // Call the admin function
+      const result = await admin.updateAdminPermission(
+        userId,
+        permissionKey,
+        value,
+        connection
+      );
+
+      await connection.commit();
+      res.json(result);
+    } catch (error) {
       await connection.rollback();
-      return res.status(403).json({
-        success: false,
-        message: "Access denied. Admins only.",
-      });
-    }
+      console.error("Error updating permission:", error);
 
-    const { userId, permissionKey, value } = req.body;
+      // Handle different error types
+      if (error.message.includes("Missing or invalid required fields")) {
+        return res.status(400).json({
+          success: false,
+          message: error.message,
+        });
+      }
 
-    // Call the admin function
-    const result = await admin.updateAdminPermission(userId, permissionKey, value, connection);
+      if (error.message.includes("Invalid permission key")) {
+        return res.status(400).json({
+          success: false,
+          message: error.message,
+        });
+      }
 
-    await connection.commit();
-    res.json(result);
+      if (error.message.includes("User not found")) {
+        return res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+      }
 
-  } catch (error) {
-    await connection.rollback();
-    console.error('Error updating permission:', error);
-    
-    // Handle different error types
-    if (error.message.includes("Missing or invalid required fields")) {
-      return res.status(400).json({
+      res.status(500).json({
         success: false,
-        message: error.message,
+        message: "Failed to update permission",
       });
+    } finally {
+      connection.release();
     }
-    
-    if (error.message.includes("Invalid permission key")) {
-      return res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
-    
-    if (error.message.includes("User not found")) {
-      return res.status(404).json({
-        success: false,
-        message: error.message,
-      });
-    }
-    
-    res.status(500).json({
-      success: false,
-      message: "Failed to update permission",
-    });
-  } finally {
-    connection.release();
   }
-});
+);
 
 //This create invoice functionlaity is yet to be tested and completed
 app.get("/vsa/create-invoice", middlewares.verifyToken, async (req, res) => {
@@ -860,136 +871,145 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // Endpoint to register a new student admin side
-app.post('/vsa/admin/register-new-student', middlewares.verifyToken , 
-  upload.single('studentImage'), 
-  async (req, res)=> {
-  const connection = await db.getConnection();
+app.post(
+  "/vsa/admin/register-new-student",
+  middlewares.verifyToken,
+  upload.single("studentImage"),
+  async (req, res) => {
+    const connection = await db.getConnection();
 
-  try {
-     // Check admin access
-    if (!req.user.isAdmin) {
+    try {
+      // Check admin access
+      if (!req.user.isAdmin) {
+        await connection.rollback();
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Admins only.",
+        });
+      }
+
+      const validationErrors = validateStudent(req.body);
+      if (validationErrors.length > 0) {
+        return res.status(400).json({
+          success: false,
+          validationErrors,
+        });
+      }
+      await connection.beginTransaction();
+      const result = await admin.registerNewStudent(
+        req.body,
+        req.file,
+        connection
+      );
+
+      if (result.success) {
+        await connection.commit();
+        res.json(result);
+      } else {
+        await connection.rollback();
+        res.status(400).json(result);
+      }
+    } catch (error) {
       await connection.rollback();
-      return res.status(403).json({
+      console.error("Registration error:", error);
+      res.status(500).json({
         success: false,
-        message: "Access denied. Admins only.",
+        message: "Internal server error during registration",
       });
+    } finally {
+      connection.release();
     }
-
-    const validationErrors = validateStudent(req.body);
-    if (validationErrors.length > 0) {
-      return res.status(400).json({ 
-        success: false,
-        validationErrors 
-      });
-    }
-    await connection.beginTransaction();
-    const result  = await admin.registerNewStudent(req.body, req.file, connection);
-
-    if (result.success) {
-      await connection.commit();
-      res.json(result);
-    } else {
-      await connection.rollback();
-      res.status(400).json(result);
-    }
-
-  } catch (error) {
-    await connection.rollback();
-    console.error('Registration error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error during registration'
-    });
-  } finally {
-    connection.release();
   }
-});
+);
 
-// Function to validate student - 
+// Function to validate student -
 function validateStudent(data) {
   const errors = [];
 
   // img (optional)
-  if (data.img && typeof data.img !== 'string') {
-    errors.push('Image must be a string');
+  if (data.img && typeof data.img !== "string") {
+    errors.push("Image must be a string");
   }
 
   // fullName
   if (!data.fullName || data.fullName.trim().length < 2) {
-    errors.push('Full name is required and must be at least 2 characters long');
+    errors.push("Full name is required and must be at least 2 characters long");
   }
 
   // fatherName
-  if (data.fatherName && typeof data.fatherName !== 'string') {
-    errors.push('Father name must be a string');
+  if (data.fatherName && typeof data.fatherName !== "string") {
+    errors.push("Father name must be a string");
   }
 
   // motherName
-  if (data.motherName && typeof data.motherName !== 'string') {
-    errors.push('Mother name must be a string');
+  if (data.motherName && typeof data.motherName !== "string") {
+    errors.push("Mother name must be a string");
   }
 
   // email
   if (!data.email) {
-    errors.push('Email is required');
+    errors.push("Email is required");
   } else if (!/^\S+@\S+\.\S+$/.test(data.email)) {
-    errors.push('Invalid email format');
+    errors.push("Invalid email format");
   }
 
   // mobileNumber
   if (!data.mobileNumber) {
-    errors.push('Mobile number is required');
+    errors.push("Mobile number is required");
   } else if (!/^\d{10}$/.test(data.mobileNumber)) {
-    errors.push('Mobile number must be 10 digits');
+    errors.push("Mobile number must be 10 digits");
   }
 
   // whatsappNumber
   if (data.whatsappNumber && !/^\d{10}$/.test(data.whatsappNumber)) {
-    errors.push('WhatsApp number must be 10 digits');
+    errors.push("WhatsApp number must be 10 digits");
   }
 
   // dob
   if (!data.dob) {
-    errors.push('Date of birth is required');
+    errors.push("Date of birth is required");
   } else if (isNaN(Date.parse(data.dob))) {
-    errors.push('Invalid date of birth format');
+    errors.push("Invalid date of birth format");
   }
 
   // className
   if (!data.className) {
-    errors.push('Class is required');
+    errors.push("Class is required");
   }
 
   // gender
   if (!data.gender) {
-    errors.push('Gender is required');
-  } else if (!['Male', 'Female', 'Other'].includes(data.gender)) {
-    errors.push('Gender must be Male, Female, or Other');
+    errors.push("Gender is required");
+  } else if (!["Male", "Female", "Other"].includes(data.gender)) {
+    errors.push("Gender must be Male, Female, or Other");
   }
 
   // schoolName (optional)
-  if (data.schoolName && typeof data.schoolName !== 'string') {
-    errors.push('School name must be a string');
+  if (data.schoolName && typeof data.schoolName !== "string") {
+    errors.push("School name must be a string");
   }
 
   // studentGroup (optional)
-  if (data.studentGroup && typeof data.studentGroup !== 'string') {
-    errors.push('Student group must be a string');
+  if (data.studentGroup && typeof data.studentGroup !== "string") {
+    errors.push("Student group must be a string");
   }
 
   // skateType (optional)
-  if (data.skateType && typeof data.skateType !== 'string') {
-    errors.push('Skate type must be a string');
+  if (data.skateType && typeof data.skateType !== "string") {
+    errors.push("Skate type must be a string");
   }
 
   // feeStructure (optional)
-  if (data.feeStructure && typeof data.feeStructure !== 'string') {
-    errors.push('Fee structure must be a string');
+  if (data.feeStructure && typeof data.feeStructure !== "string") {
+    errors.push("Fee structure must be a string");
   }
 
   // feeCycle (optional but must be valid if given)
-  if (data.feeCycle && !['Monthly', 'Quarterly','Half-Yearly' , 'Yearly'].includes(data.feeCycle)) {
-    errors.push('Fee cycle must be Monthly, Quarterly, or Yearly');
+  if (
+    data.feeCycle &&
+    !["Monthly", "Quarterly", "Half-Yearly", "Yearly"].includes(data.feeCycle)
+  ) {
+    errors.push("Fee cycle must be Monthly, Quarterly, or Yearly");
   }
 
   // transportation (optional boolean)
@@ -998,80 +1018,230 @@ function validateStudent(data) {
   // }
 
   // status (optional, default to Active/Inactive)
-  if (data.status && !['Active', 'Inactive'].includes(data.status)) {
-    errors.push('Status must be Active or Inactive');
+  if (data.status && !["Active", "Inactive"].includes(data.status)) {
+    errors.push("Status must be Active or Inactive");
   }
 
   // addressLine1 (optional)
-  if (data.addressLine1 && typeof data.addressLine1 !== 'string') {
-    errors.push('Address Line 1 must be a string');
+  if (data.addressLine1 && typeof data.addressLine1 !== "string") {
+    errors.push("Address Line 1 must be a string");
   }
 
   // addressLine2 (optional)
-  if (data.addressLine2 && typeof data.addressLine2 !== 'string') {
-    errors.push('Address Line 2 must be a string');
+  if (data.addressLine2 && typeof data.addressLine2 !== "string") {
+    errors.push("Address Line 2 must be a string");
   }
 
   // city (optional)
-  if (data.city && typeof data.city !== 'string') {
-    errors.push('City must be a string');
+  if (data.city && typeof data.city !== "string") {
+    errors.push("City must be a string");
   }
 
   // state (optional)
-  if (data.state && typeof data.state !== 'string') {
-    errors.push('State must be a string');
+  if (data.state && typeof data.state !== "string") {
+    errors.push("State must be a string");
   }
 
   // postalCode (optional, but if present must be valid)
   if (data.postalCode && !/^\d{6}$/.test(data.postalCode)) {
-    errors.push('Postal code must be 6 digits');
+    errors.push("Postal code must be 6 digits");
   }
 
   return errors;
 }
 
 // Endpoint to populate students attendance-page
-app.get('/vsa/admin/get-students-for-attendance', middlewares.verifyToken , async (req, res) => {
-  try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied. Admins only.",
-      });
-    }
+app.get(
+  "/vsa/admin/get-students-for-attendance",
+  middlewares.verifyToken,
+  async (req, res) => {
+    try {
+      if (!req.user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Admins only.",
+        });
+      }
 
-    let choosenDate = req.query.date || new Date().toISOString().slice(0, 10);    
-    // Get attendance details as per the date
+      let choosenDate = req.query.date || new Date().toISOString().slice(0, 10);
+      // Get attendance details as per the date
 
-   const [attendanceDetails] = await db.query(
-      `SELECT s.student_id, s.full_name, s.mother_name, sa.status, sa.attendance_date
+      const [attendanceDetails] = await db.query(
+        `SELECT s.student_id, s.full_name, s.mother_name, sa.status, sa.attendance_date
        FROM students s
        LEFT JOIN students_attendance sa
         ON s.student_id = sa.student_id
         AND sa.attendance_date = ? WHERE s.status = 'active'`,
-      [choosenDate]
-    );
+        [choosenDate]
+      );
 
-    res.status(200).json({
-      success : true,
-      date : choosenDate,
-      attendanceDetails : attendanceDetails
-    });
-
-  } catch (error) {
-    console.error('Error fetching attendance:', error);
-    res.status(500).json({
-      success: false,
-      message: "Something went wrong while fetching attendance",
-      error: error.message
-    });
+      res.status(200).json({
+        success: true,
+        date: choosenDate,
+        attendanceDetails: attendanceDetails,
+      });
+    } catch (error) {
+      console.error("Error fetching attendance:", error);
+      res.status(500).json({
+        success: false,
+        message: "Something went wrong while fetching attendance",
+        error: error.message,
+      });
+    }
   }
-});
+);
 
 // Endpoint to mark attendance of student
-app.post('/vsa/admin/mark-attendance', middlewares.verifyToken, async (req, res) => {
-  try {
-    // Check if user is admin
+app.post(
+  "/vsa/admin/mark-attendance",
+  middlewares.verifyToken,
+  async (req, res) => {
+    try {
+      // Check if user is admin
+      if (!req.user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Admins only.",
+        });
+      }
+
+      const { date, studentId, status } = req.body;
+
+      // Validate required fields
+      if (!date || !studentId || !status) {
+        return res.status(400).json({
+          success: false,
+          message: "Date, student ID, and status are required fields",
+        });
+      }
+
+      // Validate status enum
+      const validStatuses = ["Present", "Absent", "Sick"];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: "Status must be one of: Present, Absent, Sick",
+        });
+      }
+
+      // Validate date format (YYYY-MM-DD)
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(date)) {
+        return res.status(400).json({
+          success: false,
+          message: "Date must be in YYYY-MM-DD format",
+        });
+      }
+
+      // Check if the student exists and is active
+      const [studentCheck] = await db.query(
+        'SELECT student_id, full_name FROM students WHERE student_id = ? AND status = "active"',
+        [studentId]
+      );
+
+      if (studentCheck.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Student not found or inactive",
+        });
+      }
+
+      const markedBy = req.user.userId || req.user.email;
+
+      // Check if attendance record already exists for this student and date
+      const [existingRecord] = await db.query(
+        "SELECT id FROM students_attendance WHERE student_id = ? AND attendance_date = ?",
+        [studentId, date]
+      );
+
+      if (existingRecord.length > 0) {
+        // Update existing record
+        const [updateResult] = await db.query(
+          `UPDATE students_attendance 
+         SET status = ?, marked_by = ?, updated_at = CURRENT_TIMESTAMP 
+         WHERE student_id = ? AND attendance_date = ?`,
+          [status, markedBy, studentId, date]
+        );
+
+        if (updateResult.affectedRows > 0) {
+          return res.status(200).json({
+            success: true,
+            message: `Attendance updated successfully for ${studentCheck[0].full_name}`,
+            data: {
+              studentId: studentId,
+              studentName: studentCheck[0].full_name,
+              status: status,
+              date: date,
+              action: "updated",
+            },
+          });
+        } else {
+          return res.status(500).json({
+            success: false,
+            message: "Failed to update attendance record",
+          });
+        }
+      } else {
+        // Insert new record
+        const [insertResult] = await db.query(
+          `INSERT INTO students_attendance (student_id, status, attendance_date, marked_by) 
+         VALUES (?, ?, ?, ?)`,
+          [studentId, status, date, markedBy]
+        );
+
+        if (insertResult.insertId) {
+          return res.status(201).json({
+            success: true,
+            message: `Attendance marked successfully for ${studentCheck[0].full_name}`,
+            data: {
+              attendanceId: insertResult.insertId,
+              studentId: studentId,
+              studentName: studentCheck[0].full_name,
+              status: status,
+              date: date,
+              action: "created",
+            },
+          });
+        } else {
+          return res.status(500).json({
+            success: false,
+            message: "Failed to create attendance record",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error marking attendance:", error);
+
+      // Handle specific database errors
+      if (error.code === "ER_DUP_ENTRY") {
+        return res.status(409).json({
+          success: false,
+          message: "Attendance record already exists for this student and date",
+        });
+      }
+
+      if (error.code === "ER_NO_REFERENCED_ROW_2") {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid student ID or foreign key constraint violation",
+        });
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: "Something went wrong while marking attendance",
+        error:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
+      });
+    }
+  }
+);
+
+// Endpoint to get particular data of all students for ManageStudents.vue page
+app.get(
+  "/vsa/admin/get-students-for-managing",
+  middlewares.verifyToken,
+  async (req, res) => {
     if (!req.user.isAdmin) {
       return res.status(403).json({
         success: false,
@@ -1079,134 +1249,550 @@ app.post('/vsa/admin/mark-attendance', middlewares.verifyToken, async (req, res)
       });
     }
 
-    const { date, studentId, status } = req.body;
+    const [studentDetails] = await db.query(
+      `SELECT s.student_id, s.full_name, s.mother_name, s.student_group, s.pending_fee 
+      FROM students AS s`
+    );
 
-    // Validate required fields
-    if (!date || !studentId || !status) {
-      return res.status(400).json({
+    if (studentDetails.length === 0) {
+      return res.status(204).json({
         success: false,
-        message: 'Date, student ID, and status are required fields'
+        message: "No data found",
       });
     }
 
-    // Validate status enum
-    const validStatuses = ['Present', 'Absent', 'Sick'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({
+    return res.status(200).json({
+      success: true,
+      studentDetails: studentDetails,
+    });
+  }
+);
+
+// Endpoint to get single student when admin clicks on a particular row in ManageStudents.vue page
+app.get(
+  "/vsa/admin/get-student-for-managing",
+  middlewares.verifyToken,
+  async (req, res) => {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
         success: false,
-        message: 'Status must be one of: Present, Absent, Sick'
+        message: "Access denied. Admins only.",
       });
     }
 
-    // Validate date format (YYYY-MM-DD)
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(date)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Date must be in YYYY-MM-DD format'
-      });
-    }
-
-    // Check if the student exists and is active
-    const [studentCheck] = await db.query(
-      'SELECT student_id, full_name FROM students WHERE student_id = ? AND status = "active"',
+    const { studentId } = req.query;
+    // Get the student with this studentId
+    const [studentDetail] = await db.query(
+      `
+    SELECT s.*, sa.*, sf.*
+    FROM students AS s
+    LEFT JOIN student_address AS sa ON s.student_id = sa.student_id
+    LEFT JOIN student_fee AS sf ON s.student_id = sf.student_id
+    WHERE s.student_id = ?
+    `,
       [studentId]
     );
 
-    if (studentCheck.length === 0) {
-      return res.status(404).json({
+    if (studentDetail.length === 0) {
+      return res.status(204).json({
         success: false,
-        message: 'Student not found or inactive'
+        message: "No student found.",
       });
     }
 
-    const markedBy = req.user.userId || req.user.email;
+    return res.status(200).json({
+      success: true,
+      studentDetail: studentDetail,
+    });
+  }
+);
 
-    // Check if attendance record already exists for this student and date
-    const [existingRecord] = await db.query(
-      'SELECT id FROM students_attendance WHERE student_id = ? AND attendance_date = ?',
-      [studentId, date]
-    );
-
-    if (existingRecord.length > 0) {
-      // Update existing record
-      const [updateResult] = await db.query(
-        `UPDATE students_attendance 
-         SET status = ?, marked_by = ?, updated_at = CURRENT_TIMESTAMP 
-         WHERE student_id = ? AND attendance_date = ?`,
-        [status, markedBy, studentId, date]
-      );
-
-      if (updateResult.affectedRows > 0) {
-        return res.status(200).json({
-          success: true,
-          message: `Attendance updated successfully for ${studentCheck[0].full_name}`,
-          data: {
-            studentId: studentId,
-            studentName: studentCheck[0].full_name,
-            status: status,
-            date: date,
-            action: 'updated'
-          }
-        });
-      } else {
-        return res.status(500).json({
-          success: false,
-          message: 'Failed to update attendance record'
-        });
-      }
-    } else {
-      // Insert new record
-      const [insertResult] = await db.query(
-        `INSERT INTO students_attendance (student_id, status, attendance_date, marked_by) 
-         VALUES (?, ?, ?, ?)`,
-        [studentId, status, date, markedBy]
-      );
-
-      if (insertResult.insertId) {
-        return res.status(201).json({
-          success: true,
-          message: `Attendance marked successfully for ${studentCheck[0].full_name}`,
-          data: {
-            attendanceId: insertResult.insertId,
-            studentId: studentId,
-            studentName: studentCheck[0].full_name,
-            status: status,
-            date: date,
-            action: 'created'
-          }
-        });
-      } else {
-        return res.status(500).json({
-          success: false,
-          message: 'Failed to create attendance record'
-        });
-      }
-    }
-
-  } catch (error) {
-    console.error('Error marking attendance:', error);
-    
-    // Handle specific database errors
-    if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(409).json({
+// Endpoint to update student data from ManageStudents.vue page needs to be fixed
+app.put(
+  "/vsa/admin/update-student",
+  middlewares.verifyToken,
+  async (req, res) => {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
         success: false,
-        message: 'Attendance record already exists for this student and date'
+        message: "Access denied. Admins only.",
       });
     }
-    
-    if (error.code === 'ER_NO_REFERENCED_ROW_2') {
+
+    const {
+      student_id,
+      // Students table fields
+      full_name,
+      father_name,
+      mother_name,
+      email,
+      mobile_number,
+      whatsapp_number,
+      dob,
+      class: studentClass,
+      gender,
+      school_name,
+      hobbies,
+      student_group,
+      skate_type,
+      fee_structure,
+      fee_cycle,
+      next_payment_date,
+      pending_fee,
+      transportation,
+      status,
+      // Student address fields
+      address_line1,
+      address_line2,
+      city,
+      state,
+      postal_code,
+      country,
+      // Student fee fields
+      transaction_id,
+      amount_paid,
+      remarks,
+      payment_mode,
+      payment_status,
+      payment_date,
+    } = req.body;
+
+    // Basic validation
+    if (!student_id) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid student ID or foreign key constraint violation'
+        message: "Student ID is required.",
       });
     }
 
+    // Email validation only if email is provided
+    if (email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid email format.",
+        });
+      }
+    }
+
+    // Mobile number validation only if mobile number is provided
+    if (mobile_number) {
+      const mobileRegex = /^[6-9]\d{9}$/;
+      if (!mobileRegex.test(mobile_number.replace(/\D/g, "").slice(-10))) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid mobile number format.",
+        });
+      }
+    }
+
+    const connection = await db.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      // Check if student exists
+      const [existingStudent] = await connection.query(
+        "SELECT * FROM students WHERE student_id = ?",
+        [student_id]
+      );
+
+      if (existingStudent.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({
+          success: false,
+          message: "Student not found.",
+        });
+      }
+
+      const currentStudent = existingStudent[0];
+
+      // Check if email is already used by another student (only if email is being updated)
+      if (email && email !== currentStudent.email) {
+        const [emailCheck] = await connection.query(
+          "SELECT student_id FROM students WHERE email = ? AND student_id != ?",
+          [email, student_id]
+        );
+
+        if (emailCheck.length > 0) {
+          await connection.rollback();
+          return res.status(400).json({
+            success: false,
+            message: "Email is already registered with another student.",
+          });
+        }
+      }
+
+      // Build dynamic update query for students table
+      const studentUpdates = [];
+      const studentValues = [];
+
+      // Helper function to add field to update if it exists in request
+      const addFieldUpdate = (fieldName, value, dbFieldName = fieldName) => {
+        if (value !== undefined) {
+          studentUpdates.push(`${dbFieldName} = ?`);
+          studentValues.push(value || null);
+        }
+      };
+
+      addFieldUpdate("full_name", full_name);
+      addFieldUpdate("father_name", father_name);
+      addFieldUpdate("mother_name", mother_name);
+      addFieldUpdate("email", email);
+      addFieldUpdate("mobile_number", mobile_number);
+      addFieldUpdate("whatsapp_number", whatsapp_number);
+      addFieldUpdate("dob", dob);
+      addFieldUpdate("class", studentClass);
+      addFieldUpdate("gender", gender);
+      addFieldUpdate("school_name", school_name);
+      addFieldUpdate("hobbies", hobbies);
+      addFieldUpdate("student_group", student_group);
+      addFieldUpdate("skate_type", skate_type);
+      addFieldUpdate("fee_structure", fee_structure);
+      addFieldUpdate("fee_cycle", fee_cycle);
+      addFieldUpdate("next_payment_date", next_payment_date);
+      addFieldUpdate("pending_fee", pending_fee);
+      addFieldUpdate("transportation", transportation);
+      addFieldUpdate("status", status);
+
+      // Only update students table if there are fields to update
+      if (studentUpdates.length > 0) {
+        studentUpdates.push("updated_at = CURRENT_TIMESTAMP");
+        studentValues.push(student_id);
+
+        const updateQuery = `UPDATE students SET ${studentUpdates.join(
+          ", "
+        )} WHERE student_id = ?`;
+        await connection.query(updateQuery, studentValues);
+      }
+
+      // Handle address updates only if address fields are provided
+      const addressFields = {
+        address_line1,
+        address_line2,
+        city,
+        state,
+        postal_code,
+        country,
+      };
+      const hasAddressData = Object.values(addressFields).some(
+        (value) => value !== undefined
+      );
+
+      if (hasAddressData) {
+        // Check if address record exists
+        const [existingAddress] = await connection.query(
+          "SELECT * FROM student_address WHERE student_id = ?",
+          [student_id]
+        );
+
+        const addressUpdates = [];
+        const addressValues = [];
+
+        addFieldUpdate("address_line1", address_line1);
+        addFieldUpdate("address_line2", address_line2);
+        addFieldUpdate("city", city);
+        addFieldUpdate("state", state);
+        addFieldUpdate("postal_code", postal_code);
+        addFieldUpdate("country", country);
+
+        if (addressUpdates.length > 0) {
+          if (existingAddress.length > 0) {
+            // Update existing address
+            addressUpdates.push("updated_at = CURRENT_TIMESTAMP");
+            addressValues.push(student_id);
+
+            const addressUpdateQuery = `UPDATE student_address SET ${addressUpdates.join(
+              ", "
+            )} WHERE student_id = ?`;
+            await connection.query(addressUpdateQuery, addressValues);
+          } else {
+            // Insert new address record only if we have at least address_line1, city, state, postal_code
+            const requiredAddressFields = [
+              address_line1,
+              city,
+              state,
+              postal_code,
+            ];
+            const hasRequiredFields = requiredAddressFields.every(
+              (field) => field !== undefined && field !== null && field !== ""
+            );
+
+            if (hasRequiredFields) {
+              await connection.query(
+                `
+              INSERT INTO student_address (
+                student_id, address_line1, address_line2, city, state, postal_code, country
+              ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            `,
+                [
+                  student_id,
+                  address_line1,
+                  address_line2 || null,
+                  city,
+                  state,
+                  postal_code,
+                  country || "India",
+                ]
+              );
+            }
+          }
+        }
+      }
+
+      // Handle fee updates only if fee-related data is provided
+      const feeFields = {
+        transaction_id,
+        amount_paid,
+        remarks,
+        payment_mode,
+        payment_status,
+        payment_date,
+      };
+      const hasFeeData = Object.values(feeFields).some(
+        (value) => value !== undefined
+      );
+
+      if (hasFeeData) {
+        // Get the latest fee record for this student
+        const [latestFee] = await connection.query(
+          "SELECT id FROM student_fee WHERE student_id = ? ORDER BY created_at DESC LIMIT 1",
+          [student_id]
+        );
+
+        const feeUpdates = [];
+        const feeValues = [];
+
+        addFieldUpdate("transaction_id", transaction_id);
+        addFieldUpdate("amount_paid", amount_paid);
+        addFieldUpdate("remarks", remarks);
+        addFieldUpdate("payment_mode", payment_mode);
+        addFieldUpdate("status", payment_status);
+        addFieldUpdate("payment_date", payment_date);
+
+        if (feeUpdates.length > 0) {
+          if (latestFee.length > 0) {
+            // Update the latest fee record
+            feeUpdates.push("updated_at = CURRENT_TIMESTAMP");
+            feeValues.push(latestFee[0].id);
+
+            const feeUpdateQuery = `UPDATE student_fee SET ${feeUpdates.join(
+              ", "
+            )} WHERE id = ?`;
+            await connection.query(feeUpdateQuery, feeValues);
+          } else if (amount_paid !== undefined && amount_paid > 0) {
+            // Insert new fee record only if amount is provided and > 0
+            await connection.query(
+              `
+            INSERT INTO student_fee (
+              student_id, transaction_id, amount_paid, remarks, payment_mode, status, payment_date
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+          `,
+              [
+                student_id,
+                transaction_id || null,
+                amount_paid,
+                remarks || null,
+                payment_mode || "cash",
+                payment_status || "success",
+                payment_date || new Date().toISOString().split("T")[0],
+              ]
+            );
+          }
+        }
+      }
+
+      await connection.commit();
+
+      // Fetch updated student data to return
+      const [updatedStudent] = await connection.query(
+        `
+      SELECT s.*, 
+             sa.address_line1, sa.address_line2, sa.city, sa.state, sa.postal_code, sa.country,
+             sf.transaction_id, sf.amount_paid, sf.remarks, sf.payment_mode, 
+             sf.status as payment_status, sf.payment_date
+      FROM students AS s
+      LEFT JOIN student_address AS sa ON s.student_id = sa.student_id
+      LEFT JOIN student_fee AS sf ON s.student_id = sf.student_id
+      WHERE s.student_id = ?
+      ORDER BY sf.created_at DESC
+      LIMIT 1
+    `,
+        [student_id]
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: "Student updated successfully.",
+        studentDetail: updatedStudent,
+      });
+    } catch (error) {
+      await connection.rollback();
+      console.error("Error updating student:", error);
+
+      // Handle specific database errors
+      if (error.code === "ER_DUP_ENTRY") {
+        return res.status(400).json({
+          success: false,
+          message: "Duplicate entry detected. Please check unique fields.",
+        });
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error while updating student.",
+      });
+    } finally {
+      connection.release();
+    }
+  }
+);
+
+// Endpoint to get all students for ManageStudentAchievements.vue
+app.get(
+  "/vsa/admin/get-students-for-manage-achievements",
+  middlewares.verifyToken,
+  async (req, res) => {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const [studentDetails] = await db.query(
+      `SELECT s.student_id, s.full_name, s.mother_name, s.student_group
+      FROM students AS s`
+    );
+
+    if (studentDetails.length === 0) {
+      return res.status(204).json({
+        success: false,
+        message: "No data found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      studentDetails: studentDetails,
+    });
+  }
+);
+
+// End to get single students achievements.
+app.get(
+  "/vsa/admin/get-student-for-manage-achievements",
+  middlewares.verifyToken,
+  async (req, res) => {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const { studentId } = req.query;
+    // Get the student with this studentId
+    const [studentAchievementsDetail] = await db.query(
+      `
+    SELECT s.*, sa.*
+    FROM students AS s
+    LEFT JOIN student_achievements AS sa ON s.student_id = sa.student_id
+    WHERE s.student_id = ?
+    `,
+      [studentId]
+    );
+
+    if (studentAchievementsDetail.length === 0) {
+      return res.status(204).json({
+        success: false,
+        message: "No student achievement found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      studentAchievementsDetail: studentAchievementsDetail,
+    });
+  }
+);
+
+// Endpoint to add a new achievement
+app.post("/vsa/admin/add-new-achievement", middlewares.verifyToken, async (req, res) => {
+
+  if (!req.user?.isAdmin) {
+    return res.status(403).json({
+      success: false,
+      message: "Access denied. Admins only.",
+    });
+  }
+
+  const {
+    studentId,
+    achievementTitle,
+    achievementType,
+    achievementLevel,
+    eventName,
+    remarks,
+    link,
+    dateOfAchievement,
+  } = req.body;
+  console.log(dateOfAchievement);
+  if (!studentId || !achievementTitle) {
+    return res.status(400).json({
+      success: false,
+      message: "Student ID and achievement title are required.",
+    });
+  }
+
+  const connection = await db.getConnection();
+
+  try {
+    
+    const [[student]] = await connection.query(
+      "SELECT id FROM students WHERE student_id = ?",
+      [studentId]
+    );
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found. Invalid Student ID.",
+      });
+    }
+
+    
+    await connection.query(
+      `INSERT INTO student_achievements 
+      (student_id, achievement_title, achievement_type, achievement_level, event_name, remarks, link, date_of_achievement)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        studentId,
+        achievementTitle,
+        achievementType || "competition",
+        achievementLevel || "school",
+        eventName || null,
+        remarks || null,
+        link || null,
+        dateOfAchievement || new Date(),
+      ]
+    );
+
+    
+    return res.status(201).json({
+      success: true,
+      message: "Student achievement added successfully.",
+    });
+
+  } catch (error) {
+    console.error("Error adding achievement:", error);
     return res.status(500).json({
       success: false,
-      message: "Something went wrong while marking attendance",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "Internal server error. Please try again later.",
     });
+  } finally {
+    connection.release();
   }
 });
 

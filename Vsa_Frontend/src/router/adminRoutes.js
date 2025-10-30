@@ -1,7 +1,10 @@
 import AttendancePage from "@/components/admin_components/AttendancePage.vue"
 import CreateInvoice from "@/components/admin_components/CreateInvoice.vue"
+import ManageAchievements from "@/components/admin_components/ManageAchievements.vue"
 import ManageAdmins from "@/components/admin_components/ManageAdmins.vue"
+import ManageStudents from "@/components/admin_components/ManageStudents.vue"
 import RegisterNewStudent from "@/components/admin_components/RegisterNewStudent.vue"
+import StudentAchievementDetail from "@/components/admin_components/StudentAchievementDetail.vue"
 export default [
   {
     path: '/vsa/create-invoice',
@@ -22,5 +25,20 @@ export default [
     path: '/vsa/admin/mark-attendance',
     name: 'AttendancePage',
     component: AttendancePage,
+  },
+  {
+    path: '/vsa/admin/manage-students',
+    name: 'ManageStudents',
+    component: ManageStudents,
+  },
+  {
+    path: '/vsa/admin/manage-achievements',
+    name: 'ManageAchievements',
+    component: ManageAchievements,
+  },
+  {
+    path: '/vsa/admin/student/:studentId/achievements',
+    name: 'StudentAchievementDetail',
+    component: StudentAchievementDetail,
   }
 ]

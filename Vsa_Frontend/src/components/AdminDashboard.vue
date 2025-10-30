@@ -51,7 +51,7 @@
               <!-- User dropdown content commented out as in original -->
             </div>
 
-            <a v-else href="/newLogin" class="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-blue-500 text-white px-6 py-2 rounded-xl hover:from-green-600 hover:to-blue-600 transition-all duration-200 shadow-lg hover:shadow-xl">
+            <a v-else href="/login" class="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-blue-500 text-white px-6 py-2 rounded-xl hover:from-green-600 hover:to-blue-600 transition-all duration-200 shadow-lg hover:shadow-xl">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
               </svg>
@@ -438,7 +438,7 @@ export default {
           headerIcon: 'fas fa-user-cog',
           icon: 'fas fa-users-cog',
           description: 'Manage student groups, fees, and other details.',
-          link: '/manageStudents',
+          link: '/vsa/admin/manage-students',
           buttonIcon: 'fas fa-cogs',
           buttonText: 'Manage',
           permission: 'show_manage_students'
@@ -449,7 +449,7 @@ export default {
           headerIcon: 'fas fa-medal',
           icon: 'fas fa-trophy',
           description: 'Add and manage student achievements and recognitions.',
-          link: '/AddStudentAchievements',
+          link: '/vsa/admin/manage-achievements',
           buttonIcon: 'fas fa-plus-circle',
           buttonText: 'Add Achievement',
           permission: 'show_students_achievements'
@@ -508,12 +508,12 @@ export default {
           this.permissions = payload.permissions || {};
         } else {
           // If no token, redirect to login
-          window.location.href = '/newLogin';
+          window.location.href = '/login';
         }
       } catch (error) {
         console.error('Error loading user permissions:', error);
         // Redirect to login if token is invalid
-        window.location.href = '/newLogin';
+        window.location.href = '/login';
       }
     },
     hasPermission(permissionKey) {

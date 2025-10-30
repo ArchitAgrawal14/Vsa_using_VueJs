@@ -262,6 +262,7 @@ export default {
           this.attendanceDetails = response.data.attendanceDetails
         } else {
           this.error = response.data.message || 'Failed to fetch attendance data'
+          this.$router.push('/login');
         }
       } catch (error) {
         console.error('Error fetching attendance data:', error)

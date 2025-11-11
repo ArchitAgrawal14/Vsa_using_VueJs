@@ -429,155 +429,30 @@ export default {
         { name: 'Fee Status', path: '/fee-status' },
         { name: 'Join Us', path: '/join-us' },
       ],
-      stats: [
-        { label: 'Active Students', value: '100+', icon: '/images/students-icon.jpg' },
-        { label: 'Expert Coaches', value: '3', icon: '/images/coaches-icon.jpg' },
-        { label: 'Championships Won', value: '220+', icon: '/images/VisheshtaPic.jpg' },
-        { label: 'Years Experience', value: '22', icon: '/images/experience-icon.jpg' },
-      ],
-      programs: [
-        {
-          title: 'Speed Roller Skating Junior',
-          category: 'Roller',
-          description:
-            'Master the fundamentals of speed roller skating with professional instruction.',
-          price: '2000/month',
-          image: '/images/speed-roller-program.jpg',
-        },
-        {
-          title: 'Speed Speed Skating',
-          category: 'Roller',
-          description: 'Develop lightning-fast techniques on ice with Olympic-level coaching.',
-          price: '4500/month',
-          image: '/images/ice-speed-program.jpg',
-        },
-        {
-          title: 'Competitive Training',
-          category: 'Elite',
-          description: 'Advanced program for competitive athletes seeking championship levels.',
-          price: '16000/month',
-          image: '/images/competitive-program.jpg',
-        },
-      ],
-      coaches: [
-        {
-          name: 'Vaibhav Agrawal',
-          specialization: 'Speed Roller Skating Coach',
-          experience: '22+ years competitive experience',
-          image: '/images/coaches-icon.jpg',
-        },
-        {
-          name: 'Visheshta Singh',
-          specialization: 'Roller & Ice Speed Skating Expert',
-          experience: 'Former international athlete',
-          image: '/images/hero-speed-skating.jpg',
-        },
-        {
-          name: 'Harsh Kasuadhan',
-          specialization: 'Youth Development Coach',
-          experience: '3+ years teaching experience',
-          image: '/images/HarshPic.jpg',
-        },
-      ],
-      achievements: [
-        {
-          title: 'National Champions',
-          description: '30+ students won national titles',
-          icon: '/images/national_players.jpg',
-        },
-        {
-          title: 'International Qualifiers',
-          description: '10 students qualified for international',
-          icon: '/images/ice-speed-program.jpg',
-        },
-        {
-          title: 'Record Holders',
-          description: '50+ regional speed records',
-          icon: '/images/record-icon.jpg',
-        },
-        {
-          title: 'Academy Awards',
-          description: 'Top skating academy 22 years running',
-          icon: '/images/ice-speed-program.jpg',
-        },
-      ],
-      rollerRecords: [
-        { id: 1, event: '500m Sprint', time: '45.23s', studentName: 'Rahul Sharma', year: 2024 },
-        { id: 2, event: '1000m', time: '1:32.45', studentName: 'Priya Patel', year: 2024 },
-        { id: 3, event: '5000m Relay', time: '7:23.12', studentName: 'Team A', year: 2023 },
-      ],
-
-      iceRecords: [
-        { id: 1, event: '500m', time: '38.42s', studentName: 'Arjun Singh', year: 2024 },
-        { id: 2, event: '1500m', time: '1:58.34', studentName: 'Sneha Gupta', year: 2024 },
-        { id: 3, event: '3000m', time: '4:12.67', studentName: 'Vikash Kumar', year: 2023 },
-      ],
-
-      recentRecords: [
-        {
-          id: 1,
-          studentName: 'Visheshta Singh.',
-          event: '500m Roller Sprint',
-          time: '28.23s',
-          discipline: 'roller',
-          date: '2024-07-15',
-        },
-        {
-          id: 2,
-          studentName: 'Harsh Kasaudhan.',
-          event: '500m Ice Sprint',
-          time: '8.42s',
-          discipline: 'ice',
-          date: '2024-07-12',
-        },
-        {
-          id: 3,
-          studentName: 'Udreka Singh.',
-          event: '1000m Roller',
-          time: '1:32.45',
-          discipline: 'roller',
-          date: '2024-07-10',
-        },
-        {
-          id: 4,
-          studentName: 'Someone.',
-          event: '1500m Ice',
-          time: '1:58.34',
-          discipline: 'ice',
-          date: '2024-07-08',
-        },
-      ],
-
-      rollerSchedule: [
-        { day: 'Monday', level: 'Beginner', time: '6:00 AM', duration: '2 hours' },
-        { day: 'Tuesday', level: 'Intermediate', time: '7:00 AM', duration: '2.5 hours' },
-        { day: 'Wednesday', level: 'Advanced', time: '6:00 AM', duration: '3 hours' },
-        { day: 'Thursday', level: 'Competition Prep', time: '5:30 AM', duration: '3.5 hours' },
-        { day: 'Friday', level: 'All Levels', time: '6:30 AM', duration: '2 hours' },
-        { day: 'Saturday', level: 'Race Training', time: '5:00 AM', duration: '4 hours' },
-      ],
-
-      iceSchedule: [
-        { day: 'Monday', level: 'Beginner', time: '8:00 AM', duration: '2 hours' },
-        { day: 'Tuesday', level: 'Intermediate', time: '7:30 AM', duration: '2.5 hours' },
-        { day: 'Wednesday', level: 'Advanced', time: '7:00 AM', duration: '3 hours' },
-        { day: 'Thursday', level: 'Elite Training', time: '6:30 AM', duration: '3.5 hours' },
-        { day: 'Friday', level: 'All Levels', time: '8:00 AM', duration: '2 hours' },
-        { day: 'Saturday', level: 'Competition', time: '6:00 AM', duration: '4 hours' },
-      ],
-
-      // Image sources - replace with actual image paths
-      logoImage: '/icons/VSA_logo.png',
-      heroImage: '/images/hero-speed-skating.jpg',
-      skateIcon: '/icons/skate-icon.png',
-      checkIcon: '/icons/check-icon.png',
-      rollerSkateImage: '/images/roller-skates-showcase.jpg',
-      iceSkateImage: '/images/ice-skates-showcase.jpg',
-      skatingBanner: '/images/join-us-banner.jpg',
-      rollerSpeedImage: '/images/roller-speed-training.jpg',
-      iceSpeedImage: '/images/ice-skates-showcase.jpg',
-      rollerIcon: '/images/roller-skate-icon.png',
-      iceIcon: '/images/ice-skate-icon.png',
+      stats: [],
+      programs: [],
+      coaches: [],
+      achievements: [],
+      rollerRecords: [],
+      iceRecords: [],
+      rollBallRecords: [],
+      recentRecords: [],
+      rollerSchedule: [],
+      iceSchedule: [],
+      rollBallSchedule: [],
+      // Image sources
+      images: {},
+      logoImage: '',
+      heroImage: '',
+      skateIcon: '',
+      checkIcon: '',
+      rollerSkateImage: '',
+      iceSkateImage: '',
+      skatingBanner: '',
+      rollerSpeedImage: '',
+      iceSpeedImage: '',
+      rollerIcon: '',
+      iceIcon: '',
     }
   },
   mounted() {
@@ -587,28 +462,107 @@ export default {
   methods: {
     async fetchDashboardData() {
       try {
-        const response = await axios.get('/vsa/dashboard')
-        this.dashboardData = response.data
+        const response = await axios.get('http://localhost:3000/vsa/dashboard')
 
-        // Update component data with server response if needed
-        if (response.data.stats) {
-          this.stats = response.data.stats
+        if (response.data.success) {
+          const data = response.data.data
+          
+          // Update stats
+          if (data.stats) {
+            this.stats = data.stats.map(stat => ({
+              label: stat.label,
+              value: stat.value,
+              icon: stat.image
+            }))
+          }
+          
+          // Update programs
+          if (data.programs) {
+            this.programs = data.programs.map(program => ({
+              title: program.title,
+              category: program.category,
+              description: program.description,
+              price: `${program.price}/${program.fee_cycle}`,
+              image: program.image
+            }))
+          }
+          
+          // Update coaches
+          if (data.coaches) {
+            this.coaches = data.coaches
+          }
+          
+          // Update achievements
+          if (data.achievements) {
+            this.achievements = data.achievements.map(achievement => ({
+              title: achievement.title,
+              description: achievement.description,
+              icon: achievement.images
+            }))
+          }
+          
+          // Update records
+          if (data.records) {
+            this.recentRecords = data.records.all || []
+            this.rollerRecords = data.records.roller || []
+            this.iceRecords = data.records.ice || []
+            this.rollBallRecords = data.records.rollBall || []
+          }
+          
+          // Update schedules
+          if (data.schedule) {
+            this.rollerSchedule = data.schedule.roller || []
+            this.iceSchedule = data.schedule.ice || []
+            this.rollBallSchedule = data.schedule.rollBall || []
+          }
+          
+          // Update images
+          if (data.images) {
+            this.images = data.images
+            this.logoImage = data.images.logo_image || '/icons/VSA_logo.png'
+            this.heroImage = data.images.hero_image || '/images/hero-speed-skating.jpg'
+            this.skateIcon = data.images.skate_icon || '/icons/skate-icon.png'
+            this.checkIcon = data.images.check_icon || '/icons/check-icon.png'
+            this.rollerSkateImage = data.images.roller_skate_image || '/images/roller-skates-showcase.jpg'
+            this.iceSkateImage = data.images.ice_skate_image || '/images/ice-skates-showcase.jpg'
+            this.skatingBanner = data.images.skating_banner || '/images/join-us-banner.jpg'
+            this.rollerSpeedImage = data.images.roller_speed_image || '/images/roller-speed-training.jpg'
+            this.iceSpeedImage = data.images.ice_speed_image || '/images/ice-skates-showcase.jpg'
+            this.rollerIcon = data.images.roller_icon || '/images/roller-skate-icon.png'
+            this.iceIcon = data.images.ice_icon || '/images/ice-skate-icon.png'
+          }
+          
+          this.dashboardData = response.data
         }
-        if (response.data.programs) {
-          this.programs = response.data.programs
-        }
-        if (response.data.coaches) {
-          this.coaches = response.data.coaches
-        }
-        if (response.data.achievements) {
-          this.achievements = response.data.achievements
-        }
-
+        
         this.loading = false
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
         this.loading = false
       }
+    },
+    filterProgramsByDiscipline(discipline) {
+      return this.programs.filter((program) =>
+        program.category.toLowerCase().includes(discipline.toLowerCase()),
+      )
+    },
+
+    getRecordsByDiscipline(discipline) {
+      const disciplineMap = {
+        'roller': this.rollerRecords,
+        'ice': this.iceRecords,
+        'rollball': this.rollBallRecords
+      }
+      return disciplineMap[discipline.toLowerCase()] || []
+    },
+
+    getScheduleByDiscipline(discipline) {
+      const disciplineMap = {
+        'roller': this.rollerSchedule,
+        'ice': this.iceSchedule,
+        'rollball': this.rollBallSchedule
+      }
+      return disciplineMap[discipline.toLowerCase()] || []
     },
     toggleMobileMenu() {
       this.mobileMenuOpen = !this.mobileMenuOpen

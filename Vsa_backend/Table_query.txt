@@ -479,3 +479,51 @@ INSERT INTO dashboard_image_assets (asset_key, asset_path, asset_type, descripti
 ('roller_speed_image', '/images/roller-speed-training.jpg', 'image', 'Roller Speed Training'),
 ('roller_icon', '/images/roller-skate-icon.png', 'icon', 'Roller Skate Icon'),
 ('ice_icon', '/images/ice-skate-icon.png', 'icon', 'Ice Skate Icon');
+
+-- Add indexes for better query performance
+CREATE INDEX idx_stats_display_order ON dashboard_stats_data(display_order, id);
+CREATE INDEX idx_programs_display_order ON dashboard_programs_data(display_order, id);
+CREATE INDEX idx_coaches_display_order ON dashboard_coaches_data(display_order, id);
+CREATE INDEX idx_achievements_display_order ON dashboard_achievements_data(display_order, id);
+CREATE INDEX idx_records_featured ON dashboard_records_data(is_featured, year, id);
+CREATE INDEX idx_schedule_day ON dashboard_schedule_data(day, discipline);
+
+-- Insert Stats
+INSERT INTO dashboard_stats_data (label, value, image, display_order) VALUES
+('Active Students', '100+', '/images/students-icon.jpg', 1),
+('Expert Coaches', '3', '/images/coaches-icon.jpg', 2),
+('Championships Won', '220+', '/images/VisheshtaPic.jpg', 3),
+('Years Experience', '22', '/images/experience-icon.jpg', 4);
+
+-- Insert Programs
+INSERT INTO dashboard_programs_data (title, category, description, price, fee_cycle, image, display_order) VALUES
+('Speed Roller Skating Junior', 'Roller', 'Master the fundamentals of speed roller skating with professional instruction.', 2000, 'month', '/images/speed-roller-program.jpg', 1),
+('Speed Speed Skating', 'Roller', 'Develop lightning-fast techniques on ice with Olympic-level coaching.', 4500, 'month', '/images/ice-speed-program.jpg', 2),
+('Competitive Training', 'Elite', 'Advanced program for competitive athletes seeking championship levels.', 16000, 'month', '/images/competitive-program.jpg', 3);
+
+-- Insert Coaches
+INSERT INTO dashboard_coaches_data (name, specialization, experience, image, display_order) VALUES
+('Vaibhav Agrawal', 'Speed Roller Skating Coach', '22+ years competitive experience', '/images/coaches-icon.jpg', 1),
+('Visheshta Singh', 'Roller & Ice Speed Skating Expert', 'Former international athlete', '/images/hero-speed-skating.jpg', 2),
+('Harsh Kasuadhan', 'Youth Development Coach', '3+ years teaching experience', '/images/HarshPic.jpg', 3);
+
+-- Insert Achievements
+INSERT INTO dashboard_achievements_data (title, description, images, display_order) VALUES
+('National Champions', '30+ students won national titles', '/images/national_players.jpg', 1),
+('International Qualifiers', '10 students qualified for international', '/images/ice-speed-program.jpg', 2),
+('Record Holders', '50+ regional speed records', '/images/record-icon.jpg', 3),
+('Academy Awards', 'Top skating academy 22 years running', '/images/ice-speed-program.jpg', 4);
+
+-- Insert Records
+INSERT INTO dashboard_records_data (event, time, studentName, discipline, year, is_featured) VALUES
+('500m Sprint', '45.23s', 'Rahul Sharma', 'Roller Skating', 2024, TRUE),
+('1000m', '1:32.45', 'Priya Patel', 'Roller Skating', 2024, TRUE),
+('500m', '38.42s', 'Arjun Singh', 'Ice Skating', 2024, TRUE),
+('1500m', '1:58.34', 'Sneha Gupta', 'Ice Skating', 2024, TRUE);
+
+-- Insert Schedule
+INSERT INTO dashboard_schedule_data (day, level, time, duration, discipline) VALUES
+('Monday', 'Beginner', '6:00 AM', '2 hours', 'Roller Skating'),
+('Tuesday', 'Intermediate', '7:00 AM', '2.5 hours', 'Roller Skating'),
+('Monday', 'Beginner', '8:00 AM', '2 hours', 'Ice Skating'),
+('Tuesday', 'Intermediate', '7:30 AM', '2.5 hours', 'Ice Skating');

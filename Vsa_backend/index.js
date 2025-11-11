@@ -586,6 +586,123 @@ const staticContentConfig = {
   },
 };
 
+// Endpoint to fetch all the data for user dashboard
+app.get("/vsa/dashboard", async (req, res) => {
+  try {
+    // Optimized query to get latest stats by display_order (1-4 only)
+    const [statsData] = await db.query(`
+      SELECT s1.* FROM dashboard_stats_data s1
+      INNER JOIN (
+        SELECT display_order, MAX(id) as max_id
+        FROM dashboard_stats_data
+        WHERE display_order BETWEEN 1 AND 4
+        GROUP BY display_order
+      ) s2 ON s1.display_order = s2.display_order AND s1.id = s2.max_id
+      ORDER BY s1.display_order ASC
+    `);
+
+    // Optimized query to get latest programs by display_order
+    const [programsData] = await db.query(`
+      SELECT p1.* FROM dashboard_programs_data p1
+      INNER JOIN (
+        SELECT display_order, MAX(id) as max_id
+        FROM dashboard_programs_data
+        GROUP BY display_order
+      ) p2 ON p1.display_order = p2.display_order AND p1.id = p2.max_id
+      ORDER BY p1.display_order ASC
+    `);
+
+    // Optimized query to get latest coaches by display_order
+    const [coachesData] = await db.query(`
+      SELECT c1.* FROM dashboard_coaches_data c1
+      INNER JOIN (
+        SELECT display_order, MAX(id) as max_id
+        FROM dashboard_coaches_data
+        GROUP BY display_order
+      ) c2 ON c1.display_order = c2.display_order AND c1.id = c2.max_id
+      ORDER BY c1.display_order ASC
+    `);
+
+    // Optimized query to get latest achievements by display_order
+    const [achievementsData] = await db.query(`
+      SELECT a1.* FROM dashboard_achievements_data a1
+      INNER JOIN (
+        SELECT display_order, MAX(id) as max_id
+        FROM dashboard_achievements_data
+        GROUP BY display_order
+      ) a2 ON a1.display_order = a2.display_order AND a1.id = a2.max_id
+      ORDER BY a1.display_order ASC
+    `);
+
+    // Get featured records (latest 6)
+    const [recordsData] = await db.query(`
+      SELECT * FROM dashboard_records_data 
+      WHERE is_featured = 1 
+      ORDER BY year DESC, id DESC 
+      LIMIT 6
+    `);
+
+    // Get schedule data (sorted by day and discipline)
+    const [scheduleData] = await db.query(`
+      SELECT * FROM dashboard_schedule_data 
+      ORDER BY 
+        FIELD(day, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'),
+        discipline
+    `);
+
+    // Get all image assets
+    const [imageAssets] = await db.query('SELECT * FROM dashboard_image_assets');
+
+    // Format schedule data for frontend (grouped by discipline)
+    const rollerSchedule = scheduleData.filter(s => s.discipline === 'Roller Skating');
+    const iceSchedule = scheduleData.filter(s => s.discipline === 'Ice Skating');
+    const rollBallSchedule = scheduleData.filter(s => s.discipline === 'Roll Ball');
+
+    // Format records data (grouped by discipline)
+    const rollerRecords = recordsData.filter(r => r.discipline === 'Roller Skating');
+    const iceRecords = recordsData.filter(r => r.discipline === 'Ice Skating');
+    const rollBallRecords = recordsData.filter(r => r.discipline === 'Roll Ball');
+
+    // Format image assets as key-value pairs for easy access
+    const images = {};
+    imageAssets.forEach(asset => {
+      images[asset.asset_key] = asset.asset_path;
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Dashboard data fetched successfully',
+      data: {
+        stats: statsData,
+        programs: programsData,
+        coaches: coachesData,
+        achievements: achievementsData,
+        records: {
+          all: recordsData,
+          roller: rollerRecords,
+          ice: iceRecords,
+          rollBall: rollBallRecords
+        },
+        schedule: {
+          all: scheduleData,
+          roller: rollerSchedule,
+          ice: iceSchedule,
+          rollBall: rollBallSchedule
+        },
+        images: images
+      }
+    });
+
+  } catch (error) {
+    console.error("Error fetching dashboard data:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching dashboard data.",
+      error: error.message
+    });
+  }
+});
+
 app.get("/vsa/:policyType", async (req, res) => {
   const { policyType } = req.params;
   const config = staticContentConfig[policyType];
@@ -658,7 +775,7 @@ app.post("/vsa/newsletter-subscribe", async (req, res) => {
   }
 });
 
-// Admin functionlaity endpoint
+// Admin functionlaity endpoints starts here
 app.get(
   "/vsa/admin/manage-admins",
   middlewares.verifyToken,
@@ -1887,6 +2004,8 @@ app.get(
     return res.status(result.statusCode).json(result);
   }
 );
+
+// Admin functionlaity endpoints ends here
 
 app.listen(PORT, () => {
   console.log(`Backend running at http://localhost:${PORT}`);

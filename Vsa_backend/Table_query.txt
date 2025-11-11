@@ -389,3 +389,93 @@ BEGIN
 END $$
 
 DELIMITER ;
+
+CREATE TABLE dashboard_stats_data (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  label VARCHAR(40),
+  value VARCHAR(10),
+  image TEXT,
+  display_order INT DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE dashboard_programs_data (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(100),
+  category VARCHAR(20),
+  description VARCHAR(256),
+  price INT,
+  fee_cycle VARCHAR(30),
+  image TEXT,
+  display_order INT DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE dashboard_coaches_data (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(50),
+  specialization VARCHAR(70),
+  experience VARCHAR(100),
+  image TEXT,
+  display_order INT DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE dashboard_achievements_data (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(100),
+  description VARCHAR(150),
+  images TEXT,
+  display_order INT DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE dashboard_records_data (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  event VARCHAR(50),
+  time VARCHAR(20),
+  studentName VARCHAR(100),
+  discipline ENUM('Roller Skating', 'Ice Skating', 'Roll Ball'),
+  year INT,
+  is_featured BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE dashboard_schedule_data (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  day ENUM('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday') NOT NULL,
+  level VARCHAR(30),
+  time VARCHAR(20),
+  duration VARCHAR(20),
+  discipline ENUM('Roller Skating', 'Ice Skating', 'Roll Ball'),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE dashboard_image_assets (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    asset_key VARCHAR(100) NOT NULL UNIQUE,
+    asset_path VARCHAR(255) NOT NULL,
+    asset_type VARCHAR(100) NOT NULL,
+    description VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Insert image sources
+INSERT INTO dashboard_image_assets (asset_key, asset_path, asset_type, description) VALUES
+('logo_image', '/icons/VSA_logo.png', 'logo', 'VSA Logo'),
+('hero_image', '/images/hero-speed-skating.jpg', 'hero', 'Hero Banner'),
+('skate_icon', '/icons/skate-icon.png', 'icon', 'Skate Icon'),
+('check_icon', '/icons/check-icon.png', 'icon', 'Check Icon'),
+('roller_skate_image', '/images/roller-skates-showcase.jpg', 'image', 'Roller Skates Showcase'),
+('ice_skate_image', '/images/ice-skates-showcase.jpg', 'image', 'Ice Skates Showcase'),
+('skating_banner', '/images/join-us-banner.jpg', 'banner', 'Join Us Banner'),
+('roller_speed_image', '/images/roller-speed-training.jpg', 'image', 'Roller Speed Training'),
+('roller_icon', '/images/roller-skate-icon.png', 'icon', 'Roller Skate Icon'),
+('ice_icon', '/images/ice-skate-icon.png', 'icon', 'Ice Skate Icon');

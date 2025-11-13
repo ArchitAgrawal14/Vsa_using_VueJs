@@ -613,3 +613,121 @@ VALUES
  'Coach of MP State Team 2035; Former National Gold medalist.',
  'RSFI Certified, Sports Science Diploma',
  'active');
+
+CREATE TABLE academy_achievements (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(100) NOT NULL,
+  description TEXT,
+  event_date DATE,
+  total_medals_won INT DEFAULT 0,
+  gold_medals INT DEFAULT 0,
+  silver_medals INT DEFAULT 0,
+  bronze_medals INT DEFAULT 0,
+  competition_name VARCHAR(100),
+  competition_category ENUM('Roller Speed Skating', 'Roll Ball', 'Ice Skating', 'Record', 'Camp'),
+  competition_level ENUM('school', 'block', 'district', 'division', 'state', 'national', 'international', 'record', 'RSFI', 'SGFI'),
+  location VARCHAR(100),
+  banner_image VARCHAR(255),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE academy_achievements_images (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  academy_achievement_id INT NOT NULL,
+  images_url TEXT,
+  FOREIGN KEY (academy_achievement_id) REFERENCES academy_achievements(id) ON DELETE CASCADE
+);
+
+INSERT INTO academy_achievements (
+  title, description, event_date, total_medals_won, gold_medals, silver_medals, bronze_medals,
+  competition_name, competition_category, competition_level, location, banner_image
+) VALUES (
+  'Maharashtra State Roller Speed Skating Championship 2024',
+  'Our academy team delivered an outstanding performance, securing multiple medals across different age groups.',
+  '2024-02-15', 12, 5, 4, 3,
+  'State Roller Skating Championship 2024',
+  'Roller Speed Skating',
+  'state',
+  'Pune, Maharashtra',
+  '/images/achievements/1744981361378-Suchi_Image.jpeg'
+);
+
+INSERT INTO academy_achievements_images (academy_achievement_id, images_url) VALUES
+  (1, '/images/achievements/1744981361378-Suchi_Image.jpeg'),
+  (1, '/images/achievements/1744981361378-Suchi_Image.jpeg'),
+  (1, '/images/achievements/1744981361378-Suchi_Image.jpeg');
+
+INSERT INTO academy_achievements (
+  title, description, event_date, total_medals_won, gold_medals, silver_medals, bronze_medals,
+  competition_name, competition_category, competition_level, location, banner_image
+) VALUES (
+  'National Roll Ball Championship 2023',
+  'Our players showcased great teamwork and speed at the National Roll Ball event.',
+  '2023-11-05', 8, 3, 3, 2,
+  'National Roll Ball Championship 2023',
+  'Roll Ball',
+  'national',
+  'Jaipur, Rajasthan',
+  '/images/achievements/VisheshtaPic.jpg'
+);
+
+INSERT INTO academy_achievements_images (academy_achievement_id, images_url) VALUES
+  (2, '/images/achievements/VisheshtaPic.jpg'),
+  (2, '/images/achievements/VisheshtaPic.jpg');
+
+INSERT INTO academy_achievements (
+  title, description, event_date, total_medals_won, gold_medals, silver_medals, bronze_medals,
+  competition_name, competition_category, competition_level, location, banner_image
+) VALUES (
+  'Winter Ice Skating Invitational 2024',
+  'Our skaters displayed excellent balance and control during the national-level ice skating championship.',
+  '2024-01-20', 6, 2, 3, 1,
+  'Winter Ice Skating Invitational 2024',
+  'Ice Skating',
+  'national',
+  'Gulmarg, Jammu & Kashmir',
+  '/images/achievements/WhatsApp Image 2024-07-29 at 16.57.35.jpeg'
+);
+
+INSERT INTO academy_achievements_images (academy_achievement_id, images_url) VALUES
+  (3, '/images/achievements/WhatsApp Image 2024-07-29 at 16.57.35.jpeg'),
+  (3, '/images/achievements/WhatsApp Image 2024-07-29 at 16.57.35.jpeg');
+
+INSERT INTO academy_achievements (
+  title, description, event_date, total_medals_won, gold_medals, silver_medals, bronze_medals,
+  competition_name, competition_category, competition_level, location, banner_image
+) VALUES (
+  'Limca Book of Records - Longest Skating Marathon',
+  'Our academy entered the Limca Book of Records for the longest continuous skating relay performed by students.',
+  '2023-12-10', 0, 0, 0, 0,
+  'Limca Record Event 2023',
+  'Record',
+  'record',
+  'Mumbai, Maharashtra',
+  '/images/achievements/WhatsApp Image 2024-07-29 at 16.57.54.jpeg'
+);
+
+INSERT INTO academy_achievements_images (academy_achievement_id, images_url) VALUES
+  (4, '/images/achievements/WhatsApp Image 2024-07-29 at 16.57.54.jpeg'),
+  (4, '/images/achievements/WhatsApp Image 2024-07-29 at 16.57.54.jpeg'),
+  (4, '/images/achievements/WhatsApp Image 2024-07-29 at 16.57.54.jpeg');
+
+INSERT INTO academy_achievements (
+  title, description, event_date, total_medals_won, gold_medals, silver_medals, bronze_medals,
+  competition_name, competition_category, competition_level, location, banner_image
+) VALUES (
+  'Summer Skating Training Camp 2024',
+  'A week-long intensive training camp focused on building speed, endurance, and discipline among young skaters.',
+  '2024-05-05', 0, 0, 0, 0,
+  'Swasth Skating Academy Summer Camp 2024',
+  'Camp',
+  'state',
+  'Nagpur, Maharashtra',
+  '/images/achievements/WhatsApp Image 2024-08-06 at 12.24.34.jpeg'
+);
+
+INSERT INTO academy_achievements_images (academy_achievement_id, images_url) VALUES
+  (5, '/images/achievements/WhatsApp Image 2024-08-06 at 12.24.34.jpeg'),
+  (5, '/images/achievements/WhatsApp Image 2024-08-06 at 12.24.34.jpeg'),
+  (5, '/images/achievements/WhatsApp Image 2024-08-06 at 12.24.34.jpeg');

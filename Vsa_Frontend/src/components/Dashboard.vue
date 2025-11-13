@@ -400,10 +400,10 @@
           </div>
         </div>
         <div class="text-center mt-12 space-x-4">
-          <router-link to="/achievements"
-            class="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors duration-200 inline-block">
+          <button
+            class="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors duration-200 inline-block" @click="navigateTo('/academy-achievements')">
             Academy Achievements
-          </router-link>
+          </button>
           <router-link to="/students-achievements"
             class="border-2 border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 inline-block">
             Student Success Stories

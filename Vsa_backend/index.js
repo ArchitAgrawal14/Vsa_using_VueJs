@@ -801,6 +801,39 @@ app.get("/vsa/meet-our-coaches", async (req, res) => {
   }
 });
 
+app.get("/vsa/academy-achievements", async (req, res) => {
+  try {
+
+    const [academyAchievementsData] = await db.query(
+      `SELECT * FROM academy_achievements`);
+
+    const [images] = await db.query("SELECT * FROM academy_achievements_images");
+
+    const academyAchievementsImages = academyAchievementsData.map((achievement) => {
+      const relatedImages = images.filter(img => img.academy_achievement_id === achievement.id)
+      .map(img => img.images_url);
+      return {
+        ...achievement, 
+        images : relatedImages
+      }
+    });
+
+    return res.status(200).json({
+      success : true,
+      message : "Academy Achievements fetched successfully",
+      academyAchievements : academyAchievementsImages
+    });
+
+  } catch (error) {
+    
+    return res.status(500).json({
+      success : false,
+      message : "Failed to fetch Academy Achievements data",
+      error : error.message
+    });
+  }
+});
+
 app.post("/vsa/newsletter-subscribe", async (req, res) => {
   try {
     const { email } = req.body;

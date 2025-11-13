@@ -8,6 +8,7 @@ import adminRoutes from './adminRoutes'
 import RollerSpeedSkatingDiscipline from '@/components/RollerSpeedSkatingDiscipline.vue'
 import IceSkatingDiscipline from '@/components/IceSkatingDiscipline.vue'
 import MeetOurCoaches from '@/components/MeetOurCoaches.vue'
+import AcademyAchievements from '@/components/AcademyAchievements.vue'
 
 const routes = [
   {
@@ -34,6 +35,11 @@ const routes = [
     path: '/meet-our-coaches',
     name: 'MeetOurCoaches',
     component: MeetOurCoaches
+  },
+  {
+    path: '/academy-achievements',
+    name: 'AcademyAchievements',
+    component: AcademyAchievements
   },
   ...authRoutes,
   ...footerRoutes,

@@ -45,9 +45,36 @@
                 Start Your Journey
               </button>
               <button
-                class="border-2 border-gray-300 text-gray-700 px-8 py-3 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-all duration-200">
+                class="border-2 border-gray-300 text-gray-700 px-8 py-3 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-all duration-200"
+                @click="showVideo = true">
                 Watch Demo
               </button>
+               <!-- Video Popup (Modal) -->
+              <div
+                v-if="showVideo"
+                class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+              >
+                <div class="bg-white rounded-xl overflow-hidden shadow-lg w-[90%] max-w-2xl relative">
+                  <!-- Close Button -->
+                  <button
+                    @click="closeVideo"
+                    class="absolute top-2 right-2 text-gray-600 hover:text-black text-2xl font-bold"
+                  >
+                    &times;
+                  </button>
+                  <!-- Embedded Video -->
+                  <div class="aspect-w-16 aspect-h-9">
+                    <iframe
+                      class="w-full h-80 rounded-b-xl"
+                      :src="videoUrl"
+                      title="Demo Video"
+                      frameborder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowfullscreen
+                    ></iframe>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <div class="relative">
@@ -453,6 +480,8 @@ export default {
       iceSpeedImage: '',
       rollerIcon: '',
       iceIcon: '',
+      showVideo: false,
+      videoUrl: "https://www.youtube.com/embed/5BGYz-VFRnY?autoplay=1",
     }
   },
   mounted() {
@@ -614,6 +643,14 @@ export default {
 
     getRecordsByDiscipline(discipline) {
       return discipline === 'roller' ? this.rollerRecords : this.iceRecords
+    },
+    closeVideo() {
+      this.showVideo = false;
+      // stop the video when closed
+      this.videoUrl = this.videoUrl.split("?")[0];
+      setTimeout(() => {
+        this.videoUrl = "https://www.youtube.com/embed/5BGYz-VFRnY?autoplay=1";
+      }, 300);
     },
   },
 }

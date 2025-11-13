@@ -6,6 +6,7 @@ import shopRoutes from './shopRoutes'
 import AdminDashboard from '@/components/AdminDashboard.vue'
 import adminRoutes from './adminRoutes'
 import RollerSpeedSkatingDiscipline from '@/components/RollerSpeedSkatingDiscipline.vue'
+import IceSkatingDiscipline from '@/components/IceSkatingDiscipline.vue'
 
 const routes = [
   {
@@ -23,6 +24,11 @@ const routes = [
     name: 'RollerSpeedSkatingDiscipline',
     component: RollerSpeedSkatingDiscipline
   },
+  {
+    path: '/ice-skating-discipline',
+    name: 'IceSkatingDiscipline',
+    component: IceSkatingDiscipline
+  },
   ...authRoutes,
   ...footerRoutes,
   ...shopRoutes,
@@ -31,7 +37,16 @@ const routes = [
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes
+  routes,
+  // ✅ Scroll to top on every route change
+  scrollBehavior(to, from, savedPosition) {
+    // if browser's back/forward navigation, use saved position
+    if (savedPosition) {
+      return savedPosition
+    } else {
+      return { top: 0 }
+    }
+  }
 })
 
 // Navigation guard

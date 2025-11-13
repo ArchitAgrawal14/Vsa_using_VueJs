@@ -705,7 +705,50 @@ app.get("/vsa/dashboard", async (req, res) => {
 
 app.get("/vsa/roller-speed-skating-discipline", async (req, res) => {
   try {
-    const [eventsData] = await db.query('SELECT * FROM skating_events_and_tours ORDER BY event_date DESC');
+    const [eventsData] = await db.query(
+      `SELECT * FROM skating_events_and_tours 
+      WHERE competition_category NOT IN ('Ice Skating') 
+      ORDER BY event_date DESC`);
+
+    const formattedEvents = eventsData.map(event => {
+      const eventDate = new Date(event.event_date);
+      const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+      return {
+        date : eventDate.getDate().toString(),
+        month : months[eventDate.getMonth()],
+        year : eventDate.getFullYear().toString(),
+        title : event.title,
+        description: event.description,
+        category: event.competition_level,
+        location: event.location,
+        tourFees: event.tour_fees
+      };
+    });
+
+
+    return res.status(200).json({
+      success : true,
+      message : "Events and tour data fetched successfully",
+      events : formattedEvents
+    });
+
+  } catch (error) {
+    console.error("Error fetching events:", error);
+    return res.status(500).json({
+      success : false,
+      message : "Failed to fetch Events and tour data",
+      error: error.message
+    });
+  }
+});
+
+app.get("/vsa/ice-skating-discipline", async (req, res) => {
+  try {
+    const [eventsData] = await db.query(
+      `SELECT * FROM skating_events_and_tours 
+      WHERE competition_category NOT IN ('Roller Speed Skating', 'Roll Ball') 
+      ORDER BY event_date DESC`);
 
     const formattedEvents = eventsData.map(event => {
       const eventDate = new Date(event.event_date);

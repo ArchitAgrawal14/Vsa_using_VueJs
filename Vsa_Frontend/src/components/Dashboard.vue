@@ -345,7 +345,7 @@
                   records
                 </div>
                 <button
-                  class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200">
+                  class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200" @click = "navigateTo('/ice-skating-discipline')">
                   Learn More
                 </button>
               </div>

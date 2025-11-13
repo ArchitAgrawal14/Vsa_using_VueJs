@@ -41,7 +41,7 @@
             </p>
             <div class="flex flex-col sm:flex-row gap-4">
               <button
-                class="bg-gray-900 text-white px-8 py-3 rounded-lg hover:bg-gray-800 transform hover:scale-105 transition-all duration-200">
+                class="bg-gray-900 text-white px-8 py-3 rounded-lg hover:bg-gray-800 transform hover:scale-105 transition-all duration-200" @click="navigateTo('/join-us')">
                 Start Your Journey
               </button>
               <button
@@ -304,7 +304,7 @@
                   records
                 </div>
                 <button
-                  class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors duration-200">
+                  class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors duration-200" @click = "navigateTo('/roller-speed-skating-discipline')">
                   Learn More
                 </button>
               </div>
@@ -651,6 +651,10 @@ export default {
       setTimeout(() => {
         this.videoUrl = "https://www.youtube.com/embed/5BGYz-VFRnY?autoplay=1";
       }, 300);
+    },
+    navigateTo(path) {
+      this.$router.push(path);
+      this.isUserDropdownOpen = false;
     },
   },
 }

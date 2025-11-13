@@ -527,3 +527,51 @@ INSERT INTO dashboard_schedule_data (day, level, time, duration, discipline) VAL
 ('Tuesday', 'Intermediate', '7:00 AM', '2.5 hours', 'Roller Skating'),
 ('Monday', 'Beginner', '8:00 AM', '2 hours', 'Ice Skating'),
 ('Tuesday', 'Intermediate', '7:30 AM', '2.5 hours', 'Ice Skating');
+
+
+CREATE TABLE skating_events_and_tours (
+  title VARCHAR(50),
+  description VARCHAR(256),
+  event_date TIMESTAMP,
+  competition_category ENUM('Roller Speed Skating', 'Roll Ball', 'Ice Skating', 'Record', 'Camp'),
+  competition_level ENUM('school', 'block','district', 'division', 'state','national','international', 'record', 'RSFI', 'SGFI'),
+  location VARCHAR(100),
+  tour_fees INT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+INSERT INTO skating_events_and_tours 
+(title, description, event_date, competition_category, competition_level, location, tour_fees)
+VALUES
+('Winter Speed Championship',
+ 'Annual winter championship featuring 200m, 500m, and 1000m races. Open to all age categories with separate divisions for beginners and advanced skaters.',
+ '2025-12-15 00:00:00',
+ 'Roller Speed Skating',
+ 'state',
+ 'Pune Track',
+ 16000),
+
+('New Year Training Camp',
+ 'Intensive 5-day training camp focused on technique refinement and speed building. Perfect for athletes preparing for upcoming competitions.',
+ '2025-12-28 00:00:00',
+ 'Camp',
+ 'district',
+ 'Academy Facility',
+ 16000),
+
+('Maharashtra State Trials',
+ 'Official state-level trials for selecting athletes to represent Maharashtra at the National Speed Skating Championship.',
+ '2026-01-20 00:00:00',
+ 'Roller Speed Skating',
+ 'state',
+ 'Mumbai',
+ 16000),
+
+('Youth Development Workshop',
+ 'Free workshop for young skaters aged 8-14. Learn fundamental techniques, safety protocols, and experience the thrill of speed skating.',
+ '2026-02-14 00:00:00',
+ 'Camp',
+ 'school',
+ 'Rama Krishna',
+ 16000);

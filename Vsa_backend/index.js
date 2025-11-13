@@ -703,33 +703,40 @@ app.get("/vsa/dashboard", async (req, res) => {
   }
 });
 
-app.get("/vsa/:policyType", async (req, res) => {
-  const { policyType } = req.params;
-  const config = staticContentConfig[policyType];
-
-  if (!config) {
-    return res
-      .status(404)
-      .json({ success: false, message: "Invalid policy type" });
-  }
-
+app.get("/vsa/roller-speed-skating-discipline", async (req, res) => {
   try {
-    const [results] = await db.query(
-      `SELECT * FROM ${config.table} ORDER BY ${config.orderBy} ASC`
-    );
-    if (config.useWrappedResponse) {
-      res.json({ success: true, data: results });
-    } else {
-      res.json(results);
-    }
-  } catch (error) {
-    console.error(`Error fetching ${policyType}:`, error);
+    const [eventsData] = await db.query('SELECT * FROM skating_events_and_tours ORDER BY event_date DESC');
 
-    if (config.useWrappedResponse) {
-      res.status(500).json({ success: false, message: config.errorMessage });
-    } else {
-      res.status(500).json({ error: config.errorMessage });
-    }
+    const formattedEvents = eventsData.map(event => {
+      const eventDate = new Date(event.event_date);
+      const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+      return {
+        date : eventDate.getDate().toString(),
+        month : months[eventDate.getMonth()],
+        year : eventDate.getFullYear().toString(),
+        title : event.title,
+        description: event.description,
+        category: event.competition_level,
+        location: event.location,
+        tourFees: event.tour_fees
+      };
+    });
+
+
+    return res.status(200).json({
+      success : true,
+      message : "Events and tour data fetched successfully",
+      events : formattedEvents
+    });
+
+  } catch (error) {
+    console.error("Error fetching events:", error);
+    return res.status(500).json({
+      success : false,
+      message : "Failed to fetch Events and tour data",
+      error: error.message
+    });
   }
 });
 
@@ -2006,6 +2013,36 @@ app.get(
 );
 
 // Admin functionlaity endpoints ends here
+
+app.get("/vsa/:policyType", async (req, res) => {
+  const { policyType } = req.params;
+  const config = staticContentConfig[policyType];
+
+  if (!config) {
+    return res
+      .status(404)
+      .json({ success: false, message: "Invalid policy type" });
+  }
+
+  try {
+    const [results] = await db.query(
+      `SELECT * FROM ${config.table} ORDER BY ${config.orderBy} ASC`
+    );
+    if (config.useWrappedResponse) {
+      res.json({ success: true, data: results });
+    } else {
+      res.json(results);
+    }
+  } catch (error) {
+    console.error(`Error fetching ${policyType}:`, error);
+
+    if (config.useWrappedResponse) {
+      res.status(500).json({ success: false, message: config.errorMessage });
+    } else {
+      res.status(500).json({ error: config.errorMessage });
+    }
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Backend running at http://localhost:${PORT}`);

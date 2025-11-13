@@ -125,14 +125,14 @@
                                         </span>
                                     </div>
                                     <h3 class="text-2xl font-bold text-black mb-3 group-hover:underline">{{ event.title
-                                        }}</h3>
+                                    }}</h3>
                                     <p class="text-gray-600 mb-4">{{ event.description }}</p>
                                     <div class="flex items-center text-sm text-gray-500">
                                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                         </svg>
-                                        {{ event.participants }} participants expected
+                                        {{ event.tourFees }} Tour Fees
                                     </div>
                                 </div>
                             </div>
@@ -205,7 +205,8 @@
                             View Complete Guide
                         </button>
                         <button
-                            class="px-10 py-5 bg-white text-black border-2 border-black rounded-full text-lg font-semibold hover:bg-gray-50 transition-all transform hover:scale-105">
+                            class="px-10 py-5 bg-white text-black border-2 border-black rounded-full text-lg font-semibold hover:bg-gray-50 transition-all transform hover:scale-105"
+                            @click="navigateTo('/join-us')">
                             Schedule Visit
                         </button>
                     </div>
@@ -258,48 +259,7 @@ export default {
                     icon: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'
                 }
             ],
-            events: [
-                {
-                    date: '15',
-                    month: 'DEC',
-                    year: '2025',
-                    title: 'Winter Speed Championship',
-                    description: 'Annual winter championship featuring 200m, 500m, and 1000m races. Open to all age categories with separate divisions for beginners and advanced skaters.',
-                    category: 'Competition',
-                    location: 'Pune Track',
-                    participants: '150+'
-                },
-                {
-                    date: '28',
-                    month: 'DEC',
-                    year: '2025',
-                    title: 'New Year Training Camp',
-                    description: 'Intensive 5-day training camp focused on technique refinement and speed building. Perfect for athletes preparing for upcoming competitions.',
-                    category: 'Training',
-                    location: 'Academy Facility',
-                    participants: '50'
-                },
-                {
-                    date: '20',
-                    month: 'JAN',
-                    year: '2026',
-                    title: 'Maharashtra State Trials',
-                    description: 'Official state-level trials for selecting athletes to represent Maharashtra at the National Speed Skating Championship.',
-                    category: 'Qualifier',
-                    location: 'Mumbai',
-                    participants: '200+'
-                },
-                {
-                    date: '14',
-                    month: 'FEB',
-                    year: '2026',
-                    title: 'Youth Development Workshop',
-                    description: 'Free workshop for young skaters aged 8-14. Learn fundamental techniques, safety protocols, and experience the thrill of speed skating.',
-                    category: 'Workshop',
-                    location: 'Vaibhav Academy',
-                    participants: '80'
-                }
-            ],
+            events: [],
             trainingInsights: [
                 {
                     title: 'Progressive Technique Development',
@@ -319,9 +279,9 @@ export default {
                 }
             ],
             metrics: [
-                { label: 'Speed Improvement', value: 85 },
-                { label: 'Technique Mastery', value: 92 },
-                { label: 'Endurance Building', value: 88 },
+                { label: 'Speed Improvement', value: 75 },
+                { label: 'Technique Mastery', value: 82 },
+                { label: 'Endurance Building', value: 78 },
                 { label: 'Competition Readiness', value: 78 }
             ],
             equipment: [
@@ -350,23 +310,22 @@ export default {
     methods: {
         async fetchAcademyData() {
             try {
-                // Replace with your actual API endpoint
-                // const response = await fetch('http://localhost:3000/vsa/rollerSpeedSkatingDiscipline');
-                // const data = await response.json();
-
-                // Example of how to update data when received from server:
-                // this.hero = data.hero;
-                // this.benefits = data.benefits;
-                // this.events = data.events;
-                // this.trainingInsights = data.trainingInsights;
-                // this.metrics = data.metrics;
-                // this.equipment = data.equipment;
-
-                console.log('Academy data loaded');
+                const response = await fetch('http://localhost:3000/vsa/roller-speed-skating-discipline');
+                const data = await response.json();
+                if (data.success && data.events && data.events.length > 0) {
+                    this.events = data.events;
+                    console.log('Academy data loaded:', this.events.length, 'events');
+                } else {
+                    console.warn('No events found, keeping default data');
+                }
             } catch (error) {
                 console.error('Error fetching academy data:', error);
             }
-        }
+        },
+        navigateTo(path) {
+            this.$router.push(path);
+            this.isUserDropdownOpen = false;
+        },
     }
 }
 </script>

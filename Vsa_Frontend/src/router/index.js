@@ -7,6 +7,7 @@ import AdminDashboard from '@/components/AdminDashboard.vue'
 import adminRoutes from './adminRoutes'
 import RollerSpeedSkatingDiscipline from '@/components/RollerSpeedSkatingDiscipline.vue'
 import IceSkatingDiscipline from '@/components/IceSkatingDiscipline.vue'
+import MeetOurCoaches from '@/components/MeetOurCoaches.vue'
 
 const routes = [
   {
@@ -28,6 +29,11 @@ const routes = [
     path: '/ice-skating-discipline',
     name: 'IceSkatingDiscipline',
     component: IceSkatingDiscipline
+  },
+  {
+    path: '/meet-our-coaches',
+    name: 'MeetOurCoaches',
+    component: MeetOurCoaches
   },
   ...authRoutes,
   ...footerRoutes,

@@ -376,10 +376,10 @@
           </div>
         </div>
         <div class="text-center mt-12">
-          <router-link to="/meet-our-coach"
-            class="bg-gray-900 text-white px-8 py-3 rounded-lg hover:bg-gray-800 transform hover:scale-105 transition-all duration-200 inline-block">
+          <button
+            class="bg-gray-900 text-white px-8 py-3 rounded-lg hover:bg-gray-800 transform hover:scale-105 transition-all duration-200 inline-block" @click="navigateTo('/meet-our-coaches')">
             View All Coaches
-          </router-link>
+          </button>
         </div>
       </div>
     </section>

@@ -783,6 +783,24 @@ app.get("/vsa/ice-skating-discipline", async (req, res) => {
   }
 });
 
+app.get("/vsa/meet-our-coaches", async (req, res) => {
+  try {
+    const [coachesData] = await db.query('SELECT * FROM coaches');
+    return res.status(200).json({
+      success : true,
+      message : "Coaches Data fetched succesfully",
+      totalCoaches : coachesData.length,
+      coaches : coachesData
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success : false,
+      message : "Coaches Data not found",
+      error : error.message
+    });
+  }
+});
+
 app.post("/vsa/newsletter-subscribe", async (req, res) => {
   try {
     const { email } = req.body;

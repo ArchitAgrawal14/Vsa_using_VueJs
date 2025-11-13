@@ -530,6 +530,7 @@ INSERT INTO dashboard_schedule_data (day, level, time, duration, discipline) VAL
 
 
 CREATE TABLE skating_events_and_tours (
+  id INT AUTO_INCREMENT PRIMARY KEY,
   title VARCHAR(50),
   description VARCHAR(256),
   event_date TIMESTAMP,
@@ -575,3 +576,40 @@ VALUES
  'school',
  'Rama Krishna',
  16000);
+
+CREATE TABLE coaches (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  coach_name VARCHAR(100),
+  image TEXT,
+  experience VARCHAR(20),
+  description VARCHAR(250),
+  specialization VARCHAR(100),
+  achievements TEXT,
+  certifications TEXT,
+  status ENUM('active', 'inactive') DEFAULT 'active',
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+INSERT INTO coaches 
+(coach_name, image, experience, description, specialization, achievements, certifications, status)
+VALUES
+('Vaibhav Agrawal', '/images/coaches/vaibhav_sir.jpg', '20+ years',
+ 'Former national speed skater with extensive experience coaching elite athletes.',
+ 'Roller Speed Skating',
+ 'Trained 5 national-level skaters; Gold medalist.',
+ 'RSFI Certified Coach, First Aid Certified',
+ 'active'),
+
+('Visheshta Singh', '/images/coaches/sneha_deshmukh.jpg', '10 years',
+ 'Dedicated coach focusing on youth development and professional speed training.',
+ 'Ice Skating',
+ 'Developed many champions under her guidance.',
+ 'ISI',
+ 'active'),
+
+('Harsh Kasuadhan', '/images/coaches/HarshPic.jpg', '150 years',
+ 'Expert in endurance and sprint skating with focus on biomechanics and strength.',
+ 'Roller Speed Skating',
+ 'Coach of MP State Team 2035; Former National Gold medalist.',
+ 'RSFI Certified, Sports Science Diploma',
+ 'active');

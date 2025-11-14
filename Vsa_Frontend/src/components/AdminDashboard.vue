@@ -161,7 +161,7 @@
               
               <!-- Updated button logic: use link for ID 1 and 7, use method for IDs 2-6 -->
               <a 
-                v-if="operation.id === 1 || operation.id === 7"
+                v-if="operation.id === 1 || operation.id === 7 || operation.id === 8"
                 :href="operation.link" 
                 class="inline-flex items-center justify-center w-full px-4 py-3 bg-white text-black font-medium rounded-xl hover:bg-gray-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
               >
@@ -407,6 +407,17 @@ export default {
           buttonIcon: 'fas fa-paper-plane',
           buttonText: 'Create & Send',
           permission: 'show_send_mails'
+        },
+        {
+          id: 8,
+          title: 'Manage Dashboard',
+          headerIcon: 'fas fa-file-invoice',
+          icon: 'fas fa-file-invoice',
+          description: 'Manage Dashboard Content',
+          link: '/vsa/admin/manage-dashboard',
+          buttonIcon: 'fas fa-plus-circle',
+          buttonText: 'Update',
+          permission: 'show_manage_dashboard'
         }
       ],
       studentManagement: [

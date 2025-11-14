@@ -246,6 +246,7 @@ export default {
         { key: 'show_attendance_records', label: 'Attendance Records' },
         { key: 'show_news_letter', label: 'Newsletter' },
         { key: 'show_manage_admins', label: 'Manage Admins' },
+        { key: 'show_manage_dashboard', label: 'Manage Dashboard' },
       ],
     }
   },

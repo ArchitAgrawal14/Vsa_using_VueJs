@@ -221,7 +221,7 @@ export async function updateAdminPermission(userId, permissionKey, value, connec
       'show_online_users', 'show_available_stocks', 'show_offline_sales',
       'show_send_mails', 'show_new_student', 'show_attendance',
       'show_manage_students', 'show_students_achievements', 
-      'show_attendance_records', 'show_news_letter', 'show_manage_admins'
+      'show_attendance_records', 'show_news_letter', 'show_manage_admins', 'show_manage_dashboard'
     ];
 
     if (!allowedPermissions.includes(permissionKey)) {

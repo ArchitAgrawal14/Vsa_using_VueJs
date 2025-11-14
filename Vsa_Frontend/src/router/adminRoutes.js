@@ -3,6 +3,7 @@ import AttendanceRecords from "@/components/admin_components/AttendanceRecords.v
 import CreateInvoice from "@/components/admin_components/CreateInvoice.vue"
 import ManageAchievements from "@/components/admin_components/ManageAchievements.vue"
 import ManageAdmins from "@/components/admin_components/ManageAdmins.vue"
+import ManageDashboard from "@/components/admin_components/ManageDashboard.vue"
 import ManageStudents from "@/components/admin_components/ManageStudents.vue"
 import RegisterNewStudent from "@/components/admin_components/RegisterNewStudent.vue"
 import StudentAchievementDetail from "@/components/admin_components/StudentAchievementDetail.vue"
@@ -46,5 +47,10 @@ export default [
     path: '/vsa/admin/monthly-attendance',
     name: 'AttendanceRecords',
     component: AttendanceRecords,
+  },
+  {
+    path: '/vsa/admin/manage-dashboard',
+    name: 'ManageDashboard',
+    component: ManageDashboard,
   }
 ]

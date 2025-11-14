@@ -274,8 +274,8 @@ async function isUserAdmin(password, user, isAdmin, res) {
               show_online_users, show_available_stocks, show_offline_sales,
               show_send_mails, show_new_student, show_attendance, show_manage_students,
               show_students_achievements, show_attendance_records, show_news_letter,
-              show_manage_admins
-            ) VALUES (?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+              show_manage_admins, show_manage_dashboard
+            ) VALUES (?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
           `,
         [user.user_id]
       );
@@ -976,7 +976,8 @@ app.get(
         a.show_students_achievements,
         a.show_attendance_records,
         a.show_news_letter,
-        a.show_manage_admins
+        a.show_manage_admins,
+        a.show_manage_dashboard
       FROM users u
       LEFT JOIN admin_access a ON u.user_id = a.user_id
       ORDER BY u.created_at DESC
@@ -2160,6 +2161,15 @@ app.get(
     return res.status(result.statusCode).json(result);
   }
 );
+
+// Endpoint to open manage dashboard page
+app.get('/vsa/admin/manage-dashboard', middlewares.verifyToken, async (req, res) => {
+  try {
+    
+  } catch (error) {
+    
+  }
+});
 
 // Admin functionlaity endpoints ends here
 

@@ -332,6 +332,8 @@ export default {
       captcha: '',
       captchaCode: this.generateCaptcha(),
       toast: null,
+      isRefreshing: false,
+      failedRequestsQueue: [],
       loginForm: {
         email: '',
         password: ''
@@ -364,12 +366,30 @@ export default {
         (response) => response,
         async (error) => {
           const originalRequest = error.config;
+          const isAuthEndpoint = 
+                  originalRequest.url?.includes('/login') ||
+                  originalRequest.url?.includes('/signup') ||
+                  originalRequest.url?.includes('/refresh-token');
 
+          if (isAuthEndpoint) {
+            return Promise.reject(error);
+          }
           if (error.response?.status === 401 && !originalRequest._retry) {
+            if (this.isRefreshing) {
+              return new Promise((resolve, reject) => {
+                this.failedRequestsQueue.push({ resolve, reject, config: originalRequest });
+              });
+            }
             originalRequest._retry = true;
 
             try {
               const refreshToken = localStorage.getItem('refreshToken');
+              // ✅ If no refresh token exists, logout immediately
+              if (!refreshToken) {
+                this.handleLogout();
+                return Promise.reject(error);
+              }
+
               const response = await axios.post(`${this.apiBaseURL}/refresh-token`, {
                 refreshToken
               });
@@ -377,13 +397,32 @@ export default {
               if (response.data.success) {
                 localStorage.setItem('token', response.data.data.token);
                 localStorage.setItem('refreshToken', response.data.data.refreshToken);
-
+                this.failedRequestsQueue.forEach(({ resolve, config }) => {
+                  config.headers.Authorization = `Bearer ${token}`;
+                  resolve(axios(config));
+                });
+                this.failedRequestsQueue = [];
                 // Retry original request with new token
                 originalRequest.headers.Authorization = `Bearer ${response.data.data.token}`;
                 return axios(originalRequest);
+              } else {
+                // ✅ If refresh returns success: false, logout
+                this.handleLogout();
+                return Promise.reject(error);
               }
             } catch (refreshError) {
+              // ✅ Reject all queued requests
+              this.failedRequestsQueue.forEach(({ reject }) => {
+                reject(refreshError);
+              });
+              this.failedRequestsQueue = [];
+              localStorage.removeItem('token');
+              localStorage.removeItem('refreshToken');
+              localStorage.removeItem('user');
               this.handleLogout();
+              return Promise.reject(refreshError);
+            } finally {
+              this.isRefreshing = false;
             }
           }
           return Promise.reject(error);
@@ -515,6 +554,9 @@ export default {
         }
       } catch (error) {
         console.error('API error :', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
 
         if (error.response && error.response.data) {
           this.showToast('error', error.response.data.message || 'An error occurred');
@@ -563,8 +605,11 @@ export default {
               console.error('Failed to save to localStorage:', error);
             }
 
-            this.showToast('success', response.data.message);
+            this.showToast('Success', response.data.message);
             this.$router.push('/');
+          } else {
+            this.showToast('Failed', response.data.message);
+            this.$router.push('/login');
           }
         } catch (error) {
           console.error('Token exchange failed:', error);

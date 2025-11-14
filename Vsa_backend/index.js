@@ -805,9 +805,9 @@ app.get("/vsa/academy-achievements", async (req, res) => {
   try {
 
     const [academyAchievementsData] = await db.query(
-      `SELECT * FROM academy_achievements`);
+      `SELECT * FROM academy_achievements ORDER BY id DESC`);
 
-    const [images] = await db.query("SELECT * FROM academy_achievements_images");
+    const [images] = await db.query("SELECT * FROM academy_achievements_images ORDER BY academy_achievement_id DESC");
 
     const academyAchievementsImages = academyAchievementsData.map((achievement) => {
       const relatedImages = images.filter(img => img.academy_achievement_id === achievement.id)
@@ -830,6 +830,61 @@ app.get("/vsa/academy-achievements", async (req, res) => {
       success : false,
       message : "Failed to fetch Academy Achievements data",
       error : error.message
+    });
+  }
+});
+
+app.get("/vsa/student_achievements", async (req, res) => {
+  try {
+    const [studentsData] = await db.query(`
+      SELECT student_id, img, full_name, father_name, mother_name, school_name, 
+             student_group, status 
+      FROM students
+    `);
+
+    if (studentsData.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No students found",
+        data: []
+      });
+    }
+
+    const studentIds = studentsData.map(s => s.student_id);
+
+    const [achievements] = await db.query(
+      `SELECT * FROM student_achievements WHERE student_id IN (?)`,
+      [studentIds]
+    );
+
+    const finalOutput = studentsData.map(student => {
+      const studentAchievements = achievements.filter(a => a.student_id === student.student_id);
+
+      return {
+        ...student,
+        achievements: studentAchievements.map(a => ({
+          achievement_title: a.achievement_title,
+          achievement_type: a.achievement_type,
+          achievement_level: a.achievement_level,
+          event_name: a.event_name,
+          remarks: a.remarks,
+          link: a.link,
+          date_of_achievement: a.date_of_achievement
+        }))
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Students Achievements fetched successfully",
+      data: finalOutput
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch Students Achievements",
+      error: error.message
     });
   }
 });

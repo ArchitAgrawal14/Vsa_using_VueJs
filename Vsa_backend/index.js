@@ -2259,6 +2259,12 @@ app.put("/vsa/admin/edit-stats", middlewares.verifyToken
 app.post("/vsa/admin/add-new-record", middlewares.verifyToken, async (req, res) => {
   let connection;
   try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
 
     const validDisciplines = ['Roller Skating', 'Ice Skating', 'Roll Ball'];
     const {records} = req.body;
@@ -2296,7 +2302,104 @@ app.post("/vsa/admin/add-new-record", middlewares.verifyToken, async (req, res) 
     });
 
   } finally {
-    if (connection) await connection.release();
+    if (connection) connection.release();
+  }
+});
+
+// Endpoint to update schedule
+app.put("/vsa/admin/update-schedule", middlewares.verifyToken, async (req, res) => {
+  let connection;
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const validDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const validDisciplines = ['Roller Skating', 'Ice Skating', 'Roll Ball'];
+
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    const { allSchedule } = req.body;
+
+    if (!allSchedule || allSchedule.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No schedule data received"
+      });
+    }
+
+    let updatedCount = 0;
+
+    for (const schedule of allSchedule) {
+
+      // Validate day
+      if (!validDays.includes(schedule.day)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid day: ${schedule.day}`
+        });
+      }
+
+      // Validate discipline
+      if (!validDisciplines.includes(schedule.discipline)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid discipline: ${schedule.discipline}`
+        });
+      }
+
+      // Ensure at least one field to update
+      if (!schedule.level && !schedule.time && !schedule.duration) {
+        continue;
+      }
+
+      let query = "UPDATE dashboard_schedule_data SET ";
+      const params = [];
+
+      if (schedule.level) {
+        query += "level = ?, ";
+        params.push(schedule.level);
+      }
+      if (schedule.time) {
+        query += "time = ?, ";
+        params.push(schedule.time);
+      }
+      if (schedule.duration) {
+        query += "duration = ?, ";
+        params.push(schedule.duration);
+      }
+
+      query = query.slice(0, -2);
+
+      query += " WHERE day = ? AND discipline = ?";
+      params.push(schedule.day, schedule.discipline);
+
+      const [result] = await connection.query(query, params);
+      updatedCount += result.affectedRows;
+    }
+
+    await connection.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: "Schedule updated successfully",
+      updatedRows: updatedCount,
+    });
+
+  } catch (error) {
+    if (connection) await connection.rollback();
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error, Please try again",
+      error: error.message
+    });
+
+  } finally {
+    if (connection) connection.release();
   }
 });
 

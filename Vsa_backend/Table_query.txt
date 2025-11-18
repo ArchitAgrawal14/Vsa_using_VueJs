@@ -528,7 +528,17 @@ INSERT INTO dashboard_schedule_data (day, level, time, duration, discipline) VAL
 ('Monday', 'Beginner', '6:00 AM', '2 hours', 'Roller Skating'),
 ('Tuesday', 'Intermediate', '7:00 AM', '2.5 hours', 'Roller Skating'),
 ('Monday', 'Beginner', '8:00 AM', '2 hours', 'Ice Skating'),
-('Tuesday', 'Intermediate', '7:30 AM', '2.5 hours', 'Ice Skating');
+('Tuesday', 'Intermediate', '7:30 AM', '2.5 hours', 'Ice Skating'),
+('Wednesday', 'Beginner', '6:00 AM', '2 hours', 'Roller Skating'),
+('Thursday', 'Intermediate', '7:00 AM', '2.5 hours', 'Roller Skating'),
+('Wednesday', 'Beginner', '8:00 AM', '2 hours', 'Ice Skating'),
+('Thursday', 'Intermediate', '7:30 AM', '2.5 hours', 'Ice Skating'),
+('Friday', 'Beginner', '6:00 AM', '2 hours', 'Roller Skating'),
+('Saturday', 'Intermediate', '7:00 AM', '2.5 hours', 'Roller Skating'),
+('Friday', 'Beginner', '8:00 AM', '2 hours', 'Ice Skating'),
+('Saturday', 'Intermediate', '7:30 AM', '2.5 hours', 'Ice Skating'),
+('Sunday', 'Beginner', '6:00 AM', '2 hours', 'Roller Skating'),
+('Sunday', 'Intermediate', '7:30 AM', '2.5 hours', 'Ice Skating');
 
 
 CREATE TABLE skating_events_and_tours (

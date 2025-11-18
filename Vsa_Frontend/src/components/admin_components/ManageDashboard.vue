@@ -3,8 +3,8 @@
     <!-- Header -->
     <header class="bg-black text-white py-6 px-4 sm:px-6 lg:px-8">
       <div class="max-w-7xl mx-auto">
-        <h1 class="text-3xl font-bold">VSA Dashboard Manager</h1>
-        <p class="text-gray-400 mt-1">Manage images and statistics</p>
+        <h1 class="text-3xl font-bold"></h1>
+        <p class="text-gray-400 mt-1"></p>
       </div>
     </header>
 
@@ -224,6 +224,124 @@
           </div>
         </div>
       </section>
+
+      <!-- Schedule Management Section -->
+      <section class="mt-12 bg-gray-50 rounded-lg p-6 border-2 border-black">
+        <h2 class="text-2xl font-bold mb-6 text-black">Update Schedule</h2>
+
+        <div v-if="sortedScheduleAll.length > 0" class="bg-white border-2 border-gray-300 rounded-lg overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-black text-white">
+                <tr>
+                  <th class="px-4 py-3 text-left text-xs font-semibold uppercase">Day</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold uppercase">Discipline</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold uppercase">Level</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold uppercase">Time</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold uppercase">Duration</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <tr v-for="schedule in sortedScheduleAll" :key="schedule.id"
+                  :class="['hover:bg-gray-50', isScheduleEdited(schedule.id) ? 'bg-yellow-50' : '']">
+                  <td class="px-4 py-3 text-sm font-semibold">{{ schedule.day }}</td>
+                  <td class="px-4 py-3 text-sm">
+                    <span :class="[
+                      'px-2 py-1 rounded text-xs font-semibold',
+                      schedule.discipline === 'Roller Skating' ? 'bg-blue-100 text-blue-800' :
+                        schedule.discipline === 'Ice Skating' ? 'bg-cyan-100 text-cyan-800' :
+                          'bg-purple-100 text-purple-800'
+                    ]">
+                      {{ schedule.discipline }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <select :value="editedSchedules[schedule.id]?.level || schedule.level"
+                      @change="trackScheduleEdit(schedule.id, 'level', $event.target.value)"
+                      class="w-full px-2 py-1 border-2 border-gray-300 rounded focus:border-black focus:outline-none text-sm">
+                      <option value="Beginner">Beginner</option>
+                      <option value="Intermediate">Intermediate</option>
+                      <option value="Advanced">Advanced</option>
+                    </select>
+                  </td>
+                  <td class="px-4 py-3">
+                    <input type="text" :value="editedSchedules[schedule.id]?.time || schedule.time"
+                      @input="trackScheduleEdit(schedule.id, 'time', $event.target.value)" placeholder="6:00 AM"
+                      class="w-full px-2 py-1 border-2 border-gray-300 rounded focus:border-black focus:outline-none text-sm" />
+                  </td>
+                  <td class="px-4 py-3">
+                    <input type="text" :value="editedSchedules[schedule.id]?.duration || schedule.duration"
+                      @input="trackScheduleEdit(schedule.id, 'duration', $event.target.value)" placeholder="2 hours"
+                      class="w-full px-2 py-1 border-2 border-gray-300 rounded focus:border-black focus:outline-none text-sm" />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div v-else class="text-center py-8 text-gray-500">
+          No schedule data available
+        </div>
+
+        <div class="mt-6 flex justify-end">
+          <button @click="updateSchedule" :disabled="!hasScheduleUpdates || isUpdatingSchedule"
+            class="px-6 py-3 bg-black text-white font-semibold rounded hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
+            {{ isUpdatingSchedule ? 'Updating...' : 'Update Schedule' }}
+          </button>
+        </div>
+
+        <!-- Success/Error Message -->
+        <div v-if="scheduleMessage"
+          :class="['mt-4 p-4 rounded', scheduleMessage.type === 'success' ? 'bg-green-100 text-green-800 border-2 border-green-800' : 'bg-red-100 text-red-800 border-2 border-red-800']">
+          {{ scheduleMessage.text }}
+        </div>
+
+        <!-- Schedule by Discipline Preview -->
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Roller Skating -->
+          <div v-if="scheduleData.roller.length > 0" class="bg-white border-2 border-blue-300 rounded-lg p-4">
+            <h3 class="text-lg font-bold text-blue-800 mb-3 flex items-center gap-2">
+              <span class="w-3 h-3 bg-blue-500 rounded-full"></span>
+              Roller Skating ({{ scheduleData.roller.length }})
+            </h3>
+            <div class="space-y-2">
+              <div v-for="item in scheduleData.roller" :key="item.id" class="text-sm border-b border-gray-200 pb-2">
+                <p class="font-semibold">{{ item.day }}</p>
+                <p class="text-gray-600">{{ item.time }} • {{ item.duration }} • {{ item.level }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ice Skating -->
+          <div v-if="scheduleData.ice.length > 0" class="bg-white border-2 border-cyan-300 rounded-lg p-4">
+            <h3 class="text-lg font-bold text-cyan-800 mb-3 flex items-center gap-2">
+              <span class="w-3 h-3 bg-cyan-500 rounded-full"></span>
+              Ice Skating ({{ scheduleData.ice.length }})
+            </h3>
+            <div class="space-y-2">
+              <div v-for="item in scheduleData.ice" :key="item.id" class="text-sm border-b border-gray-200 pb-2">
+                <p class="font-semibold">{{ item.day }}</p>
+                <p class="text-gray-600">{{ item.time }} • {{ item.duration }} • {{ item.level }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Roll Ball -->
+          <div v-if="scheduleData.rollBall.length > 0" class="bg-white border-2 border-purple-300 rounded-lg p-4">
+            <h3 class="text-lg font-bold text-purple-800 mb-3 flex items-center gap-2">
+              <span class="w-3 h-3 bg-purple-500 rounded-full"></span>
+              Roll Ball ({{ scheduleData.rollBall.length }})
+            </h3>
+            <div class="space-y-2">
+              <div v-for="item in scheduleData.rollBall" :key="item.id" class="text-sm border-b border-gray-200 pb-2">
+                <p class="font-semibold">{{ item.day }}</p>
+                <p class="text-gray-600">{{ item.time }} • {{ item.duration }} • {{ item.level }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 </template>
@@ -259,13 +377,24 @@ export default {
           studentName: "",
           discipline: "Roller Skating",
           year: new Date().getFullYear(),
-          isFeatured: false
+          isFeatured: true
         }
       ],
       disciplines: ['Roller Skating', 'Ice Skating', 'Roll Ball'],
       recentRecords: [],
       isAddingRecords: false,
       recordsMessage: null,
+      // Schedule
+      scheduleData: {
+        all: [],
+        roller: [],
+        ice: [],
+        rollBall: []
+      },
+      editedSchedules: {},
+      isUpdatingSchedule: false,
+      scheduleMessage: null,
+      daysOrder: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
       // API Base URL - adjust as needed
       apiBaseUrl: "http://localhost:3000/vsa"
     };
@@ -282,6 +411,15 @@ export default {
         record.event && record.time && record.studentName && record.discipline
       );
     },
+    hasScheduleUpdates() {
+      return Object.keys(this.editedSchedules).length > 0;
+    },
+
+    sortedScheduleAll() {
+      return [...this.scheduleData.all].sort((a, b) => {
+        return this.daysOrder.indexOf(a.day) - this.daysOrder.indexOf(b.day);
+      });
+    }
   },
   mounted() {
     this.fetchDashboardData();
@@ -311,6 +449,11 @@ export default {
           // Populate recent records
           if (data.data.records) {
             this.recentRecords = data.data.records;
+          }
+
+          // Populate schedule data
+          if (data.data.schedule) {
+            this.scheduleData = data.data.schedule;
           }
         }
       } catch (error) {
@@ -447,7 +590,7 @@ export default {
         studentName: "",
         discipline: "Roller Skating",
         year: new Date().getFullYear(),
-        isFeatured: false
+        isFeatured: true
       });
     },
 
@@ -494,7 +637,7 @@ export default {
             studentName: "",
             discipline: "Roller Skating",
             year: new Date().getFullYear(),
-            isFeatured: false
+            isFeatured: true
           }];
           await this.fetchDashboardData();
         } else {
@@ -505,6 +648,64 @@ export default {
       } finally {
         this.isAddingRecords = false;
       }
+    },
+
+    trackScheduleEdit(scheduleId, field, value) {
+      if (!this.editedSchedules[scheduleId]) {
+        const original = this.scheduleData.all.find(s => s.id === scheduleId);
+        this.editedSchedules[scheduleId] = {
+          id: scheduleId,
+          day: original.day,
+          discipline: original.discipline,
+          level: original.level,
+          time: original.time,
+          duration: original.duration
+        };
+      }
+      this.editedSchedules[scheduleId][field] = value;
+    },
+
+    async updateSchedule() {
+      this.isUpdatingSchedule = true;
+      this.scheduleMessage = null;
+
+      const schedulesToUpdate = Object.values(this.editedSchedules);
+
+      if (schedulesToUpdate.length === 0) {
+        this.scheduleMessage = { type: 'error', text: 'No changes to update' };
+        this.isUpdatingSchedule = false;
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const response = await fetch(`${this.apiBaseUrl}/admin/update-schedule`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ allSchedule: schedulesToUpdate })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          this.scheduleMessage = { type: 'success', text: `${data.message} (${data.updatedRows} rows updated)` };
+          this.editedSchedules = {};
+          await this.fetchDashboardData();
+        } else {
+          this.scheduleMessage = { type: 'error', text: data.message };
+        }
+      } catch (error) {
+        this.scheduleMessage = { type: 'error', text: 'Failed to update schedule' };
+      } finally {
+        this.isUpdatingSchedule = false;
+      }
+    },
+
+    isScheduleEdited(scheduleId) {
+      return !!this.editedSchedules[scheduleId];
     }
   }
 };

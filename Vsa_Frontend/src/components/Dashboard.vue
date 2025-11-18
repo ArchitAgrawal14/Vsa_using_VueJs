@@ -97,6 +97,7 @@
       </div>
     </section>
 
+    <!-- Records Section -->
     <section class="py-8 bg-gray-900 text-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-center mb-4">
@@ -641,7 +642,7 @@ export default {
     },
 
     getRecordsByDiscipline(discipline) {
-      return discipline === 'roller' ? this.rollerRecords : this.iceRecords
+      return discipline === 'Roller Skating' ? this.rollerRecords : this.iceRecords
     },
     closeVideo() {
       this.showVideo = false;

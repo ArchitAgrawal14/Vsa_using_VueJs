@@ -586,7 +586,7 @@ const staticContentConfig = {
   },
 };
 
-// Endpoint to fetch all the data for user dashboard
+// Endpoint to fetch all the data for user dashboard and also used in manage dashboard for admin page
 app.get("/vsa/dashboard", async (req, res) => {
   try {
     // Optimized query to get latest stats by display_order (1-4 only)
@@ -1191,7 +1191,7 @@ app.post(
         message: "Internal server error during registration",
       });
     } finally {
-      connection.release();
+      if (connection) connection.release();
     }
   }
 );
@@ -2162,16 +2162,100 @@ app.get(
   }
 );
 
-// Endpoint to open manage dashboard page
-app.get('/vsa/admin/manage-dashboard', middlewares.verifyToken, async (req, res) => {
+// Asset key for images
+const assestkeys = [
+    "logo_image", "hero_image", "skate_icon", "check_icon", "roller_skate_image",
+    "ice_skate_image", "skating_banner", "roller_speed_image", "roller_icon", "ice_icon",
+    "ice_speed_image"
+];
+
+const uploadFields = assestkeys.map(key => ({name : key, maxCount : 1}));
+
+// Endpoint to update the values for images in the dasboard
+app.put("/vsa/admin/edit-image-assets", middlewares.verifyToken
+  , upload.fields(uploadFields), async (req, res) => {
+  let connection;
   try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    if (!req.files || Object.keys(req.files).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No files uploaded"
+      });
+    }
     
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    const result = await admin.updatedDashboardImages(req.files, connection);
+
+    if(result.success) {
+      await connection.commit();
+      res.status(200).json(result);
+    } else {
+      await connection.rollback();
+      res.status(400).json(result);
+    }
   } catch (error) {
-    
+    if (connection) await connection.rollback();
+    res.status(500).json({
+        success: false,
+        message: "Internal server error while updating images for dashboard",
+    });
+
+  } finally {
+    if (connection) connection.release();
   }
 });
 
-// Admin functionlaity endpoints ends here
+// Endpoint to update stats in the dashboard
+// These stats label is used as keys in the frontend
+const statsLabel = ["Active_Students", "Expert_Coaches", "Championships_Won", "Years_Experience"];
+
+const uploadStatsFields = statsLabel.map(key => ({name : key , maxCount : 1}));
+
+app.put("/vsa/admin/edit-stats", middlewares.verifyToken
+, upload.fields(uploadStatsFields), async (req, res) => {
+  let connection;
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    const result = await admin.updateStats(req, connection);
+
+    if(result.success) {
+      await connection.commit();
+      res.status(200).json(result);
+    } else {
+      await connection.rollback();
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    if (connection) await connection.rollback();
+    res.status(500).json({
+        success: false,
+        message: "Internal server error while updating stats for dashboard",
+    });
+
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+// Admin functionality endpoints ends here
 
 app.get("/vsa/:policyType", async (req, res) => {
   const { policyType } = req.params;

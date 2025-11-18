@@ -539,3 +539,104 @@ export async function getStudentAttendance(db, studentId, month, year) {
     };
   }
 }
+
+// Validate the images assest keys while updating dashboard images
+export async function validateImageAssetKeys(assetKeys) {
+  
+  if (!Array.isArray(assetKeys) || assetKeys.length === 0) {
+      throw new Error("assetKeys must be a non-empty array");
+  }
+
+  const validAssestkeysForImages = [
+    "logo_image", "hero_image", "skate_icon", "check_icon", "roller_skate_image",
+    "ice_skate_image", "skating_banner", "roller_speed_image", "roller_icon", "ice_icon"
+  ];
+
+  for(const assetKey of assetKeysArray) {
+    if(!validAssestkeysForImages.includes(assetKey)) {
+      throw new Error(`Invalid image asset key: " ${assetKey}`);
+    }
+  }
+
+}
+
+// Function to update dashboard images 
+export async function updatedDashboardImages(files, connection) {
+  let updatedCount = 0;
+  for (const key of Object.keys(files)) {
+      const file = files[key][0];
+      const filePath = "/images/students/" + file.filename;
+      const [result] = await connection.query(
+        "UPDATE dashboard_image_assets SET asset_path = ? WHERE asset_key = ?",
+        [filePath, key]
+    );
+    updatedCount += result.affectedRows;
+  }
+
+  if(updatedCount === Object.keys(files).length) {
+    return {
+      success : true,
+      message : "Dashboard images updated successfully"
+    }
+  }
+  
+  return {
+    success: false,
+    message: "Some images could not be updated"
+  };
+}
+
+// Function to update the stats in dasboard
+export async function updateStats(req, connection) {
+  let updatedCount = 0;
+  let expectedUpdates = 0;
+  const valueMap = req.body.values ? JSON.parse(req.body.values) : {};
+  const statsLabel = ["Active_Students", "Expert_Coaches", "Championships_Won", "Years_Experience"];
+
+  for (const label of statsLabel) {
+
+    const newValue = valueMap[label];
+    const newImage = req.files[label]?.[0];
+    const dbLabel = label.replace(/_/g, " ");
+    if (!newValue && !newImage) continue;
+    expectedUpdates++;
+    let query = "UPDATE dashboard_stats_data SET ";
+    const params = [];
+
+    if (newImage) {
+      query += "image = ?, ";
+      params.push("/images/students/" + newImage.filename);
+    }
+
+    if (newValue) {
+      query += "value = ?, ";
+      params.push(newValue);
+    }
+
+    query = query.slice(0, -2);
+
+    query += " WHERE label = ?";
+    params.push(dbLabel);
+
+    const [result] = await connection.query(query, params);
+    updatedCount += result.affectedRows;
+  }
+  if (expectedUpdates === 0) {
+    return {
+      success: false,
+      message: "No updates provided"
+    };
+  }
+  if (updatedCount !== expectedUpdates) {
+    return {
+      success: false,
+      message: `Only ${updatedCount} of ${expectedUpdates} stats were updated`
+    };
+  }
+  
+  return {
+    success: true,
+    message: "Dashboard stats updated successfully",
+    updated: updatedCount,
+  };
+}

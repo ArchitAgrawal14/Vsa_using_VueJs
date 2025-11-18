@@ -117,8 +117,8 @@
               class="flex-shrink-0 bg-gray-800 rounded-lg px-6 py-3">
               <div class="flex items-center space-x-4">
                 <img :src="record.discipline === 'roller'
-                    ? '/images/roller-icon.jpg'
-                    : '/images/ice-icon.jpg'
+                    ? 'http://localhost:3000' + '/images/roller-icon.jpg'
+                    : 'http://localhost:3000' + '/images/ice-icon.jpg'
                   " alt="Discipline" class="w-8 h-8" />
                 <div>
                   <div class="font-semibold">{{ record.studentName }}</div>
@@ -367,7 +367,7 @@
         <div class="grid md:grid-cols-3 gap-8">
           <div v-for="coach in coaches" :key="coach.name"
             class="bg-white rounded-2xl shadow-lg overflow-hidden text-center hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300">
-            <img :src="coach.image" :alt="coach.name" class="w-full h-64 object-cover" />
+            <img :src="'http://localhost:3000' + coach.image" :alt="coach.name" class="w-full h-64 object-cover" />
             <div class="p-6">
               <h3 class="text-xl font-bold text-gray-900 mb-2">{{ coach.name }}</h3>
               <p class="text-gray-600 mb-4">{{ coach.specialization }}</p>
@@ -501,7 +501,7 @@ export default {
             this.stats = data.stats.map(stat => ({
               label: stat.label,
               value: stat.value,
-              icon: stat.image
+              icon: 'http://localhost:3000' + stat.image
             }))
           }
           
@@ -512,7 +512,7 @@ export default {
               category: program.category,
               description: program.description,
               price: `${program.price}/${program.fee_cycle}`,
-              image: program.image
+              image: 'http://localhost:3000' + program.image
             }))
           }
           
@@ -526,7 +526,7 @@ export default {
             this.achievements = data.achievements.map(achievement => ({
               title: achievement.title,
               description: achievement.description,
-              icon: achievement.images
+              icon: 'http://localhost:3000' +  achievement.images
             }))
           }
           
@@ -548,17 +548,17 @@ export default {
           // Update images
           if (data.images) {
             this.images = data.images
-            this.logoImage = data.images.logo_image || '/icons/VSA_logo.png'
-            this.heroImage = data.images.hero_image || '/images/hero-speed-skating.jpg'
-            this.skateIcon = data.images.skate_icon || '/icons/skate-icon.png'
-            this.checkIcon = data.images.check_icon || '/icons/check-icon.png'
-            this.rollerSkateImage = data.images.roller_skate_image || '/images/roller-skates-showcase.jpg'
-            this.iceSkateImage = data.images.ice_skate_image || '/images/ice-skates-showcase.jpg'
-            this.skatingBanner = data.images.skating_banner || '/images/join-us-banner.jpg'
-            this.rollerSpeedImage = data.images.roller_speed_image || '/images/roller-speed-training.jpg'
-            this.iceSpeedImage = data.images.ice_speed_image || '/images/ice-skates-showcase.jpg'
-            this.rollerIcon = data.images.roller_icon || '/images/roller-skate-icon.png'
-            this.iceIcon = data.images.ice_icon || '/images/ice-skate-icon.png'
+            this.logoImage = 'http://localhost:3000' + data.images.logo_image || '/mages/VSA_logo.png'
+            this.heroImage = 'http://localhost:3000' + data.images.hero_image || '/images/hero-speed-skating.jpg'
+            this.skateIcon = 'http://localhost:3000' + data.images.skate_icon || '/images/skate-icon.png'
+            this.checkIcon = 'http://localhost:3000' + data.images.check_icon || '/images/check-icon.png'
+            this.rollerSkateImage = 'http://localhost:3000' + data.images.roller_skate_image || '/images/roller-skates-showcase.jpg'
+            this.iceSkateImage = 'http://localhost:3000' + data.images.ice_skate_image || '/images/ice-skates-showcase.jpg'
+            this.skatingBanner = 'http://localhost:3000' + data.images.skating_banner || '/images/join-us-banner.jpg'
+            this.rollerSpeedImage = 'http://localhost:3000' + data.images.roller_speed_image || '/images/roller-speed-training.jpg'
+            this.iceSpeedImage = 'http://localhost:3000' + data.images.ice_speed_image || '/images/ice-skates-showcase.jpg'
+            this.rollerIcon = 'http://localhost:3000' + data.images.roller_icon || '/images/roller-skate-icon.png'
+            this.iceIcon = 'http://localhost:3000' + data.images.ice_icon || '/images/ice-skate-icon.png'
           }
           
           this.dashboardData = response.data

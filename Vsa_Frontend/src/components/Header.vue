@@ -3,8 +3,8 @@
     <div class="header-container">
       <!-- Logo Section -->
       <div class="logo" @click="navigateTo('/')">
-        <img :src="logoIconPath" alt="VSA Logo" class="logo-icon" />
-        <img :src="logoTextPath" alt="VSA" class="logo-text" />
+        <img :src="'http://localhost:3000' + logoIconPath" alt="VSA Logo" class="logo-icon" />
+        <img :src="'http://localhost:3000' + logoTextPath" alt="VSA" class="logo-text" />
       </div>
 
       <!-- Desktop Navigation -->
@@ -166,8 +166,8 @@ export default {
       isLoggedIn: false, 
       username: '', 
       cartCount: 0, 
-      logoIconPath: '/icons/VSA_logo.png',
-      logoTextPath: '/icons/vsa logo name.png'
+      logoIconPath: '/images/VSA_logo.png',
+      logoTextPath: '/images/vsa logo name.png'
     }
   },
   methods: {

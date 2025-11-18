@@ -59,7 +59,7 @@
                 <div v-for="student in filteredStudents" :key="student.student_id" @click="openModal(student)"
                     class="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:-translate-y-2 overflow-hidden border-2 border-transparent hover:border-gray-900">
                     <div class="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200">
-                        <img v-if="student.img" :src="student.img" :alt="student.full_name"
+                        <img v-if="student.img" :src="'http://localhost:3000' + student.img" :alt="student.full_name"
                             class="w-full h-full object-cover" />
                         <div v-else class="w-full h-full flex items-center justify-center text-6xl text-gray-400">
                             👤
@@ -114,7 +114,7 @@
                         <div class="flex items-center gap-6">
                             <div
                                 class="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg flex-shrink-0">
-                                <img v-if="selectedStudent.img" :src="selectedStudent.img"
+                                <img v-if="selectedStudent.img" :src="'http://localhost:3000' + selectedStudent.img"
                                     :alt="selectedStudent.full_name" class="w-full h-full object-cover" />
                                 <div v-else class="w-full h-full bg-gray-200 flex items-center justify-center text-4xl">
                                     👤

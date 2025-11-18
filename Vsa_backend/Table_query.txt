@@ -470,16 +470,17 @@ CREATE TABLE dashboard_image_assets (
 
 -- Insert image sources
 INSERT INTO dashboard_image_assets (asset_key, asset_path, asset_type, description) VALUES
-('logo_image', '/icons/VSA_logo.png', 'logo', 'VSA Logo'),
+('logo_image', '/images/VSA_logo.png', 'logo', 'VSA Logo'),
 ('hero_image', '/images/hero-speed-skating.jpg', 'hero', 'Hero Banner'),
-('skate_icon', '/icons/skate-icon.png', 'icon', 'Skate Icon'),
-('check_icon', '/icons/check-icon.png', 'icon', 'Check Icon'),
+('skate_icon', '/images/skate-icon.png', 'icon', 'Skate Icon'),
+('check_icon', '/images/check-icon.png', 'icon', 'Check Icon'),
 ('roller_skate_image', '/images/roller-skates-showcase.jpg', 'image', 'Roller Skates Showcase'),
 ('ice_skate_image', '/images/ice-skates-showcase.jpg', 'image', 'Ice Skates Showcase'),
 ('skating_banner', '/images/join-us-banner.jpg', 'banner', 'Join Us Banner'),
 ('roller_speed_image', '/images/roller-speed-training.jpg', 'image', 'Roller Speed Training'),
 ('roller_icon', '/images/roller-skate-icon.png', 'icon', 'Roller Skate Icon'),
-('ice_icon', '/images/ice-skate-icon.png', 'icon', 'Ice Skate Icon');
+('ice_icon', '/images/ice-skate-icon.png', 'icon', 'Ice Skate Icon'),
+('ice_speed_image', '/images/student-1763448557038.jpeg', 'image', 'Roller Speed Image');
 
 -- Add indexes for better query performance
 CREATE INDEX idx_stats_display_order ON dashboard_stats_data(display_order, id);

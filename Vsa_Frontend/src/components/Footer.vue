@@ -34,8 +34,8 @@
       <div class="text-center mb-16">
         <div class="flex justify-center items-center mb-6">
           <img
-            :src="skateIconPath"
-            alt="Ice Skate Icon"
+            :src="'http://localhost:3000' + skateIconPath"
+            alt="VSA Icon"
             class="w-12 h-13 object-contain mr-4 logo-icon"
           />
           <h2 class="text-4xl font-bold text-gray-900">Vaibhav Skating Academy</h2>

@@ -634,12 +634,12 @@ app.get("/vsa/dashboard", async (req, res) => {
       ORDER BY a1.display_order ASC
     `);
 
-    // Get featured records (latest 6)
+    // Get featured records (latest 10)
     const [recordsData] = await db.query(`
       SELECT * FROM dashboard_records_data 
       WHERE is_featured = 1 
-      ORDER BY year DESC, id DESC 
-      LIMIT 6
+      ORDER BY id DESC 
+      LIMIT 10
     `);
 
     // Get schedule data (sorted by day and discipline)
@@ -2252,6 +2252,51 @@ app.put("/vsa/admin/edit-stats", middlewares.verifyToken
 
   } finally {
     if (connection) connection.release();
+  }
+});
+
+// Endpoint to add new record 
+app.post("/vsa/admin/add-new-record", middlewares.verifyToken, async (req, res) => {
+  let connection;
+  try {
+
+    const validDisciplines = ['Roller Skating', 'Ice Skating', 'Roll Ball'];
+    const {records} = req.body;
+ 
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    for(const record of records) {
+       if (!/^\d{4}$/.test(record.year)) {
+        return res.status(400).json({
+          success: false,
+          message: "Year must be a valid 4-digit number"
+        });
+      }
+      if(validDisciplines.includes(record.discipline)) {
+        await connection.query(
+          `INSERT INTO dashboard_records_data 
+          (event, time, studentName, discipline, year, is_featured) VALUES (?,?,?,?,?,?)`,
+        [record.event, record.time, record.studentName, record.discipline, record.year, record.isFeatured]);
+      } else continue;
+      
+    }
+    await connection.commit();
+    return res.status(200).json({
+      success : true,
+      message : "Records added successfully",
+    });
+
+  } catch (error) {
+    if (connection) await connection.rollback();
+    return res.status(500).json({
+      success : false,
+      message : "Internal Server Error, Please try again",
+      error : error.message
+    });
+
+  } finally {
+    if (connection) await connection.release();
   }
 });
 

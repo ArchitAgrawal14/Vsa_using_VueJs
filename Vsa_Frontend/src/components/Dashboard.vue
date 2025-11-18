@@ -41,7 +41,8 @@
             </p>
             <div class="flex flex-col sm:flex-row gap-4">
               <button
-                class="bg-gray-900 text-white px-8 py-3 rounded-lg hover:bg-gray-800 transform hover:scale-105 transition-all duration-200" @click="navigateTo('/join-us')">
+                class="bg-gray-900 text-white px-8 py-3 rounded-lg hover:bg-gray-800 transform hover:scale-105 transition-all duration-200"
+                @click="navigateTo('/join-us')">
                 Start Your Journey
               </button>
               <button
@@ -49,29 +50,19 @@
                 @click="showVideo = true">
                 Watch Demo
               </button>
-               <!-- Video Popup (Modal) -->
-              <div
-                v-if="showVideo"
-                class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-              >
+              <!-- Video Popup (Modal) -->
+              <div v-if="showVideo" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                 <div class="bg-white rounded-xl overflow-hidden shadow-lg w-[90%] max-w-2xl relative">
                   <!-- Close Button -->
-                  <button
-                    @click="closeVideo"
-                    class="absolute top-2 right-2 text-gray-600 hover:text-black text-2xl font-bold"
-                  >
+                  <button @click="closeVideo"
+                    class="absolute top-2 right-2 text-gray-600 hover:text-black text-2xl font-bold">
                     &times;
                   </button>
                   <!-- Embedded Video -->
                   <div class="aspect-w-16 aspect-h-9">
-                    <iframe
-                      class="w-full h-80 rounded-b-xl"
-                      :src="videoUrl"
-                      title="Demo Video"
-                      frameborder="0"
+                    <iframe class="w-full h-80 rounded-b-xl" :src="videoUrl" title="Demo Video" frameborder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowfullscreen
-                    ></iframe>
+                      allowfullscreen></iframe>
                   </div>
                 </div>
               </div>
@@ -106,23 +97,26 @@
       </div>
     </section>
 
-    <section class="py-8 bg-gray-900 text-white overflow-hidden">
+    <section class="py-8 bg-gray-900 text-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-center mb-4">
           <h3 class="text-lg font-semibold">Latest Speed Skating Records</h3>
         </div>
-        <div class="relative">
-          <div class="flex animate-scroll space-x-8">
+        <!-- Horizontal Scroll Wrapper -->
+        <div class="overflow-x-auto whitespace-nowrap custom-scroll py-2">
+          <div class="inline-flex space-x-6">
             <div v-for="record in recentRecords" :key="record.id"
-              class="flex-shrink-0 bg-gray-800 rounded-lg px-6 py-3">
+              class="inline-block bg-gray-800 rounded-lg px-6 py-3 min-w-[260px] shadow-md">
               <div class="flex items-center space-x-4">
-                <img :src="record.discipline === 'roller'
-                    ? 'http://localhost:3000' + '/images/roller-icon.jpg'
-                    : 'http://localhost:3000' + '/images/ice-icon.jpg'
+                <img :src="record.discipline === 'Roller Skating'
+                  ? 'http://localhost:3000/images/students/student-1763453026841.png'
+                  : 'http://localhost:3000/images/students/student-1763453026862.png'
                   " alt="Discipline" class="w-8 h-8" />
                 <div>
                   <div class="font-semibold">{{ record.studentName }}</div>
-                  <div class="text-sm text-gray-300">{{ record.event }} - {{ record.time }}</div>
+                  <div class="text-sm text-gray-300">
+                    {{ record.event }} - {{ record.time }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -304,7 +298,8 @@
                   records
                 </div>
                 <button
-                  class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors duration-200" @click = "navigateTo('/roller-speed-skating-discipline')">
+                  class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors duration-200"
+                  @click="navigateTo('/roller-speed-skating-discipline')">
                   Learn More
                 </button>
               </div>
@@ -345,7 +340,8 @@
                   records
                 </div>
                 <button
-                  class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200" @click = "navigateTo('/ice-skating-discipline')">
+                  class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200"
+                  @click="navigateTo('/ice-skating-discipline')">
                   Learn More
                 </button>
               </div>
@@ -377,7 +373,8 @@
         </div>
         <div class="text-center mt-12">
           <button
-            class="bg-gray-900 text-white px-8 py-3 rounded-lg hover:bg-gray-800 transform hover:scale-105 transition-all duration-200 inline-block" @click="navigateTo('/meet-our-coaches')">
+            class="bg-gray-900 text-white px-8 py-3 rounded-lg hover:bg-gray-800 transform hover:scale-105 transition-all duration-200 inline-block"
+            @click="navigateTo('/meet-our-coaches')">
             View All Coaches
           </button>
         </div>
@@ -401,11 +398,13 @@
         </div>
         <div class="text-center mt-12 space-x-4">
           <button
-            class="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors duration-200 inline-block" @click="navigateTo('/academy-achievements')">
+            class="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors duration-200 inline-block"
+            @click="navigateTo('/academy-achievements')">
             Academy Achievements
           </button>
-          <button 
-            class="border-2 border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 inline-block" @click="navigateTo('/students-achievements')">
+          <button
+            class="border-2 border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 inline-block"
+            @click="navigateTo('/students-achievements')">
             Student Success Stories
           </button>
         </div>
@@ -495,7 +494,7 @@ export default {
 
         if (response.data.success) {
           const data = response.data.data
-          
+
           // Update stats
           if (data.stats) {
             this.stats = data.stats.map(stat => ({
@@ -504,7 +503,7 @@ export default {
               icon: 'http://localhost:3000' + stat.image
             }))
           }
-          
+
           // Update programs
           if (data.programs) {
             this.programs = data.programs.map(program => ({
@@ -515,21 +514,21 @@ export default {
               image: 'http://localhost:3000' + program.image
             }))
           }
-          
+
           // Update coaches
           if (data.coaches) {
             this.coaches = data.coaches
           }
-          
+
           // Update achievements
           if (data.achievements) {
             this.achievements = data.achievements.map(achievement => ({
               title: achievement.title,
               description: achievement.description,
-              icon: 'http://localhost:3000' +  achievement.images
+              icon: 'http://localhost:3000' + achievement.images
             }))
           }
-          
+
           // Update records
           if (data.records) {
             this.recentRecords = data.records.all || []
@@ -537,14 +536,14 @@ export default {
             this.iceRecords = data.records.ice || []
             this.rollBallRecords = data.records.rollBall || []
           }
-          
+
           // Update schedules
           if (data.schedule) {
             this.rollerSchedule = data.schedule.roller || []
             this.iceSchedule = data.schedule.ice || []
             this.rollBallSchedule = data.schedule.rollBall || []
           }
-          
+
           // Update images
           if (data.images) {
             this.images = data.images
@@ -560,10 +559,10 @@ export default {
             this.rollerIcon = 'http://localhost:3000' + data.images.roller_icon || '/images/roller-skate-icon.png'
             this.iceIcon = 'http://localhost:3000' + data.images.ice_icon || '/images/ice-skate-icon.png'
           }
-          
+
           this.dashboardData = response.data
         }
-        
+
         this.loading = false
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
@@ -661,6 +660,31 @@ export default {
 </script>
 
 <style scoped>
+/* Simple sleek horizontal scrollbar */
+.custom-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.custom-scroll::-webkit-scrollbar-track {
+  background: #1f2937; /* gray-800 */
+  border-radius: 4px;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: #4b5563; /* gray-600 */
+  border-radius: 4px;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+  background: #6b7280; /* gray-500 */
+}
+
+/* Firefox */
+.custom-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #4b5563 #1f2937;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

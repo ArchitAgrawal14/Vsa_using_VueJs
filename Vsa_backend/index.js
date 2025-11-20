@@ -2373,7 +2373,7 @@ app.put("/vsa/admin/update-schedule", middlewares.verifyToken, async (req, res) 
         params.push(schedule.duration);
       }
 
-      query = query.slice(0, -2);
+      query = query.trim().replace(/,\s*$/, "");
 
       query += " WHERE day = ? AND discipline = ?";
       params.push(schedule.day, schedule.discipline);
@@ -2389,6 +2389,247 @@ app.put("/vsa/admin/update-schedule", middlewares.verifyToken, async (req, res) 
       message: "Schedule updated successfully",
       updatedRows: updatedCount,
     });
+
+  } catch (error) {
+    if (connection) await connection.rollback();
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error, Please try again",
+      error: error.message
+    });
+
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+// Enpoint to update programs
+app.put("/vsa/admin/update-programs", middlewares.verifyToken, async (req, res) => {
+  let connection;
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const {updatedProgramsData} = req.body;
+    
+    if (!updatedProgramsData || updatedProgramsData.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No program data received"
+      });
+    }
+
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+    let updatedCount = 0;
+    for(const program of updatedProgramsData) {
+
+      if (!program.id) {
+        return res.status(400).json({
+          success: false,
+          message: "Program ID is required for updating"
+        });
+      }
+
+      // See if at least one field is updated
+      if(!program.title && !program.category && !program.description 
+        && !program.price && !program.feeCycle) {
+          continue;
+      }
+
+      let query = "UPDATE dashboard_programs_data SET ";
+      const params = [];
+
+      if(program.title) {
+        query += "title = ?, ";
+        params.push(program.title);
+      }
+
+      if(program.category) {
+        query += "category = ?, ";
+        params.push(program.category);
+      }
+
+      if(program.description) {
+        query += "description = ?, ";
+        params.push(program.description);
+      }
+
+      if(program.price) {
+        query += "price = ?, ";
+        params.push(program.price);
+      }
+
+      if(program.feeCycle) {
+        query += "fee_cycle = ?, ";
+        params.push(program.feeCycle);
+      }
+
+      // Remove tralling comma
+      query = query.trim().replace(/,\s*$/, "");
+
+      query += " WHERE id = ?";
+      params.push(program.id);
+      
+      const [result] = await connection.query(query, params);
+      updatedCount += result.affectedRows;
+    }
+    await connection.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: "Programs updated successfully",
+      updatedRows: updatedCount,
+    });
+
+  } catch (error) {
+    if (connection) await connection.rollback();
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error, Please try again",
+      error: error.message
+    });
+
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+// Endpoint to update coaches 
+app.put("/vsa/admin/update-coaches", middlewares.verifyToken, async (req, res) => {
+  let connection;
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const {updatedCoachesData} = req.body;
+    
+    if (!updatedCoachesData || updatedCoachesData.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No coaches data received"
+      });
+    }
+
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+    let updatedCount = 0;
+
+    for(const coach of updatedCoachesData) {
+      if(!coach.id) {
+        return res.status(400).json({
+          success: false,
+          message: "Coach ID is required for updating"
+        });
+      }
+      // See if at least one field is updated
+      if(!coach.name && !coach.specialization && !coach.experience) {
+        continue;
+      }
+
+      // Building query
+      let query = "UPDATE dashboard_coaches_data SET ";
+      const params = [];
+
+      if(coach.name) {
+        query += "name = ?, ";
+        params.push(coach.name);
+      }
+
+      if(coach.specialization) {
+        query += "specialization = ?, ";
+        params.push(coach.specialization);
+      }
+
+      if(coach.experience) {
+        query += "experience = ?, ";
+        params.push(coach.experience);
+      }
+
+      // Remove tralling comma
+      query = query.trim().replace(/,\s*$/, "");
+
+      query += " WHERE id = ?";
+      params.push(coach.id);
+      
+      const [result] = await connection.query(query, params);
+      updatedCount += result.affectedRows;
+
+      if (coach.experience) {
+        await connection.query(
+          `UPDATE coaches SET experience = ? WHERE id = ?`,
+          [coach.experience, coach.id]
+        );
+      }
+    }
+
+    await connection.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: "Coaches data updated successfully",
+      updatedRows: updatedCount,
+    });
+
+  } catch (error) {
+    if (connection) await connection.rollback();
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error, Please try again",
+      error: error.message
+    });
+
+  } finally {
+    if (connection) connection.release();
+  }
+
+});
+
+// Endpoint to insert new coach this is not complete and will be completed if REQUIRED ONLY also insert in coaches and dashboard_coaches_data table both to maintain consistency
+app.post("/vsa/admin/add-new-coach", middlewares.verifyToken, async (req, res) => {
+  let connection;
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+    
+    // expected data : name, specialization, experience, image, display_order
+    const {coaches} = req.body;
+
+    if (!coaches || coaches.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No program data received"
+      });
+    }
+    
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    const [insertMain] = await connection.query(
+      `INSERT INTO coaches (coach_name, image, experience, specialization) VALUES (?,?,?,?)`,
+      [coach_name, image, experience, specialization]
+    );
+
+    const newId = insertMain.insertId;  // <-- SAME ID
+
+    // Insert into dashboard table using SAME ID
+    await connection.query(
+      `INSERT INTO dashboard_coaches_data (id, name, specialization, experience, image, display_order) 
+       VALUES (?,?,?,?,?,?)`,
+      [newId, coach_name, specialization, experience, image, 0]
+    );
 
   } catch (error) {
     if (connection) await connection.rollback();

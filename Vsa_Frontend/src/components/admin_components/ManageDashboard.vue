@@ -342,6 +342,143 @@
           </div>
         </div>
       </section>
+
+      <!-- Programs Management Section -->
+      <section class="mt-12 bg-gray-50 rounded-lg p-6 border-2 border-black">
+        <h2 class="text-2xl font-bold mb-6 text-black">Update Programs</h2>
+
+        <div v-if="sortedPrograms.length > 0" class="space-y-4">
+          <div v-for="program in sortedPrograms" :key="program.id" :class="['bg-white border-2 rounded-lg p-5 transition-colors',
+            isProgramEdited(program.id) ? 'border-yellow-500 bg-yellow-50' : 'border-gray-300 hover:border-black']">
+            <div class="flex items-start gap-4">
+              <!-- Program Image -->
+              <div class="flex-shrink-0">
+                <img :src="'http://localhost:3000' + program.image" :alt="program.title"
+                  class="w-24 h-24 object-cover rounded border-2 border-gray-200" />
+              </div>
+
+              <!-- Program Details -->
+              <div class="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-black mb-1">Title</label>
+                  <input type="text" :value="editedPrograms[program.id]?.title || program.title"
+                    @input="trackProgramEdit(program.id, 'title', $event.target.value)"
+                    class="w-full px-3 py-2 border-2 border-gray-300 rounded focus:border-black focus:outline-none text-sm" />
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-black mb-1">Category</label>
+                  <select :value="editedPrograms[program.id]?.category || program.category"
+                    @change="trackProgramEdit(program.id, 'category', $event.target.value)"
+                    class="w-full px-3 py-2 border-2 border-gray-300 rounded focus:border-black focus:outline-none text-sm">
+                    <option v-for="cat in programCategories" :key="cat" :value="cat">{{ cat }}</option>
+                  </select>
+                </div>
+
+                <div class="md:col-span-2">
+                  <label class="block text-xs font-semibold text-black mb-1">Description (Min 10 words and no more the 10 words)</label>
+                  <textarea :value="editedPrograms[program.id]?.description || program.description"
+                    @input="trackProgramEdit(program.id, 'description', $event.target.value)" rows="2"
+                    class="w-full px-3 py-2 border-2 border-gray-300 rounded focus:border-black focus:outline-none text-sm"></textarea>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-black mb-1">Price (₹)</label>
+                  <input type="number" :value="editedPrograms[program.id]?.price || program.price"
+                    @input="trackProgramEdit(program.id, 'price', $event.target.value)" min="0"
+                    class="w-full px-3 py-2 border-2 border-gray-300 rounded focus:border-black focus:outline-none text-sm" />
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-black mb-1">Fee Cycle</label>
+                  <select :value="editedPrograms[program.id]?.feeCycle || program.fee_cycle"
+                    @change="trackProgramEdit(program.id, 'feeCycle', $event.target.value)"
+                    class="w-full px-3 py-2 border-2 border-gray-300 rounded focus:border-black focus:outline-none text-sm">
+                    <option v-for="cycle in feeCycles" :key="cycle" :value="cycle">{{ cycle }}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="text-center py-8 text-gray-500">
+          No programs available
+        </div>
+
+        <div class="mt-6 flex justify-end">
+          <button @click="updatePrograms" :disabled="!hasProgramUpdates || isUpdatingPrograms"
+            class="px-6 py-3 bg-black text-white font-semibold rounded hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
+            {{ isUpdatingPrograms ? 'Updating...' : 'Update Programs' }}
+          </button>
+        </div>
+
+        <!-- Success/Error Message -->
+        <div v-if="programsMessage"
+          :class="['mt-4 p-4 rounded', programsMessage.type === 'success' ? 'bg-green-100 text-green-800 border-2 border-green-800' : 'bg-red-100 text-red-800 border-2 border-red-800']">
+          {{ programsMessage.text }}
+        </div>
+      </section>
+
+      <!-- Coaches Management Section -->
+      <section class="mt-12 bg-gray-50 rounded-lg p-6 border-2 border-black">
+        <h2 class="text-2xl font-bold mb-6 text-black">Update Coaches</h2>
+
+        <div v-if="sortedCoaches.length > 0" class="space-y-4">
+          <div v-for="coach in sortedCoaches" :key="coach.id" :class="['bg-white border-2 rounded-lg p-5 transition-colors',
+            isCoachEdited(coach.id) ? 'border-yellow-500 bg-yellow-50' : 'border-gray-300 hover:border-black']">
+            <div class="flex items-start gap-4">
+              <!-- Coach Image -->
+              <div class="flex-shrink-0">
+                <img :src="'http://localhost:3000' + coach.image" :alt="coach.name"
+                  class="w-24 h-24 object-cover rounded-full border-2 border-gray-200" />
+              </div>
+
+              <!-- Coach Details -->
+              <div class="flex-grow grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-black mb-1">Name</label>
+                  <input type="text" :value="editedCoaches[coach.id]?.name || coach.name"
+                    @input="trackCoachEdit(coach.id, 'name', $event.target.value)"
+                    class="w-full px-3 py-2 border-2 border-gray-300 rounded focus:border-black focus:outline-none text-sm" />
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-black mb-1">Specialization</label>
+                  <input type="text" :value="editedCoaches[coach.id]?.specialization || coach.specialization"
+                    @input="trackCoachEdit(coach.id, 'specialization', $event.target.value)"
+                    class="w-full px-3 py-2 border-2 border-gray-300 rounded focus:border-black focus:outline-none text-sm" />
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-black mb-1">Experience</label>
+                  <input type="text" :value="editedCoaches[coach.id]?.experience || coach.experience"
+                    @input="trackCoachEdit(coach.id, 'experience', $event.target.value)" placeholder="e.g., 10+ years"
+                    class="w-full px-3 py-2 border-2 border-gray-300 rounded focus:border-black focus:outline-none text-sm" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="text-center py-8 text-gray-500">
+          No coaches available
+        </div>
+
+        <div class="mt-6 flex justify-end">
+          <button @click="updateCoaches" :disabled="!hasCoachUpdates || isUpdatingCoaches"
+            class="px-6 py-3 bg-black text-white font-semibold rounded hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
+            {{ isUpdatingCoaches ? 'Updating...' : 'Update Coaches' }}
+          </button>
+        </div>
+
+        <!-- Success/Error Message -->
+        <div v-if="coachesMessage"
+          :class="['mt-4 p-4 rounded', coachesMessage.type === 'success' ? 'bg-green-100 text-green-800 border-2 border-green-800' : 'bg-red-100 text-red-800 border-2 border-red-800']">
+          {{ coachesMessage.text }}
+        </div>
+      </section>
+
     </main>
   </div>
 </template>
@@ -395,6 +532,19 @@ export default {
       isUpdatingSchedule: false,
       scheduleMessage: null,
       daysOrder: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      // Programs
+      programsData: [],
+      editedPrograms: {},
+      isUpdatingPrograms: false,
+      programsMessage: null,
+      programCategories: ['Roller', 'Ice', 'Roll Ball'],
+      feeCycles: ['month', 'quarter', 'year'],
+
+      // Coaches
+      coachesData: [],
+      editedCoaches: {},
+      isUpdatingCoaches: false,
+      coachesMessage: null,
       // API Base URL - adjust as needed
       apiBaseUrl: "http://localhost:3000/vsa"
     };
@@ -419,7 +569,22 @@ export default {
       return [...this.scheduleData.all].sort((a, b) => {
         return this.daysOrder.indexOf(a.day) - this.daysOrder.indexOf(b.day);
       });
-    }
+    },
+    hasProgramUpdates() {
+      return Object.keys(this.editedPrograms).length > 0;
+    },
+
+    hasCoachUpdates() {
+      return Object.keys(this.editedCoaches).length > 0;
+    },
+
+    sortedPrograms() {
+      return [...this.programsData].sort((a, b) => a.display_order - b.display_order);
+    },
+
+    sortedCoaches() {
+      return [...this.coachesData].sort((a, b) => a.display_order - b.display_order);
+    },
   },
   mounted() {
     this.fetchDashboardData();
@@ -454,6 +619,16 @@ export default {
           // Populate schedule data
           if (data.data.schedule) {
             this.scheduleData = data.data.schedule;
+          }
+
+          // Populate programs data
+          if (data.data.programs) {
+            this.programsData = data.data.programs;
+          }
+
+          // Populate coaches data
+          if (data.data.coaches) {
+            this.coachesData = data.data.coaches;
           }
         }
       } catch (error) {
@@ -706,6 +881,120 @@ export default {
 
     isScheduleEdited(scheduleId) {
       return !!this.editedSchedules[scheduleId];
+    },
+
+    trackProgramEdit(programId, field, value) {
+      if (!this.editedPrograms[programId]) {
+        const original = this.programsData.find(p => p.id === programId);
+        this.editedPrograms[programId] = {
+          id: programId,
+          title: original.title,
+          category: original.category,
+          description: original.description,
+          price: original.price,
+          feeCycle: original.fee_cycle
+        };
+      }
+      this.editedPrograms[programId][field] = value;
+    },
+
+    async updatePrograms() {
+      this.isUpdatingPrograms = true;
+      this.programsMessage = null;
+
+      const programsToUpdate = Object.values(this.editedPrograms);
+
+      if (programsToUpdate.length === 0) {
+        this.programsMessage = { type: 'error', text: 'No changes to update' };
+        this.isUpdatingPrograms = false;
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const response = await fetch(`${this.apiBaseUrl}/admin/update-programs`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ updatedProgramsData: programsToUpdate })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          this.programsMessage = { type: 'success', text: `${data.message} (${data.updatedRows} rows updated)` };
+          this.editedPrograms = {};
+          await this.fetchDashboardData();
+        } else {
+          this.programsMessage = { type: 'error', text: data.message };
+        }
+      } catch (error) {
+        this.programsMessage = { type: 'error', text: 'Failed to update programs' };
+      } finally {
+        this.isUpdatingPrograms = false;
+      }
+    },
+
+    isProgramEdited(programId) {
+      return !!this.editedPrograms[programId];
+    },
+
+    trackCoachEdit(coachId, field, value) {
+      if (!this.editedCoaches[coachId]) {
+        const original = this.coachesData.find(c => c.id === coachId);
+        this.editedCoaches[coachId] = {
+          id: coachId,
+          name: original.name,
+          specialization: original.specialization,
+          experience: original.experience
+        };
+      }
+      this.editedCoaches[coachId][field] = value;
+    },
+
+    async updateCoaches() {
+      this.isUpdatingCoaches = true;
+      this.coachesMessage = null;
+
+      const coachesToUpdate = Object.values(this.editedCoaches);
+
+      if (coachesToUpdate.length === 0) {
+        this.coachesMessage = { type: 'error', text: 'No changes to update' };
+        this.isUpdatingCoaches = false;
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const response = await fetch(`${this.apiBaseUrl}/admin/update-coaches`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ updatedCoachesData: coachesToUpdate })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          this.coachesMessage = { type: 'success', text: `${data.message} (${data.updatedRows} rows updated)` };
+          this.editedCoaches = {};
+          await this.fetchDashboardData();
+        } else {
+          this.coachesMessage = { type: 'error', text: data.message };
+        }
+      } catch (error) {
+        this.coachesMessage = { type: 'error', text: 'Failed to update coaches' };
+      } finally {
+        this.isUpdatingCoaches = false;
+      }
+    },
+
+    isCoachEdited(coachId) {
+      return !!this.editedCoaches[coachId];
     }
   }
 };

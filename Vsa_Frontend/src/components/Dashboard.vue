@@ -191,9 +191,13 @@
             competitive athletes.
           </p>
         </div>
-        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <div v-for="program in programs" :key="program.title"
-            class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300">
+        <!-- Horizontal scroll ONLY on large screens -->
+        <div class="
+        grid md:grid-cols-2 lg:grid-cols-3 gap-8
+        lg:flex lg:gap-6 lg:overflow-x-auto lg:snap-x lg:snap-mandatory lg:py-4 custom-scroll-programs
+      ">
+          <div v-for="program in programs" :key="program.title" class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300
+               lg:min-w-[360px] lg:snap-center">
             <div class="relative">
               <img :src="program.image" :alt="program.title" class="w-full h-48 object-cover" />
               <div class="absolute top-4 right-4 bg-white px-3 py-1 rounded-full text-sm font-semibold text-gray-700">
@@ -661,29 +665,59 @@ export default {
 </script>
 
 <style scoped>
-/* Simple sleek horizontal scrollbar */
 .custom-scroll::-webkit-scrollbar {
   height: 8px;
 }
 
 .custom-scroll::-webkit-scrollbar-track {
-  background: #1f2937; /* gray-800 */
+  background: #1f2937;
+  /* gray-800 */
   border-radius: 4px;
 }
 
 .custom-scroll::-webkit-scrollbar-thumb {
-  background: #4b5563; /* gray-600 */
+  background: #4b5563;
+  /* gray-600 */
   border-radius: 4px;
 }
 
 .custom-scroll::-webkit-scrollbar-thumb:hover {
-  background: #6b7280; /* gray-500 */
+  background: #6b7280;
+  /* gray-500 */
 }
 
 /* Firefox */
 .custom-scroll {
   scrollbar-width: thin;
   scrollbar-color: #4b5563 #1f2937;
+}
+
+/* Custom scroll for programs */
+.custom-scroll-programs::-webkit-scrollbar {
+  height: 8px;
+}
+
+.custom-scroll-programs::-webkit-scrollbar-track {
+  background: #1f2937;
+  /* gray-800 */
+  border-radius: 4px;
+}
+
+.custom-scroll-programs::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  /* gray-600 */
+  border-radius: 4px;
+}
+
+.custom-scroll-programs::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+  /* gray-500 */
+}
+
+/* Firefox */
+.custom-scroll-programs {
+  scrollbar-width: thin;
+  scrollbar-color: grey White;
 }
 
 @keyframes fadeIn {

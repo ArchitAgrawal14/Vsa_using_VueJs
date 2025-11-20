@@ -76,7 +76,7 @@
           <div class="relative h-64 sm:h-72 bg-gray-100 overflow-hidden">
             <img 
               v-if="coach.image" 
-              :src="coach.image" 
+              :src="'http://localhost:3000' + coach.image" 
               :alt="coach.coach_name"
               class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               @error="handleImageError"

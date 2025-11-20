@@ -500,8 +500,9 @@ INSERT INTO dashboard_stats_data (label, value, image, display_order) VALUES
 -- Insert Programs
 INSERT INTO dashboard_programs_data (title, category, description, price, fee_cycle, image, display_order) VALUES
 ('Speed Roller Skating Junior', 'Roller', 'Master the fundamentals of speed roller skating with professional instruction.', 2000, 'month', '/images/speed-roller-program.jpg', 1),
-('Speed Speed Skating', 'Roller', 'Develop lightning-fast techniques on ice with Olympic-level coaching.', 4500, 'month', '/images/ice-speed-program.jpg', 2),
-('Competitive Training', 'Elite', 'Advanced program for competitive athletes seeking championship levels.', 16000, 'month', '/images/competitive-program.jpg', 3);
+('Speed Speed Skating', 'Roller', 'Develop lightning-fast techniques on ice with Olympic-level coaching.', 5500, '3 months', '/images/ice-speed-program.jpg', 2),
+('Competitive Training', 'Elite', 'Advanced program for competitive athletes seeking championship levels.', 10000, '6 months', '/images/competitive-program.jpg', 3)
+('Professional Training', 'Master', 'Advanced program for master athletes seeking championship levels.', 16000, '11 months', '/images/competitive-program.jpg', 4);
 
 -- Insert Coaches
 INSERT INTO dashboard_coaches_data (name, specialization, experience, image, display_order) VALUES
@@ -593,7 +594,7 @@ CREATE TABLE coaches (
   id INT AUTO_INCREMENT PRIMARY KEY,
   coach_name VARCHAR(100),
   image TEXT,
-  experience VARCHAR(20),
+  experience VARCHAR(100),
   description VARCHAR(250),
   specialization VARCHAR(100),
   achievements TEXT,

@@ -10,6 +10,7 @@ import IceSkatingDiscipline from '@/components/IceSkatingDiscipline.vue'
 import MeetOurCoaches from '@/components/MeetOurCoaches.vue'
 import AcademyAchievements from '@/components/AcademyAchievements.vue'
 import StudentsAchievements from '@/components/StudentsAchievements.vue'
+import headerRoutes from './headerRoutes'
 
 const routes = [
   {
@@ -49,6 +50,7 @@ const routes = [
   },
   ...authRoutes,
   ...footerRoutes,
+  ...headerRoutes,
   ...shopRoutes,
   ...adminRoutes
 ]

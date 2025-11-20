@@ -70,7 +70,7 @@
                     class="group rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
                     <!-- Banner Image -->
                     <div class="relative h-56 sm:h-64 overflow-hidden">
-                        <img :src="achievement.banner_image || 'https://images.unsplash.com/photo-1589802829985-817e51171b92?w=800'"
+                        <img :src="'http://localhost:3000' + achievement.banner_image || 'https://images.unsplash.com/photo-1589802829985-817e51171b92?w=800'"
                             :alt="achievement.title"
                             class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                         <div :class="getCategoryOverlay(achievement.competition_category)" class="absolute inset-0">
@@ -138,7 +138,7 @@
                         <!-- Gallery Preview -->
                         <div v-if="achievement.images && achievement.images.length > 0"
                             class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                            <img v-for="(image, index) in achievement.images.slice(0, 4)" :key="index" :src="image"
+                            <img v-for="(image, index) in achievement.images.slice(0, 4)" :key="index" :src="'http://localhost:3000' + image"
                                 :alt="`Achievement ${index + 1}`"
                                 class="w-16 h-16 rounded-lg object-cover flex-shrink-0 hover:scale-110 transition-transform cursor-pointer border-2 border-gray-200"
                                 @click="openGallery(achievement.images, index)" />
@@ -170,7 +170,7 @@
                     @click.stop="nextImage">
                     ›
                 </button>
-                <img :src="currentGallery[currentImageIndex]" class="max-w-full max-h-full object-contain"
+                <img :src="'http://localhost:3000' + currentGallery[currentImageIndex]" class="max-w-full max-h-full object-contain"
                     @click.stop />
             </div>
         </div>

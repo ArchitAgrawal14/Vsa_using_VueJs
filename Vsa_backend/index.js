@@ -703,6 +703,237 @@ app.get("/vsa/dashboard", async (req, res) => {
   }
 });
 
+// Endpoint to send data for profile page
+app.get("/vsa/profile", middlewares.verifyToken, async (req, res) => {
+  try {
+
+    const userId = req.user.userId;
+
+    const [userData] = await db.query(
+      `SELECT id, user_id, full_name, mobile, email, is_admin, is_verified, created_at 
+       FROM users
+       WHERE id = ?`,
+      [userId]
+    );
+
+    if (userData.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Fetch all addresses for that user
+    const [addressData] = await db.query(
+      `SELECT id, address_line1, address_line2, city, state, postal_code, country,
+              full_name, mobile, is_default, is_gift, created_at
+       FROM user_address
+       WHERE user_id = ?
+       ORDER BY is_default DESC, created_at DESC`,
+      [userId]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile fetched successfully",
+      profile: userData[0],
+      addresses: addressData,
+    });
+
+  } catch (error) {
+    console.error("Profile fetch error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message
+    });
+  }
+});
+
+// Update User Profile
+app.put("/vsa/update-profile", middlewares.verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { fullName, mobile } = req.body;
+
+    if (!fullName && !mobile) {
+      return res.status(400).json({
+        success: false,
+        message: "Nothing to update",
+      });
+    }
+
+    let query = "UPDATE users SET ";
+    const params = [];
+
+    if (fullName) {
+      query += "full_name = ?, ";
+      params.push(fullName);
+    }
+
+    if (mobile) {
+      query += "mobile = ?, ";
+      params.push(mobile);
+    }
+
+    query = query.slice(0, -2); // remove comma
+    query += " WHERE id = ?";
+    params.push(userId);
+
+    await db.query(query, params);
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message
+    });
+  }
+});
+
+// Add new address
+app.post("/vsa/add-new-address", middlewares.verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const {
+      address_line1,
+      address_line2,
+      city,
+      state,
+      postal_code,
+      country = "India",
+      full_name,
+      mobile,
+      is_default = false,
+      is_gift = false
+    } = req.body;
+
+    if (!address_line1 || !city || !state || !postal_code) {
+      return res.status(400).json({
+        success: false,
+        message: "Required address fields missing"
+      });
+    }
+
+    // If this address is default, remove default from others
+    if (is_default) {
+      await db.query(
+        `UPDATE user_address SET is_default = FALSE WHERE user_id = ?`,
+        [userId]
+      );
+    }
+
+    await db.query(
+      `INSERT INTO user_address 
+       (user_id, address_line1, address_line2, city, state, postal_code, country,
+        full_name, mobile, is_default, is_gift)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        userId, address_line1, address_line2, city, state, postal_code, country,
+        full_name, mobile, is_default, is_gift
+      ]
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "Address added successfully"
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message
+    });
+  }
+});
+
+// Update existing address
+app.put("/vsa/update-address", middlewares.verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const {
+      addressId,
+      address_line1,
+      address_line2,
+      city,
+      state,
+      postal_code,
+      country,
+      full_name,
+      mobile,
+      is_default
+    } = req.body;
+
+    if (!addressId) {
+      return res.status(400).json({
+        success: false,
+        message: "Address ID is required"
+      });
+    }
+
+    // Check if address belongs to user
+    const [check] = await db.query(
+      `SELECT id FROM user_address WHERE id = ? AND user_id = ?`,
+      [addressId, userId]
+    );
+
+    if (check.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Address not found or unauthorized"
+      });
+    }
+
+    // If default is being set, remove from others
+    if (is_default === true) {
+      await db.query(
+        `UPDATE user_address SET is_default = FALSE WHERE user_id = ?`,
+        [userId]
+      );
+    }
+
+    let query = "UPDATE user_address SET ";
+    const params = [];
+
+    if (address_line1) { query += "address_line1 = ?, "; params.push(address_line1); }
+    if (address_line2) { query += "address_line2 = ?, "; params.push(address_line2); }
+    if (city)         { query += "city = ?, "; params.push(city); }
+    if (state)        { query += "state = ?, "; params.push(state); }
+    if (postal_code)  { query += "postal_code = ?, "; params.push(postal_code); }
+    if (country)      { query += "country = ?, "; params.push(country); }
+    if (full_name)    { query += "full_name = ?, "; params.push(full_name); }
+    if (mobile)       { query += "mobile = ?, "; params.push(mobile); }
+    if (is_default != null) { query += "is_default = ?, "; params.push(is_default); }
+
+    query = query.slice(0, -2);
+    query += " WHERE id = ? AND user_id = ?";
+    params.push(addressId, userId);
+
+    await db.query(query, params);
+
+    return res.status(200).json({
+      success: true,
+      message: "Address updated successfully"
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message
+    });
+  }
+});
+
+
 app.get("/vsa/roller-speed-skating-discipline", async (req, res) => {
   try {
     const [eventsData] = await db.query(

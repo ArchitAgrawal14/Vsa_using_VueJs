@@ -933,6 +933,150 @@ app.put("/vsa/update-address", middlewares.verifyToken, async (req, res) => {
   }
 });
 
+app.post("/vsa/password-change/request", middlewares.verifyToken, async (req, res) => {
+  try {
+    const email  = req.user.email;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    // Check if user exists
+    const [userCheck] = await db.query("SELECT * FROM users WHERE email=?", [email]);
+
+    if (userCheck.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found with this email",
+      });
+    }
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit
+    const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins expiry
+
+    // Update DB
+    await db.query(
+      "UPDATE users SET reset_otp = ?, otp_expiry = ? WHERE email = ?",
+      [otp, expiry, email]
+    );
+
+    // Send Email
+    const mailOptions = {
+      from: process.env.NODE_MAILER_EMAIL_VALIDATOR_EMAIL,
+      to: email,
+      subject: "Your Password Change OTP",
+      html: `
+      <div style="font-family: Arial; padding:20px;">
+        <h2>Your OTP is: <strong>${otp}</strong></h2>
+        <p>This OTP is valid for 10 minutes.</p>
+      </div>`
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    return res.status(200).json({
+      success: true,
+      message: "OTP sent to registered email",
+    });
+
+  } catch (error) {
+    console.error("OTP Send Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+});
+
+app.post("/vsa/password-change/verify", middlewares.verifyToken, async (req, res) => {
+  try {
+    const { otp, newPassword, confirmPassword } = req.body;
+    const  email  = req.user.email;
+
+    if (!email || !otp || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Email, OTP, newPassword & confirmPassword are required",
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Password and Confirm Password must match",
+      });
+    }
+
+    // Validate password format
+    const passwordRegex =
+      /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{6,}$/;
+
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Password must be at least 6 characters long and contain both letters and numbers.",
+      });
+    }
+
+    // Fetch user
+    const [userData] = await db.query(
+      "SELECT * FROM users WHERE email=?",
+      [email]
+    );
+
+    if (userData.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const user = userData[0];
+
+    // OTP validation
+    if (!user.reset_otp || user.reset_otp !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP",
+      });
+    }
+
+    if (!user.otp_expiry || new Date(user.otp_expiry) < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP has expired",
+      });
+    }
+
+    // Hash new password
+    const saltRounds = 12;
+    const salt = await bcrypt.genSalt(saltRounds);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update DB
+    await db.query(
+      "UPDATE users SET password=?, reset_otp=NULL, otp_expiry=NULL WHERE email=?",
+      [hashedPassword, email]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Password changed successfully",
+    });
+
+  } catch (error) {
+    console.error("Password Change Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+});
 
 app.get("/vsa/roller-speed-skating-discipline", async (req, res) => {
   try {

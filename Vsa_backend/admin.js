@@ -208,20 +208,39 @@ export function downloadOnlineSaleList(req, res, saleData) {
   }
 }
 
-export async function updateAdminPermission(userId, permissionKey, value, connection) {
+export async function updateAdminPermission(
+  userId,
+  permissionKey,
+  value,
+  connection
+) {
   try {
     // Input validation
     if (!userId || !permissionKey || (value !== 0 && value !== 1)) {
-      throw new Error("Missing or invalid required fields: userId, permissionKey, value");
+      throw new Error(
+        "Missing or invalid required fields: userId, permissionKey, value"
+      );
     }
 
     const allowedPermissions = [
-      'show_order_status', 'show_edit_shop', 'show_edit_achievements',
-      'show_invoice_generation', 'show_online_sales', 'show_offline_customers',
-      'show_online_users', 'show_available_stocks', 'show_offline_sales',
-      'show_send_mails', 'show_new_student', 'show_attendance',
-      'show_manage_students', 'show_students_achievements', 
-      'show_attendance_records', 'show_news_letter', 'show_manage_admins', 'show_manage_dashboard'
+      "show_order_status",
+      "show_edit_shop",
+      "show_edit_achievements",
+      "show_invoice_generation",
+      "show_online_sales",
+      "show_offline_customers",
+      "show_online_users",
+      "show_available_stocks",
+      "show_offline_sales",
+      "show_send_mails",
+      "show_new_student",
+      "show_attendance",
+      "show_manage_students",
+      "show_students_achievements",
+      "show_attendance_records",
+      "show_news_letter",
+      "show_manage_admins",
+      "show_manage_dashboard",
     ];
 
     if (!allowedPermissions.includes(permissionKey)) {
@@ -229,29 +248,44 @@ export async function updateAdminPermission(userId, permissionKey, value, connec
     }
 
     // Check if user exists
-    const [user] = await connection.query('SELECT is_admin FROM users WHERE user_id = ?', [userId]);
+    const [user] = await connection.query(
+      "SELECT is_admin FROM users WHERE user_id = ?",
+      [userId]
+    );
     if (user.length === 0) {
       throw new Error("User not found");
     }
 
     // Update the permission
-    await connection.query(`UPDATE admin_access SET ${permissionKey} = ? WHERE user_id = ?`, [value, userId]);
+    await connection.query(
+      `UPDATE admin_access SET ${permissionKey} = ? WHERE user_id = ?`,
+      [value, userId]
+    );
 
     // Count total permissions
-    const permissionColumns = allowedPermissions.join(' + ');
-    const [permissionCount] = await connection.query(`
+    const permissionColumns = allowedPermissions.join(" + ");
+    const [permissionCount] = await connection.query(
+      `
       SELECT (${permissionColumns}) AS total_permissions
       FROM admin_access 
-      WHERE user_id = ?`, [userId]);
+      WHERE user_id = ?`,
+      [userId]
+    );
 
     const totalPermissions = permissionCount[0]?.total_permissions || 0;
     const currentAdminStatus = user[0].is_admin;
 
     // Update admin status if needed
     if (totalPermissions === 0 && currentAdminStatus === 1) {
-      await connection.query('UPDATE users SET is_admin = 0 WHERE user_id = ?', [userId]);
+      await connection.query(
+        "UPDATE users SET is_admin = 0 WHERE user_id = ?",
+        [userId]
+      );
     } else if (totalPermissions > 0 && currentAdminStatus === 0) {
-      await connection.query('UPDATE users SET is_admin = 1 WHERE user_id = ?', [userId]);
+      await connection.query(
+        "UPDATE users SET is_admin = 1 WHERE user_id = ?",
+        [userId]
+      );
     }
 
     return {
@@ -262,17 +296,19 @@ export async function updateAdminPermission(userId, permissionKey, value, connec
         permissionKey,
         value,
         totalPermissions,
-        isAdmin: totalPermissions > 0
-      }
+        isAdmin: totalPermissions > 0,
+      },
     };
-
   } catch (error) {
     throw error; // Re-throw to be handled by the route handler
   }
 }
 
-export async function registerNewStudent(body, file ,connection) {
-  const [existingUsersChild] = await connection.query('SELECT * FROM users WHERE email = ?', [body.email]);
+export async function registerNewStudent(body, file, connection) {
+  const [existingUsersChild] = await connection.query(
+    "SELECT * FROM users WHERE email = ?",
+    [body.email]
+  );
   let usersUserId = null;
 
   if (existingUsersChild.length > 0) {
@@ -288,8 +324,8 @@ export async function registerNewStudent(body, file ,connection) {
   if (existingStudent.length > 0) {
     return {
       success: false,
-      message: 'Student already exists'
-    }
+      message: "Student already exists",
+    };
   }
 
   // Fix: Handle dob properly for generateStudentId
@@ -310,41 +346,63 @@ export async function registerNewStudent(body, file ,connection) {
 
   // Calculate next payment date based on initial payment
   const initialPayment = body.amountPaid || 0;
-  
+
   // Fix: Handle case where feeStructure might be 0 or null
   if (!body.feeStructure || body.feeStructure <= 0) {
     return {
       success: false,
-      message: 'Fee structure must be greater than 0'
+      message: "Fee structure must be greater than 0",
     };
   }
 
   const nextPaymentDate = calculateNextPaymentDate(
-    doj, 
-    body.feeCycle, 
-    body.feeStructure, 
+    doj,
+    body.feeCycle,
+    body.feeStructure,
     initialPayment
   );
-  
+
   // Calculate pending fee
   const pendingFee = Math.max(0, body.feeStructure - initialPayment);
   let transportation = 0;
-  if(body.transportation === true) {
+  if (body.transportation === true) {
     transportation = 1;
   }
 
   try {
     // Insert student
-    const [studentResult] = await connection.query(`
+    const [studentResult] = await connection.query(
+      `
       INSERT INTO students 
       (student_id, users_user_id, img, full_name, father_name, mother_name, email, mobile_number,
        whatsapp_number, dob, class, gender, school_name, hobbies, date_of_joining, student_group, 
        skate_type, fee_structure, fee_cycle, next_payment_date, pending_fee, transportation, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [studentId, usersUserId, imagePath, body.fullName, body.fatherName, body.motherName,
-       body.email, body.mobileNumber, body.whatsappNumber, body.dob, body.className, body.gender, 
-       body.schoolName, body?.hobbies, doj, body.studentGroup, body.skateType, body.feeStructure, 
-       body.feeCycle, nextPaymentDate, pendingFee, transportation || false, 'active']
+      [
+        studentId,
+        usersUserId,
+        imagePath,
+        body.fullName,
+        body.fatherName,
+        body.motherName,
+        body.email,
+        body.mobileNumber,
+        body.whatsappNumber,
+        body.dob,
+        body.className,
+        body.gender,
+        body.schoolName,
+        body?.hobbies,
+        doj,
+        body.studentGroup,
+        body.skateType,
+        body.feeStructure,
+        body.feeCycle,
+        nextPaymentDate,
+        pendingFee,
+        transportation || false,
+        "active",
+      ]
     );
 
     // Add address record for the student
@@ -354,118 +412,151 @@ export async function registerNewStudent(body, file ,connection) {
       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         studentId,
-        body?.addressLine1 || '', // Handle null values
-        body?.addressLine2 || '',
-        body.city || 'Satna',
-        body.state || 'Madhya Pradesh',
-        body.postalCode || '485001',
-        body.country || 'Bharat'
+        body?.addressLine1 || "", // Handle null values
+        body?.addressLine2 || "",
+        body.city || "Satna",
+        body.state || "Madhya Pradesh",
+        body.postalCode || "485001",
+        body.country || "Bharat",
       ]
     );
-      
+
     // If initial payment was made, record it in student_fee table
     if (initialPayment > 0) {
-      const remarks = body.remarks || 'Initial registration payment';
-      await connection.query(`
+      const remarks = body.remarks || "Initial registration payment";
+      await connection.query(
+        `
         INSERT INTO student_fee 
         (student_id, amount_paid, remarks, payment_mode, status, payment_date)
         VALUES (?, ?, ?, ?, ?, ?)`,
-        [studentId, initialPayment, remarks, body.paymentMode || 'cash', 'success', doj.toISOString().split('T')[0]]
+        [
+          studentId,
+          initialPayment,
+          remarks,
+          body.paymentMode || "cash",
+          "success",
+          doj.toISOString().split("T")[0],
+        ]
       );
     }
 
     return {
       success: true,
-      message: 'Student registered successfully',
+      message: "Student registered successfully",
       data: {
         studentId: studentId,
         nextPaymentDate: nextPaymentDate,
-        pendingFee: pendingFee
-      }
+        pendingFee: pendingFee,
+      },
     };
-
   } catch (error) {
     // Don't handle rollback here since it's handled in the API route
     throw error;
   }
 }
 
-function calculateNextPaymentDate(dateOfJoining, feeCycle, feeStructure, amountPaid) {
+function calculateNextPaymentDate(
+  dateOfJoining,
+  feeCycle,
+  feeStructure,
+  amountPaid
+) {
   const doj = new Date(dateOfJoining);
-  
+
   if (amountPaid >= feeStructure) {
     let nextPaymentDate = new Date(doj);
-    
-    switch(feeCycle.toLowerCase()) {
-      case 'monthly':
+
+    switch (feeCycle.toLowerCase()) {
+      case "monthly":
         nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
         break;
-      case 'quarterly':
+      case "quarterly":
         nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 3);
         break;
-      case 'half-yearly':
+      case "half-yearly":
         nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 6);
         break;
-      case 'yearly':
+      case "yearly":
         nextPaymentDate.setFullYear(nextPaymentDate.getFullYear() + 1);
         break;
       default:
         nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
     }
-    
-    return nextPaymentDate.toISOString().split('T')[0];
+
+    return nextPaymentDate.toISOString().split("T")[0];
   }
-  
+
   // Calculate how much of the cycle period is covered by the amount paid
   const coverageRatio = amountPaid / feeStructure;
-  
+
   let nextPaymentDate = new Date(doj);
-  
-  switch(feeCycle.toLowerCase()) {
-    case 'monthly':
+
+  switch (feeCycle.toLowerCase()) {
+    case "monthly":
       // Add days based on coverage ratio for monthly
-      const daysInMonth = new Date(doj.getFullYear(), doj.getMonth() + 1, 0).getDate();
+      const daysInMonth = new Date(
+        doj.getFullYear(),
+        doj.getMonth() + 1,
+        0
+      ).getDate();
       const additionalDays = Math.floor(coverageRatio * daysInMonth);
       nextPaymentDate.setDate(nextPaymentDate.getDate() + additionalDays);
       break;
-      
-    case 'quarterly':
+
+    case "quarterly":
       // Add days based on coverage ratio (quarterly = ~90 days)
       const quarterlyDays = Math.floor(coverageRatio * 90);
       nextPaymentDate.setDate(nextPaymentDate.getDate() + quarterlyDays);
       break;
-      
-    case 'half-yearly':
+
+    case "half-yearly":
       // Add days based on coverage ratio (half-yearly = ~180 days)
       const halfYearlyDays = Math.floor(coverageRatio * 180);
       nextPaymentDate.setDate(nextPaymentDate.getDate() + halfYearlyDays);
       break;
-      
-    case 'yearly':
+
+    case "yearly":
       // Add days based on coverage ratio (yearly = 365 days)
       const yearlyDays = Math.floor(coverageRatio * 365);
       nextPaymentDate.setDate(nextPaymentDate.getDate() + yearlyDays);
       break;
-      
+
     default:
       // Default to monthly if cycle is not recognized
-      const defaultDaysInMonth = new Date(doj.getFullYear(), doj.getMonth() + 1, 0).getDate();
-      const defaultAdditionalDays = Math.floor(coverageRatio * defaultDaysInMonth);
-      nextPaymentDate.setDate(nextPaymentDate.getDate() + defaultAdditionalDays);
+      const defaultDaysInMonth = new Date(
+        doj.getFullYear(),
+        doj.getMonth() + 1,
+        0
+      ).getDate();
+      const defaultAdditionalDays = Math.floor(
+        coverageRatio * defaultDaysInMonth
+      );
+      nextPaymentDate.setDate(
+        nextPaymentDate.getDate() + defaultAdditionalDays
+      );
   }
-  
-  return nextPaymentDate.toISOString().split('T')[0];
+
+  return nextPaymentDate.toISOString().split("T")[0];
 }
 
 function generateStudentId(fullName, dob, motherName) {
-  const studentsFirstTwoLettersOfName = fullName ? fullName.substring(0, 2).toUpperCase() : "XX";
-  const mothersFirstTwoLettersOfName = motherName ? motherName.substring(0, 2).toUpperCase() : "XX";
+  const studentsFirstTwoLettersOfName = fullName
+    ? fullName.substring(0, 2).toUpperCase()
+    : "XX";
+  const mothersFirstTwoLettersOfName = motherName
+    ? motherName.substring(0, 2).toUpperCase()
+    : "XX";
   const dobDate = dob instanceof Date ? dob : new Date(dob);
-  
+
   const day = String(dobDate.getDate()).padStart(2, "0");
   const month = String(dobDate.getMonth() + 1).padStart(2, "0");
 
-  const studentId = 'VSA' + studentsFirstTwoLettersOfName + day + month + mothersFirstTwoLettersOfName;
+  const studentId =
+    "VSA" +
+    studentsFirstTwoLettersOfName +
+    day +
+    month +
+    mothersFirstTwoLettersOfName;
 
   return studentId;
 }
@@ -542,47 +633,53 @@ export async function getStudentAttendance(db, studentId, month, year) {
 
 // Validate the images assest keys while updating dashboard images
 export async function validateImageAssetKeys(assetKeys) {
-  
   if (!Array.isArray(assetKeys) || assetKeys.length === 0) {
-      throw new Error("assetKeys must be a non-empty array");
+    throw new Error("assetKeys must be a non-empty array");
   }
 
   const validAssestkeysForImages = [
-    "logo_image", "hero_image", "skate_icon", "check_icon", "roller_skate_image",
-    "ice_skate_image", "skating_banner", "roller_speed_image", "roller_icon", "ice_icon"
+    "logo_image",
+    "hero_image",
+    "skate_icon",
+    "check_icon",
+    "roller_skate_image",
+    "ice_skate_image",
+    "skating_banner",
+    "roller_speed_image",
+    "roller_icon",
+    "ice_icon",
   ];
 
-  for(const assetKey of assetKeysArray) {
-    if(!validAssestkeysForImages.includes(assetKey)) {
+  for (const assetKey of assetKeysArray) {
+    if (!validAssestkeysForImages.includes(assetKey)) {
       throw new Error(`Invalid image asset key: " ${assetKey}`);
     }
   }
-
 }
 
-// Function to update dashboard images 
+// Function to update dashboard images
 export async function updatedDashboardImages(files, connection) {
   let updatedCount = 0;
   for (const key of Object.keys(files)) {
-      const file = files[key][0];
-      const filePath = "/images/students/" + file.filename;
-      const [result] = await connection.query(
-        "UPDATE dashboard_image_assets SET asset_path = ? WHERE asset_key = ?",
-        [filePath, key]
+    const file = files[key][0];
+    const filePath = "/images/students/" + file.filename;
+    const [result] = await connection.query(
+      "UPDATE dashboard_image_assets SET asset_path = ? WHERE asset_key = ?",
+      [filePath, key]
     );
     updatedCount += result.affectedRows;
   }
 
-  if(updatedCount === Object.keys(files).length) {
+  if (updatedCount === Object.keys(files).length) {
     return {
-      success : true,
-      message : "Dashboard images updated successfully"
-    }
+      success: true,
+      message: "Dashboard images updated successfully",
+    };
   }
-  
+
   return {
     success: false,
-    message: "Some images could not be updated"
+    message: "Some images could not be updated",
   };
 }
 
@@ -591,10 +688,14 @@ export async function updateStats(req, connection) {
   let updatedCount = 0;
   let expectedUpdates = 0;
   const valueMap = req.body.values ? JSON.parse(req.body.values) : {};
-  const statsLabel = ["Active_Students", "Expert_Coaches", "Championships_Won", "Years_Experience"];
+  const statsLabel = [
+    "Active_Students",
+    "Expert_Coaches",
+    "Championships_Won",
+    "Years_Experience",
+  ];
 
   for (const label of statsLabel) {
-
     const newValue = valueMap[label];
     const newImage = req.files[label]?.[0];
     const dbLabel = label.replace(/_/g, " ");
@@ -624,16 +725,16 @@ export async function updateStats(req, connection) {
   if (expectedUpdates === 0) {
     return {
       success: false,
-      message: "No updates provided"
+      message: "No updates provided",
     };
   }
   if (updatedCount !== expectedUpdates) {
     return {
       success: false,
-      message: `Only ${updatedCount} of ${expectedUpdates} stats were updated`
+      message: `Only ${updatedCount} of ${expectedUpdates} stats were updated`,
     };
   }
-  
+
   return {
     success: true,
     message: "Dashboard stats updated successfully",
@@ -643,69 +744,148 @@ export async function updateStats(req, connection) {
 
 // Function to update dashboard schedule
 export async function updateSchedule(connection, allSchedule) {
-    const validDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const validDisciplines = ['Roller Skating', 'Ice Skating', 'Roll Ball'];
+  const validDays = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ];
+  const validDisciplines = ["Roller Skating", "Ice Skating", "Roll Ball"];
 
-    let updatedCount = 0;
+  let updatedCount = 0;
 
-    for (const schedule of allSchedule) {
-
-      if (!schedule.day?.trim() || !schedule.discipline?.trim()) {
-        return {
-          success: false,
-          message: "Day and discipline are required"
-        };
-      }
-      
-      // Validate day
-      if (!validDays.includes(schedule.day)) {
-        return {
-          success: false,
-          message: `Invalid day: ${schedule.day}`
-        };
-      }
-
-      // Validate discipline
-      if (!validDisciplines.includes(schedule.discipline)) {
-        return {
-          success: false,
-          message: `Invalid discipline: ${schedule.discipline}`
-        }
-      }
-
-      // Ensure at least one field to update
-      if (!schedule.level && !schedule.time && !schedule.duration) {
-        continue;
-      }
-
-      let query = "UPDATE dashboard_schedule_data SET ";
-      const params = [];
-
-      if (schedule.level) {
-        query += "level = ?, ";
-        params.push(schedule.level);
-      }
-      if (schedule.time) {
-        query += "time = ?, ";
-        params.push(schedule.time);
-      }
-      if (schedule.duration) {
-        query += "duration = ?, ";
-        params.push(schedule.duration);
-      }
-
-      query = query.trim().replace(/,\s*$/, "");
-
-      query += " WHERE day = ? AND discipline = ?";
-      params.push(schedule.day, schedule.discipline);
-
-      const [result] = await connection.query(query, params);
-      updatedCount += result.affectedRows;
+  for (const schedule of allSchedule) {
+    if (!schedule.day?.trim() || !schedule.discipline?.trim()) {
+      return {
+        success: false,
+        message: "Day and discipline are required",
+      };
     }
 
-    return {
-      success: true,
-      message: "Schedule updated successfully",
-      updatedRows: updatedCount,
+    // Validate day
+    if (!validDays.includes(schedule.day)) {
+      return {
+        success: false,
+        message: `Invalid day: ${schedule.day}`,
+      };
     }
+
+    // Validate discipline
+    if (!validDisciplines.includes(schedule.discipline)) {
+      return {
+        success: false,
+        message: `Invalid discipline: ${schedule.discipline}`,
+      };
+    }
+
+    // Ensure at least one field to update
+    if (!schedule.level && !schedule.time && !schedule.duration) {
+      continue;
+    }
+
+    let query = "UPDATE dashboard_schedule_data SET ";
+    const params = [];
+
+    if (schedule.level) {
+      query += "level = ?, ";
+      params.push(schedule.level);
+    }
+    if (schedule.time) {
+      query += "time = ?, ";
+      params.push(schedule.time);
+    }
+    if (schedule.duration) {
+      query += "duration = ?, ";
+      params.push(schedule.duration);
+    }
+
+    query = query.trim().replace(/,\s*$/, "");
+
+    query += " WHERE day = ? AND discipline = ?";
+    params.push(schedule.day, schedule.discipline);
+
+    const [result] = await connection.query(query, params);
+    updatedCount += result.affectedRows;
+  }
+
+  return {
+    success: true,
+    message: "Schedule updated successfully",
+    updatedRows: updatedCount,
+  };
+}
+
+// Function to update programs
+export async function updatePrograms(connection, updatedProgramsData) {
+  let updatedCount = 0;
+
+  for (const program of updatedProgramsData) {
+    if (!program.id) {
+      return {
+        success: false,
+        message: "Program ID is required for updating",
+      };
+    }
+
+    // See if at least one field is updated
+    if (
+      !program.title &&
+      !program.category &&
+      !program.description &&
+      !program.price &&
+      !program.feeCycle
+    ) {
+      continue;
+    }
+    if (program.price !== undefined && program.price < 0) {
+      return {
+        success: false,
+        message: "Price cannot be negative"
+      };
+    }
+    let query = "UPDATE dashboard_programs_data SET ";
+    const params = [];
+
+    if (program.title) {
+      query += "title = ?, ";
+      params.push(program.title);
+    }
+
+    if (program.category) {
+      query += "category = ?, ";
+      params.push(program.category);
+    }
+
+    if (program.description) {
+      query += "description = ?, ";
+      params.push(program.description);
+    }
+
+    if (program.price) {
+      query += "price = ?, ";
+      params.push(program.price);
+    }
+
+    if (program.feeCycle) {
+      query += "fee_cycle = ?, ";
+      params.push(program.feeCycle);
+    }
+
+    // Remove trailing comma
+    query = query.trim().replace(/,\s*$/, "");
+
+    query += " WHERE id = ?";
+    params.push(program.id);
+
+    const [result] = await connection.query(query, params);
+    updatedCount += result.affectedRows;
+  }
+  return {
+    success: true,
+    message: "Programs updated successfully",
+    updatedRows: updatedCount,
+  }
 }

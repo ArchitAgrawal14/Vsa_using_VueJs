@@ -2756,66 +2756,23 @@ app.put("/vsa/admin/update-programs", middlewares.verifyToken, async (req, res) 
 
     connection = await db.getConnection();
     await connection.beginTransaction();
-    let updatedCount = 0;
-    for(const program of updatedProgramsData) {
+    
+    const result = await admin.updatePrograms(connection, updatedProgramsData);
 
-      if (!program.id) {
-        return res.status(400).json({
-          success: false,
-          message: "Program ID is required for updating"
-        });
-      }
-
-      // See if at least one field is updated
-      if(!program.title && !program.category && !program.description 
-        && !program.price && !program.feeCycle) {
-          continue;
-      }
-
-      let query = "UPDATE dashboard_programs_data SET ";
-      const params = [];
-
-      if(program.title) {
-        query += "title = ?, ";
-        params.push(program.title);
-      }
-
-      if(program.category) {
-        query += "category = ?, ";
-        params.push(program.category);
-      }
-
-      if(program.description) {
-        query += "description = ?, ";
-        params.push(program.description);
-      }
-
-      if(program.price) {
-        query += "price = ?, ";
-        params.push(program.price);
-      }
-
-      if(program.feeCycle) {
-        query += "fee_cycle = ?, ";
-        params.push(program.feeCycle);
-      }
-
-      // Remove tralling comma
-      query = query.trim().replace(/,\s*$/, "");
-
-      query += " WHERE id = ?";
-      params.push(program.id);
-      
-      const [result] = await connection.query(query, params);
-      updatedCount += result.affectedRows;
+    if(result.success) {
+      await connection.commit();
+      return res.status(200).json({
+        success: result.success,
+        message: result.message,
+        updatedRows: result.updatedCount,
+      });
+    } else {
+      if (connection) await connection.rollback();
+      return res.status(400).json({
+        success: result.success,
+        message: result.message,
+      });
     }
-    await connection.commit();
-
-    return res.status(200).json({
-      success: true,
-      message: "Programs updated successfully",
-      updatedRows: updatedCount,
-    });
 
   } catch (error) {
     if (connection) await connection.rollback();

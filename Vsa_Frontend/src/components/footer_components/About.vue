@@ -146,7 +146,7 @@ export default {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       try {
-        const response = await fetch('/vsa/about');
+        const response = await fetch('http://localhost:3000/vsa/about');
         if (response.ok) {
           this.aboutData = await response.json();
         } else {

@@ -2692,12 +2692,6 @@ app.put("/vsa/admin/update-schedule", middlewares.verifyToken, async (req, res) 
       });
     }
 
-    const validDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const validDisciplines = ['Roller Skating', 'Ice Skating', 'Roll Ball'];
-
-    connection = await db.getConnection();
-    await connection.beginTransaction();
-
     const { allSchedule } = req.body;
 
     if (!allSchedule || allSchedule.length === 0) {
@@ -2707,63 +2701,25 @@ app.put("/vsa/admin/update-schedule", middlewares.verifyToken, async (req, res) 
       });
     }
 
-    let updatedCount = 0;
+    connection = await db.getConnection();
+    await connection.beginTransaction();
 
-    for (const schedule of allSchedule) {
+    const result = await admin.updateSchedule(connection, allSchedule);
 
-      // Validate day
-      if (!validDays.includes(schedule.day)) {
-        return res.status(400).json({
-          success: false,
-          message: `Invalid day: ${schedule.day}`
-        });
-      }
-
-      // Validate discipline
-      if (!validDisciplines.includes(schedule.discipline)) {
-        return res.status(400).json({
-          success: false,
-          message: `Invalid discipline: ${schedule.discipline}`
-        });
-      }
-
-      // Ensure at least one field to update
-      if (!schedule.level && !schedule.time && !schedule.duration) {
-        continue;
-      }
-
-      let query = "UPDATE dashboard_schedule_data SET ";
-      const params = [];
-
-      if (schedule.level) {
-        query += "level = ?, ";
-        params.push(schedule.level);
-      }
-      if (schedule.time) {
-        query += "time = ?, ";
-        params.push(schedule.time);
-      }
-      if (schedule.duration) {
-        query += "duration = ?, ";
-        params.push(schedule.duration);
-      }
-
-      query = query.trim().replace(/,\s*$/, "");
-
-      query += " WHERE day = ? AND discipline = ?";
-      params.push(schedule.day, schedule.discipline);
-
-      const [result] = await connection.query(query, params);
-      updatedCount += result.affectedRows;
+    if(result.success) {
+      await connection.commit();
+      return res.status(200).json({
+        success: result.success,
+        message: result.message,
+        updatedRows: result.updatedRows,
+      });
+    } else {
+      if (connection) await connection.rollback();
+      return res.status(400).json({
+        success: result.success,
+        message: result.message,
+      });
     }
-
-    await connection.commit();
-
-    return res.status(200).json({
-      success: true,
-      message: "Schedule updated successfully",
-      updatedRows: updatedCount,
-    });
 
   } catch (error) {
     if (connection) await connection.rollback();

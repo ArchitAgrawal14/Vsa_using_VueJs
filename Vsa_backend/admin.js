@@ -640,3 +640,72 @@ export async function updateStats(req, connection) {
     updated: updatedCount,
   };
 }
+
+// Function to update dashboard schedule
+export async function updateSchedule(connection, allSchedule) {
+    const validDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const validDisciplines = ['Roller Skating', 'Ice Skating', 'Roll Ball'];
+
+    let updatedCount = 0;
+
+    for (const schedule of allSchedule) {
+
+      if (!schedule.day?.trim() || !schedule.discipline?.trim()) {
+        return {
+          success: false,
+          message: "Day and discipline are required"
+        };
+      }
+      
+      // Validate day
+      if (!validDays.includes(schedule.day)) {
+        return {
+          success: false,
+          message: `Invalid day: ${schedule.day}`
+        };
+      }
+
+      // Validate discipline
+      if (!validDisciplines.includes(schedule.discipline)) {
+        return {
+          success: false,
+          message: `Invalid discipline: ${schedule.discipline}`
+        }
+      }
+
+      // Ensure at least one field to update
+      if (!schedule.level && !schedule.time && !schedule.duration) {
+        continue;
+      }
+
+      let query = "UPDATE dashboard_schedule_data SET ";
+      const params = [];
+
+      if (schedule.level) {
+        query += "level = ?, ";
+        params.push(schedule.level);
+      }
+      if (schedule.time) {
+        query += "time = ?, ";
+        params.push(schedule.time);
+      }
+      if (schedule.duration) {
+        query += "duration = ?, ";
+        params.push(schedule.duration);
+      }
+
+      query = query.trim().replace(/,\s*$/, "");
+
+      query += " WHERE day = ? AND discipline = ?";
+      params.push(schedule.day, schedule.discipline);
+
+      const [result] = await connection.query(query, params);
+      updatedCount += result.affectedRows;
+    }
+
+    return {
+      success: true,
+      message: "Schedule updated successfully",
+      updatedRows: updatedCount,
+    }
+}

@@ -843,7 +843,7 @@ export async function updatePrograms(connection, updatedProgramsData) {
     if (program.price !== undefined && program.price < 0) {
       return {
         success: false,
-        message: "Price cannot be negative"
+        message: "Price cannot be negative",
       };
     }
     let query = "UPDATE dashboard_programs_data SET ";
@@ -887,5 +887,60 @@ export async function updatePrograms(connection, updatedProgramsData) {
     success: true,
     message: "Programs updated successfully",
     updatedRows: updatedCount,
+  };
+}
+
+// Function to update coaches
+export async function updateCoaches(connection, updatedCoachesData) {
+  let updatedRows = 0;
+  for (const coach of updatedCoachesData) {
+    if (!coach.id) {
+      return {
+        success: false,
+        message: "Coach ID is required for updating",
+      };
+    }
+    // See if at least one field is updated
+    if (!coach.name && !coach.specialization && !coach.experience) {
+      continue;
+    }
+
+    // Building query
+    let query = "UPDATE dashboard_coaches_data SET ";
+    const params = [];
+
+    if (coach.name) {
+      query += "name = ?, ";
+      params.push(coach.name);
+    }
+
+    if (coach.specialization) {
+      query += "specialization = ?, ";
+      params.push(coach.specialization);
+    }
+
+    if (coach.experience) {
+      query += "experience = ?, ";
+      params.push(coach.experience);
+    }
+
+    // Remove trailing comma
+    query = query.trim().replace(/,\s*$/, "");
+
+    query += " WHERE id = ?";
+    params.push(coach.id);
+    const [result] = await connection.query(query, params);
+    updatedRows += result.affectedRows;
+    if (coach.experience) {
+      await connection.query(`UPDATE coaches SET experience = ? WHERE id = ?`, [
+        coach.experience,
+        coach.id,
+      ]);
+    }
   }
+  return {
+    success: true,
+    message: "Coaches data updated successfully",
+    updatedRows: updatedRows,
+  };
 }

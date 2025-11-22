@@ -2788,6 +2788,99 @@ app.put("/vsa/admin/update-programs", middlewares.verifyToken, async (req, res) 
 });
 
 // Endpoint to update coaches 
+// app.put("/vsa/admin/update-coaches", middlewares.verifyToken, async (req, res) => {
+//   let connection;
+//   try {
+//     if (!req.user.isAdmin) {
+//       return res.status(403).json({
+//         success: false,
+//         message: "Access denied. Admins only.",
+//       });
+//     }
+
+//     const {updatedCoachesData} = req.body;
+    
+//     if (!updatedCoachesData || updatedCoachesData.length === 0) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "No coaches data received"
+//       });
+//     }
+
+//     connection = await db.getConnection();
+//     await connection.beginTransaction();
+//     let updatedCount = 0;
+
+//     for(const coach of updatedCoachesData) {
+//       if(!coach.id) {
+//         return res.status(400).json({
+//           success: false,
+//           message: "Coach ID is required for updating"
+//         });
+//       }
+//       // See if at least one field is updated
+//       if(!coach.name && !coach.specialization && !coach.experience) {
+//         continue;
+//       }
+
+//       // Building query
+//       let query = "UPDATE dashboard_coaches_data SET ";
+//       const params = [];
+
+//       if(coach.name) {
+//         query += "name = ?, ";
+//         params.push(coach.name);
+//       }
+
+//       if(coach.specialization) {
+//         query += "specialization = ?, ";
+//         params.push(coach.specialization);
+//       }
+
+//       if(coach.experience) {
+//         query += "experience = ?, ";
+//         params.push(coach.experience);
+//       }
+
+//       // Remove tralling comma
+//       query = query.trim().replace(/,\s*$/, "");
+
+//       query += " WHERE id = ?";
+//       params.push(coach.id);
+      
+//       const [result] = await connection.query(query, params);
+//       updatedCount += result.affectedRows;
+
+//       if (coach.experience) {
+//         await connection.query(
+//           `UPDATE coaches SET experience = ? WHERE id = ?`,
+//           [coach.experience, coach.id]
+//         );
+//       }
+//     }
+
+//     await connection.commit();
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Coaches data updated successfully",
+//       updatedRows: updatedCount,
+//     });
+
+//   } catch (error) {
+//     if (connection) await connection.rollback();
+//     return res.status(500).json({
+//       success: false,
+//       message: "Internal Server Error, Please try again",
+//       error: error.message
+//     });
+
+//   } finally {
+//     if (connection) connection.release();
+//   }
+
+// });
+
 app.put("/vsa/admin/update-coaches", middlewares.verifyToken, async (req, res) => {
   let connection;
   try {
@@ -2809,63 +2902,23 @@ app.put("/vsa/admin/update-coaches", middlewares.verifyToken, async (req, res) =
 
     connection = await db.getConnection();
     await connection.beginTransaction();
-    let updatedCount = 0;
 
-    for(const coach of updatedCoachesData) {
-      if(!coach.id) {
-        return res.status(400).json({
-          success: false,
-          message: "Coach ID is required for updating"
-        });
-      }
-      // See if at least one field is updated
-      if(!coach.name && !coach.specialization && !coach.experience) {
-        continue;
-      }
+    const result = await admin.updateCoaches(connection, updatedCoachesData);
 
-      // Building query
-      let query = "UPDATE dashboard_coaches_data SET ";
-      const params = [];
-
-      if(coach.name) {
-        query += "name = ?, ";
-        params.push(coach.name);
-      }
-
-      if(coach.specialization) {
-        query += "specialization = ?, ";
-        params.push(coach.specialization);
-      }
-
-      if(coach.experience) {
-        query += "experience = ?, ";
-        params.push(coach.experience);
-      }
-
-      // Remove tralling comma
-      query = query.trim().replace(/,\s*$/, "");
-
-      query += " WHERE id = ?";
-      params.push(coach.id);
-      
-      const [result] = await connection.query(query, params);
-      updatedCount += result.affectedRows;
-
-      if (coach.experience) {
-        await connection.query(
-          `UPDATE coaches SET experience = ? WHERE id = ?`,
-          [coach.experience, coach.id]
-        );
-      }
+    if(result.success) {
+      await connection.commit();
+      return res.status(200).json({
+        success: result.success,
+        message: result.message,
+        updatedRows: result.updatedRows,
+      });
+    } else {
+      if (connection) await connection.rollback();
+      return res.status(400).json({
+        success: result.success,
+        message: result.message,
+      });
     }
-
-    await connection.commit();
-
-    return res.status(200).json({
-      success: true,
-      message: "Coaches data updated successfully",
-      updatedRows: updatedCount,
-    });
 
   } catch (error) {
     if (connection) await connection.rollback();

@@ -64,6 +64,7 @@ export default {
   margin: 0 auto;
   padding: 20px;
   background-color: #ffffff;
+  margin-top: 80px;
   font-family: 'Arial', sans-serif;
 }
 

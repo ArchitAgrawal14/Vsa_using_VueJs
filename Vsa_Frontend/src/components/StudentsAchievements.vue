@@ -103,7 +103,7 @@
             <div v-if="selectedStudent"
                 class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50"
                 @click.self="closeModal">
-                <div class="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+                <div class="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden mt-6">
                     <!-- Modal Header -->
                     <div class="bg-gradient-to-r from-gray-900 to-gray-800 text-white p-6 relative">
                         <button @click="closeModal"

@@ -60,6 +60,7 @@ export default {
 .shipping-policy-container {
   max-width: 800px;
   margin: 0 auto;
+  margin-top: 80px;
   padding: 20px;
   background-color: #ffffff;
   font-family: 'Arial', sans-serif;

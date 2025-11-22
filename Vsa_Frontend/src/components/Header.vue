@@ -405,7 +405,7 @@ export default {
   position: absolute;
   top: 100%;
   right: 0;
-  background: var(--background-light);
+  background: #ffffff !important;
   border-radius: 16px;
   box-shadow: var(--shadow-xl);
   border: 1px solid var(--border-color);
@@ -416,6 +416,7 @@ export default {
   transform: translateY(-10px);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1001;
+  color: var(--text-primary) !important;
 }
 
 .dropdown-menu.show {
@@ -429,7 +430,7 @@ export default {
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1.25rem;
-  color: var(--text-primary);
+  color: var(--text-primary) !important;
   text-decoration: none;
   transition: all 0.3s ease;
   cursor: pointer;
@@ -454,6 +455,10 @@ export default {
   height: 1px;
   background: var(--border-color);
   margin: 0.5rem 0;
+}
+
+.dropdown-item.logout {
+  color: #ef4444 !important;
 }
 
 /* Mobile Menu Button */

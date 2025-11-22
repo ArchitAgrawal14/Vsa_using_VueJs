@@ -71,11 +71,6 @@
         </div>
       </div>
     </main>
-
-    <!-- Footer -->
-    <footer class="footer">
-      <p>&copy; 2024 Ice & Speed Skating FAQ. All rights reserved.</p>
-    </footer>
   </div>
 </template>
 
@@ -370,15 +365,6 @@ body {
   font-size: 3rem;
   margin-bottom: 20px;
   color: #007bff;
-}
-
-/* Footer */
-.footer {
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-  color: white;
-  text-align: center;
-  padding: 30px 0;
-  margin-top: 60px;
 }
 
 /* Responsive design */

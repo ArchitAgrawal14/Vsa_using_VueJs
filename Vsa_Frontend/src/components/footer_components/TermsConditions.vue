@@ -58,6 +58,7 @@ export default {
 .terms-conditions-container {
   max-width: 900px;
   margin: 0 auto;
+  margin-top: 80px;
   padding: 20px;
   background-color: #ffffff;
   font-family: 'Arial', sans-serif;

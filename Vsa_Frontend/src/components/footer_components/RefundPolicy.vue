@@ -88,6 +88,7 @@ export default {
   padding: 20px;
   background-color: #ffffff;
   font-family: 'Arial', sans-serif;
+  margin-top: 80px;
 }
 
 .policy-card {

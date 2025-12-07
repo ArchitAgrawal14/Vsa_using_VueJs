@@ -2892,6 +2892,494 @@ app.post("/vsa/admin/add-new-coach", middlewares.verifyToken, async (req, res) =
   }
 });
 
+// Dynamic multer configuration for handling multiple variation images for shop
+const itemStorage = multer.diskStorage({
+  destination: path.join(__dirname, "public/images/shop-item-images"),
+  filename: function (req, file, cb) {
+    const timestamp = Date.now();
+    const fileExt = path.extname(file.originalname);
+    const filename = `item-${timestamp}-${Math.random().toString(36).substring(7)}${fileExt}`;
+    cb(null, filename);
+  },
+});
+
+const itemUpload = multer({ storage: itemStorage });
+
+// Endpoint to add new item, will be used to add skates_and_boots, wheels, helmets, accessories
+app.post("/vsa/admin/add-new-item", 
+  middlewares.verifyToken,
+  itemUpload.any(), // Accept any number of files with any field names
+  async (req, res) => {
+    let connection;
+    try {
+      if (!req.user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Admins only.",
+        });
+      }
+
+      // Parse itemData from request body
+      const itemData = typeof req.body.itemData === 'string' 
+        ? JSON.parse(req.body.itemData) 
+        : req.body.itemData;
+
+      const itemTypeList = ["skates_and_boots", "wheels", "helmets", "accessories"];
+      
+      if (!itemTypeList.includes(itemData.itemType)) {
+        return res.status(400).json({
+          success: false,
+          message: "Wrong item type"
+        });
+      }
+
+      connection = await db.getConnection();
+      await connection.beginTransaction();
+
+      const [existingItem] = await connection.query(
+        `SELECT name FROM ${itemData.itemType} WHERE name = ?`, 
+        [itemData.name]
+      );
+
+      if (existingItem.length > 0) {
+        await connection.rollback();
+        return res.status(409).json({
+          success: false,
+          message: "Item with this name already exists"
+        });
+      }
+
+      // Construct item_id
+      const itemId = getItemId(itemData.itemType, itemData.name);
+
+      // Create a map of uploaded files by fieldname
+      const fileMap = {};
+      if (req.files) {
+        req.files.forEach(file => {
+          fileMap[file.fieldname] = "/images/shop-item-images/" + file.filename;
+        });
+      }
+
+      // Handle main image upload
+      const mainImagePath = fileMap['mainImage'] || itemData.mainImagePath || null;
+
+      // Insert main table data
+      await connection.query(
+        `INSERT INTO ${itemData.itemType}
+        (item_id, name, short_description, detailed_description, why_to_choose, 
+        main_image_path, features, is_shown) 
+        VALUES(?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          itemId,
+          itemData.name,
+          itemData.shortDescription,
+          itemData.detailedDescription,
+          JSON.stringify(itemData.whyToChoose),
+          mainImagePath,
+          JSON.stringify(itemData.features),
+          itemData.isShown ? 1 : 0
+        ]
+      );
+
+      // Process variations
+      const variationPromises = itemData.variationData.map(async (variant, index) => {
+        const colorCode = variant.color.substring(0, 4).toUpperCase();
+        const itemVariationId = `${itemId}-${colorCode}-${variant.size}`;
+
+        // Handle base image - check if uploaded, otherwise use provided URL
+        const baseImagePath = fileMap[`baseImage_${index}`] || variant.baseImage || null;
+
+        await connection.query(
+          `INSERT INTO ${itemData.itemType}_variation 
+          (item_variation_id, item_id, color, size, quantity, current_price, 
+          old_price, discount, base_image_path, show_on_main_page, show_as_variation) 
+          VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            itemVariationId,
+            itemId,
+            variant.color,
+            variant.size,
+            variant.quantity,
+            variant.currentPrice,
+            variant.oldPrice || null,
+            variant.discount || 0,
+            baseImagePath,
+            variant.showOnMainPage ? 1 : 0,
+            variant.showAsVariation ? 1 : 0
+          ]
+        );
+
+        // Save variation images - handle both uploaded files and URLs
+        const variationImagePaths = [];
+        
+        // Check for uploaded files for this variation
+        for (let i = 0; i < 10; i++) { // Support up to 10 images per variation
+          const fieldName = `variationImage_${index}_${i}`;
+          if (fileMap[fieldName]) {
+            variationImagePaths.push(fileMap[fieldName]);
+          }
+        }
+
+        // Add any URL-based images from the form data
+        if (variant.variationImages && variant.variationImages.length > 0) {
+          variant.variationImages.forEach(img => {
+            if (img && img.trim()) {
+              variationImagePaths.push(img);
+            }
+          });
+        }
+
+        // Insert all variation images
+        if (variationImagePaths.length > 0) {
+          const imagePromises = variationImagePaths.map(async (imagePath) => {
+            await connection.query(
+              `INSERT INTO ${itemData.itemType}_variation_image
+              (item_variation_id, image_path) VALUES(?, ?)`,
+              [itemVariationId, imagePath]
+            );
+          });
+          await Promise.all(imagePromises);
+        }
+      });
+
+      await Promise.all(variationPromises);
+
+      await connection.commit();
+
+      return res.status(201).json({
+        success: true,
+        message: "Item added successfully",
+        data: {
+          itemId: itemId,
+          name: itemData.name
+        }
+      });
+
+    } catch (error) {
+      if (connection) {
+        await connection.rollback();
+      }
+      console.error("Error adding new item:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to add item",
+        error: error.message
+      });
+    } finally {
+      if (connection) {
+        connection.release();
+      }
+    }
+  }
+);
+
+// Endpoint to add new bearing item
+app.post("/vsa/admin/add-new-bearing", 
+  middlewares.verifyToken,
+  itemUpload.any(), // Accept any number of files with any field names
+  async (req, res) => {
+    let connection;
+    try {
+      if (!req.user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Admins only.",
+        });
+      }
+
+      // Parse itemData from request body
+      const itemData = typeof req.body.itemData === 'string' 
+        ? JSON.parse(req.body.itemData) 
+        : req.body.itemData;
+
+      connection = await db.getConnection();
+      await connection.beginTransaction();
+
+      // Check if bearing already exists
+      const [existingItem] = await connection.query(
+        `SELECT name FROM bearings WHERE name = ?`, 
+        [itemData.name]
+      );
+
+      if (existingItem.length > 0) {
+        await connection.rollback();
+        return res.status(409).json({
+          success: false,
+          message: "Bearing with this name already exists"
+        });
+      }
+
+      // Construct item_id for bearings
+      const itemId = getBearingItemId(itemData.name);
+
+      // Create a map of uploaded files by fieldname
+      const fileMap = {};
+      if (req.files) {
+        req.files.forEach(file => {
+          fileMap[file.fieldname] = "/images/shop-item-images/" + file.filename;
+        });
+      }
+
+      // Handle main image upload
+      const mainImagePath = fileMap['mainImage'] || itemData.mainImagePath || null;
+
+      // Insert main bearings table data
+      await connection.query(
+        `INSERT INTO bearings
+        (item_id, name, short_description, detailed_description, why_to_choose, 
+        main_image_path, features, is_shown) 
+        VALUES(?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          itemId,
+          itemData.name,
+          itemData.shortDescription || null,
+          itemData.detailedDescription || null,
+          itemData.whyToChoose || null,
+          mainImagePath,
+          JSON.stringify(itemData.features || []),
+          itemData.isShown ? 1 : 0
+        ]
+      );
+
+      // Process variations
+      const variationPromises = itemData.variationData.map(async (variant, index) => {
+        // Create unique variation ID based on bearing-specific attributes
+        const abecCode = variant.abecRating ? variant.abecRating.replace(/[^0-9]/g, '') : 'NA';
+        const materialCode = variant.material ? variant.material.substring(0, 3).toUpperCase() : 'STD';
+        const packCode = variant.packSize || '8';
+        const typeCode = variant.bearingType ? variant.bearingType.substring(0, 3).toUpperCase() : 'STD';
+        
+        const itemVariationId = `${itemId}-${abecCode}-${materialCode}-${packCode}-${typeCode}`;
+
+        // Handle base image - check if uploaded, otherwise use provided URL
+        const baseImagePath = fileMap[`baseImage_${index}`] || variant.baseImage || null;
+
+        // Validate material enum
+        const validMaterials = ['Steel', 'Ceramic', 'Titanium'];
+        const material = validMaterials.includes(variant.material) ? variant.material : 'Steel';
+
+        await connection.query(
+          `INSERT INTO bearings_variation 
+          (item_variation_id, item_id, abec_rating, material, pack_size, bearing_type,
+          quantity, old_price, current_price, discount, base_image_path, 
+          show_on_main_page, show_as_variation) 
+          VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            itemVariationId,
+            itemId,
+            variant.abecRating || null,
+            material,
+            variant.packSize || null,
+            variant.bearingType || null,
+            variant.quantity || 0,
+            variant.oldPrice || null,
+            variant.currentPrice,
+            variant.discount || 0,
+            baseImagePath,
+            variant.showOnMainPage ? 1 : 0,
+            variant.showAsVariation ? 1 : 0
+          ]
+        );
+
+        // Save variation images - handle both uploaded files and URLs
+        const variationImagePaths = [];
+        
+        // Check for uploaded files for this variation
+        for (let i = 0; i < 10; i++) { // Support up to 10 images per variation
+          const fieldName = `variationImage_${index}_${i}`;
+          if (fileMap[fieldName]) {
+            variationImagePaths.push(fileMap[fieldName]);
+          }
+        }
+
+        // Add any URL-based images from the form data
+        if (variant.variationImages && variant.variationImages.length > 0) {
+          variant.variationImages.forEach(img => {
+            if (img && img.trim()) {
+              variationImagePaths.push(img);
+            }
+          });
+        }
+
+        // Insert all variation images
+        if (variationImagePaths.length > 0) {
+          const imagePromises = variationImagePaths.map(async (imagePath) => {
+            await connection.query(
+              `INSERT INTO bearings_variation_image
+              (item_variation_id, image_path) VALUES(?, ?)`,
+              [itemVariationId, imagePath]
+            );
+          });
+          await Promise.all(imagePromises);
+        }
+      });
+
+      await Promise.all(variationPromises);
+
+      await connection.commit();
+
+      return res.status(201).json({
+        success: true,
+        message: "Bearing added successfully",
+        data: {
+          itemId: itemId,
+          name: itemData.name
+        }
+      });
+
+    } catch (error) {
+      if (connection) {
+        await connection.rollback();
+      }
+      console.error("Error adding new bearing:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to add bearing",
+        error: error.message
+      });
+    } finally {
+      if (connection) {
+        connection.release();
+      }
+    }
+  }
+);
+
+function getItemId(type, name) {
+  let itemId = "";
+  
+  if (type === "skates_and_boots") {
+    itemId += type.substring(0, 2); // takes "sk"
+    itemId += type.substring(12, 14); // takes "bo"
+  } else {
+    itemId += type.substring(0, 2); // for other category takes "we", "he" etc
+  }
+
+  itemId += name.substring(0, 3).toUpperCase();
+  itemId += Math.floor(Math.random() * 100).toString().padStart(2, '0');
+
+  return itemId.toUpperCase();
+}
+
+function getBearingItemId(name) {
+  let itemId = "BR"; // Bearing prefix
+  itemId += name.substring(0, 3).toUpperCase().replace(/\s/g, '');
+  itemId += Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+
+  return itemId;
+}
+
+// Endpoint to render the list of items in edit shop page
+app.get("/vsa/admin/edit-shop-items", middlewares.verifyToken, async (req, res) => {
+  try {
+
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+    
+    const [
+      [skatesAndBootsData],
+      [wheelsData],
+      [helmetsData],
+      [bearingsData],
+      [accessoriesData]
+    ] = await Promise.all([
+      db.query("SELECT * FROM skates_and_boots"),
+      db.query("SELECT * FROM wheels"),
+      db.query("SELECT * FROM helmets"),
+      db.query("SELECT * FROM bearings"),
+      db.query("SELECT * FROM accessories")
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message : "Successfully fetched items data",
+      skatesAndBootsData,
+      wheelsData,
+      helmetsData,
+      bearingsData,
+      accessoriesData
+    });
+
+  } catch (error) {
+    console.error("Error loading shop items:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error while loading shop items",
+      error: error.message
+    });
+  }
+});
+
+// Endpoint to fetch full data of single item
+app.get("/vsa/admin/get-single-item", middlewares.verifyToken, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    // itemName should be only these - skatesAndBoots, wheels, helmets, bearings, accessories as these will be used to find the required table.
+    let {itemName, itemId} = req.query
+
+    if (!itemName || !itemId) {
+      return res.status(400).json({
+        success: false,
+        message: "item-name and item-id are required as query params.",
+      });
+    }
+
+    // Allowed names only
+    const mapping = {
+      skatesAndBoots: { base: "skates_and_boots", variation: "skates_and_boots_variation" },
+      wheels: { base: "wheels", variation: "wheels_variation" },
+      helmets: { base: "helmets", variation: "helmets_variation" },
+      bearings: { base: "bearings", variation: "bearings_variation" },
+      accessories: { base: "accessories", variation: "accessories_variation" }
+    };
+
+    if (!mapping[itemName]) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid itemName provided."
+      });
+    }
+
+    const baseTable = mapping[itemName].base;
+    const variationTable = mapping[itemName].variation;
+    const variationImageTable = `${variationTable}_image`;
+
+    const [itemDataWithVariation] = await db.query(
+      `SELECT * FROM ${baseTable} AS i
+      LEFT JOIN ${variationTable} AS iv 
+      ON i.item_id = iv.item_id
+      LEFT JOIN ${variationImageTable} AS ivi
+      ON iv.item_variation_id = ivi.item_variation_id
+      WHERE i.item_id = ?
+      `, [itemId]
+    );
+
+    return res.json({
+      success: true,
+      message : "Single item data fetched successfully",
+      item: itemDataWithVariation
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+});
+
 // Admin functionality endpoints ends here
 
 app.get("/vsa/:policyType", async (req, res) => {

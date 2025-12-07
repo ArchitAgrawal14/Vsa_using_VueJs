@@ -1,9 +1,12 @@
+import AddNewItemPage from "@/components/admin_components/AddNewItem.vue"
 import AttendancePage from "@/components/admin_components/AttendancePage.vue"
 import AttendanceRecords from "@/components/admin_components/AttendanceRecords.vue"
 import CreateInvoice from "@/components/admin_components/CreateInvoice.vue"
+import EditShop from "@/components/admin_components/EditShop.vue"
 import ManageAchievements from "@/components/admin_components/ManageAchievements.vue"
 import ManageAdmins from "@/components/admin_components/ManageAdmins.vue"
 import ManageDashboard from "@/components/admin_components/ManageDashboard.vue"
+import ManageShop from "@/components/admin_components/ManageShop.vue"
 import ManageStudents from "@/components/admin_components/ManageStudents.vue"
 import RegisterNewStudent from "@/components/admin_components/RegisterNewStudent.vue"
 import StudentAchievementDetail from "@/components/admin_components/StudentAchievementDetail.vue"
@@ -52,5 +55,20 @@ export default [
     path: '/vsa/admin/manage-dashboard',
     name: 'ManageDashboard',
     component: ManageDashboard,
+  },
+  {
+    path: '/vsa/admin/manage-shop',
+    name: 'ManageShop',
+    component: ManageShop,
+  },
+  {
+    path: '/vsa/admin/edit-shop',
+    name: 'EditShop',
+    component: EditShop,
+  },
+  {
+    path: '/vsa/admin/add-new-item',
+    name: 'AddNewItem',
+    component: AddNewItemPage,
   }
 ]

@@ -3110,7 +3110,7 @@ app.post("/vsa/admin/add-new-bearing",
       }
 
       // Construct item_id for bearings
-      const itemId = getBearingItemId(itemData.name);
+      const itemId = getBearingItemId(itemData.name, itemData.size);
 
       // Create a map of uploaded files by fieldname
       const fileMap = {};
@@ -3146,6 +3146,7 @@ app.post("/vsa/admin/add-new-bearing",
         // Create unique variation ID based on bearing-specific attributes
         const abecCode = variant.abecRating ? variant.abecRating.replace(/[^0-9]/g, '') : 'NA';
         const materialCode = variant.material ? variant.material.substring(0, 3).toUpperCase() : 'STD';
+        const sizeCode = variant.size ? String(variant.size).substring(0, 3).toUpperCase() : '';
         const packCode = variant.packSize || '8';
         const typeCode = variant.bearingType ? variant.bearingType.substring(0, 3).toUpperCase() : 'STD';
         
@@ -3160,15 +3161,16 @@ app.post("/vsa/admin/add-new-bearing",
 
         await connection.query(
           `INSERT INTO bearings_variation 
-          (item_variation_id, item_id, abec_rating, material, pack_size, bearing_type,
+          (item_variation_id, item_id, abec_rating, material, size, pack_size, bearing_type,
           quantity, old_price, current_price, discount, base_image_path, 
           show_on_main_page, show_as_variation) 
-          VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             itemVariationId,
             itemId,
             variant.abecRating || null,
             material,
+            variant.size,
             variant.packSize || null,
             variant.bearingType || null,
             variant.quantity || 0,
@@ -3261,9 +3263,10 @@ function getItemId(type, name) {
   return itemId.toUpperCase();
 }
 
-function getBearingItemId(name) {
+function getBearingItemId(name, size) {
   let itemId = "BR"; // Bearing prefix
   itemId += name.substring(0, 3).toUpperCase().replace(/\s/g, '');
+  itemId += String(size).substring(0, 2).replace(/\s/g, '');
   itemId += Math.floor(Math.random() * 1000).toString().padStart(3, '0');
 
   return itemId;

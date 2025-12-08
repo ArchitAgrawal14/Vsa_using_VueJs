@@ -952,6 +952,7 @@ CREATE TABLE bearings_variation (
   item_id VARCHAR(20) NOT NULL,
   abec_rating VARCHAR(20),         -- ABEC-5, ABEC-7 etc.
   material ENUM('Steel','Ceramic','Titanium'),
+  size VARCHAR(15),
   pack_size INT UNSIGNED,         -- 8, 16, 32
   bearing_type VARCHAR(20),       -- 608RS, 608ZZ
   quantity INT UNSIGNED NOT NULL DEFAULT 0,
@@ -965,7 +966,7 @@ CREATE TABLE bearings_variation (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (item_id) REFERENCES bearings(item_id) ON DELETE CASCADE,
   INDEX idx_item_abec_material (item_id, abec_rating, material),  
-  UNIQUE (item_id, abec_rating, material, pack_size, bearing_type)
+  UNIQUE (item_id, abec_rating, material,  size, pack_size, bearing_type)
 );
 
 CREATE TABLE bearings_variation_image (

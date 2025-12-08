@@ -2,6 +2,7 @@ import AddNewItemPage from "@/components/admin_components/AddNewItem.vue"
 import AttendancePage from "@/components/admin_components/AttendancePage.vue"
 import AttendanceRecords from "@/components/admin_components/AttendanceRecords.vue"
 import CreateInvoice from "@/components/admin_components/CreateInvoice.vue"
+import EditItem from "@/components/admin_components/EditItem.vue"
 import EditShop from "@/components/admin_components/EditShop.vue"
 import ManageAchievements from "@/components/admin_components/ManageAchievements.vue"
 import ManageAdmins from "@/components/admin_components/ManageAdmins.vue"
@@ -65,6 +66,11 @@ export default [
     path: '/vsa/admin/edit-shop',
     name: 'EditShop',
     component: EditShop,
+  },
+  {
+    path: '/vsa/admin/edit-item',
+    name: 'EditItem',
+    component: EditItem,
   },
   {
     path: '/vsa/admin/add-new-item',

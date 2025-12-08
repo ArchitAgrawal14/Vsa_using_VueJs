@@ -3073,7 +3073,7 @@ app.post("/vsa/admin/add-new-item",
   }
 );
 
-// Endpoint to add new bearing item
+// Endpoint to add new bearing
 app.post("/vsa/admin/add-new-bearing", 
   middlewares.verifyToken,
   itemUpload.any(), // Accept any number of files with any field names
@@ -3382,6 +3382,8 @@ app.get("/vsa/admin/get-single-item", middlewares.verifyToken, async (req, res) 
     });
   }
 });
+
+// Endpoint to edit item data
 
 // Admin functionality endpoints ends here
 

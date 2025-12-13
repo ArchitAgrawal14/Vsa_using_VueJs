@@ -513,7 +513,7 @@ export default {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${isFinal ? 'Invoice' : 'Estimate'}-${invoiceNumber}-${Date.now()}.pdf`;
+        a.download = `${isFinal ? 'Bill' : 'Estimate'}-${invoiceNumber}-${Date.now()}.pdf`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);

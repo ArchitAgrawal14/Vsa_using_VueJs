@@ -2112,31 +2112,184 @@ function generateInvoicePDF(invoiceData) {
   });
 }
 
+// Endpoint to download sale list for online sale need to complete this after orders table is completed
 app.get(
   "/vsa/download-online-sale-list",
   middlewares.verifyToken,
   async (req, res) => {
-    console.log("In sale download");
+    try {
+      console.log("Generating online sales report...");
+      
+      if (!req.user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Admins only.",
+        });
+      }
+
+      // Getting the data from DB for all the completed sales
+      const [saleData] = await db.query(
+        "SELECT * FROM orders WHERE status = ? ORDER BY created_at DESC",
+        ["Delivered"]
+      );
+
+      if (!saleData || saleData.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "No sales data found"
+        });
+      }
+
+      // Generate and stream PDF
+      admin.downloadOnlineSaleList(req, res, saleData);
+      
+    } catch (error) {
+      console.error("Error fetching online sale list:", error);
+      
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          message: "Error fetching online sale list",
+          error: error.message
+        });
+      }
+    }
+  }
+);
+
+// Endpoint to download offline users data in PDF
+app.get("/vsa/download-offline-user-data", middlewares.verifyToken, async (req, res) => {
+  try {
+    console.log("Generating offline user data report...");
+      
     if (!req.user.isAdmin) {
       return res.status(403).json({
         success: false,
         message: "Access denied. Admins only.",
       });
     }
+    const [userData] = await db.query('SELECT full_name, mobile, whatsapp_number, email FROM item_sold_offline');
 
-    try {
-      // Getting the data from DB for all the completed sale
-      const [saleData] = await db.query(
-        "SELECT * FROM orders WHERE status = ? ORDER BY created_at DESC",
-        ["Delivered"]
-      );
-      admin.downloadOnlineSaleList(req, res, saleData);
-    } catch (error) {
-      console.error("Error fetching online sale list:", error);
-      res.status(500).send("Error fetching online sale list");
+    if (!userData || userData.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No user data found"
+      });
+    }
+
+    admin.downloadOfflineUsersListPDF(userData, res);
+
+  } catch (error) {
+    console.error("Error fetching offline users list:", error);
+    
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: "Error fetching offline user list",
+         error: error.message
+       });
     }
   }
-);
+});
+
+// Endpoint to download offline users data in CSV
+app.get("/vsa/download-offline-user-data-csv", middlewares.verifyToken, async (req, res) => {
+  try {
+    console.log("Generating offline user data report...");
+      
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+    const [userData] = await db.query('SELECT full_name, mobile, whatsapp_number, email FROM item_sold_offline');
+
+    if (!userData || userData.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No user data found"
+      });
+    }
+
+    admin.downloadOfflineUsersListCSV(userData, res);
+
+  } catch (error) {
+    console.error("Error fetching offline users list:", error);
+    
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: "Error fetching offline user list",
+         error: error.message
+       });
+    }
+  }
+});
+
+// Endpoint to download online user data in PDF
+app.get("/vsa/download-online-user-data", middlewares.verifyToken, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+          message: "Access denied. Admins only.",
+      });
+    }
+
+    const [userData] = await db.query('SELECT user_id, full_name, mobile, email FROM users');
+     if (!userData || userData.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No user data found for online user"
+      });
+    }
+
+    admin.downloadOnlineUsersDataPDF(userData, res);
+
+  } catch (error) {
+    console.error("Error fetching offline users list:", error);    
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: "Error fetching offline user list",
+         error: error.message
+       });
+    }
+  }
+});
+
+// Endpoint to download online user data in CSV
+app.get("/vsa/download-online-user-data-csv", middlewares.verifyToken, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+          message: "Access denied. Admins only.",
+      });
+    }
+
+    const [userData] = await db.query('SELECT user_id, full_name, mobile, email FROM users');
+     if (!userData || userData.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No user data found for online user"
+      });
+    }
+
+    admin.downloadOnlineUsersDataCSV(userData, res);
+
+  } catch (error) {
+    console.error("Error fetching offline users list:", error);    
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: "Error fetching offline user list",
+         error: error.message
+       });
+    }
+  }
+});
 
 // Multer config to upload image/files
 const storage = multer.diskStorage({

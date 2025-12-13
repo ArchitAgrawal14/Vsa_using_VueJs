@@ -2,7 +2,7 @@ import express from "express";
 import PDFDocument from "pdfkit";
 import path from "path";
 import fs from "fs";
-
+import { Parser } from "json2csv";
 const app = express();
 app.use(express.json());
 
@@ -13,12 +13,14 @@ export function downloadOnlineSaleList(req, res, saleData) {
       size: "A4",
     });
 
+    // Set headers for PDF download
     res.setHeader(
-      "Content-disposition",
-      `attachment; filename = Vsa_online_sale_data${Date.now()}.pdf`
+      "Content-Disposition",
+      `attachment; filename="VSA_Online_Sales_${Date.now()}.pdf"`
     );
-    res.setHeader("Content-type", "application/pdf");
+    res.setHeader("Content-Type", "application/pdf");
 
+    // Pipe the PDF directly to response
     doc.pipe(res);
 
     // Add title
@@ -58,7 +60,6 @@ export function downloadOnlineSaleList(req, res, saleData) {
       .moveDown(1);
 
     // Define improved table settings
-    const tableTop = doc.y + 10;
     const pageWidth = doc.page.width - 100; // Account for margins
     const colWidths = {
       email: pageWidth * 0.4, // 40% for email
@@ -70,47 +71,55 @@ export function downloadOnlineSaleList(req, res, saleData) {
     const headerHeight = 30;
     const margin = 50;
 
-    // Header background
-    doc
-      .rect(margin, tableTop, pageWidth, headerHeight)
-      .fill("#3498db")
-      .stroke();
+    // Function to draw table header
+    function drawTableHeader(startY) {
+      // Header background
+      doc
+        .rect(margin, startY, pageWidth, headerHeight)
+        .fill("#3498db")
+        .stroke();
 
-    // Draw table headers with better styling
-    doc.fontSize(12).font("Helvetica-Bold").fillColor("#ffffff");
+      // Draw table headers
+      doc.fontSize(12).font("Helvetica-Bold").fillColor("#ffffff");
 
-    let currentX = margin;
-    doc.text("Email Address", currentX + 5, tableTop + 8, {
-      width: colWidths.email - 10,
-      align: "left",
-    });
+      let currentX = margin;
+      doc.text("Email Address", currentX + 5, startY + 8, {
+        width: colWidths.email - 10,
+        align: "left",
+      });
 
-    currentX += colWidths.email;
-    doc.text("Order ID", currentX + 5, tableTop + 8, {
-      width: colWidths.orderId - 10,
-      align: "center",
-    });
+      currentX += colWidths.email;
+      doc.text("Order ID", currentX + 5, startY + 8, {
+        width: colWidths.orderId - 10,
+        align: "center",
+      });
 
-    currentX += colWidths.orderId;
-    doc.text("Price", currentX + 5, tableTop + 8, {
-      width: colWidths.price - 10,
-      align: "center",
-    });
+      currentX += colWidths.orderId;
+      doc.text("Price", currentX + 5, startY + 8, {
+        width: colWidths.price - 10,
+        align: "center",
+      });
 
-    currentX += colWidths.price;
-    doc.text("Date", currentX + 5, tableTop + 8, {
-      width: colWidths.date - 10,
-      align: "center",
-    });
+      currentX += colWidths.price;
+      doc.text("Date", currentX + 5, startY + 8, {
+        width: colWidths.date - 10,
+        align: "center",
+      });
 
-    // Draw table rows with better formatting
+      return startY + headerHeight;
+    }
+
+    // Draw initial table header
+    let tableTop = doc.y + 10;
+    let currentY = drawTableHeader(tableTop);
+
+    // Draw table rows with pagination
     saleData.forEach((item, i) => {
-      const y = tableTop + headerHeight + i * rowHeight;
-
-      // Check if we need a new page
-      if (y + rowHeight > doc.page.height - 100) {
+      // Check if we need a new page (leaving space for footer)
+      if (currentY + rowHeight > doc.page.height - 100) {
         doc.addPage();
-        return; // Skip this row for now - you might want to implement pagination
+        tableTop = 50;
+        currentY = drawTableHeader(tableTop);
       }
 
       // Alternate row colors for better readability
@@ -118,12 +127,12 @@ export function downloadOnlineSaleList(req, res, saleData) {
 
       // Draw row background
       doc
-        .rect(margin, y, pageWidth, rowHeight)
+        .rect(margin, currentY, pageWidth, rowHeight)
         .fill(fillColor)
         .stroke("#bdc3c7");
 
       // Format price with currency symbol
-      const formattedPrice = `$${parseFloat(item.price || 0).toFixed(2)}`;
+      const formattedPrice = `₹${parseFloat(item.price || 0).toFixed(2)}`;
 
       // Format date
       const formattedDate = new Date(item.created_at).toLocaleDateString(
@@ -138,19 +147,19 @@ export function downloadOnlineSaleList(req, res, saleData) {
       // Add row data with proper styling
       doc.fontSize(10).font("Helvetica").fillColor("#2c3e50");
 
-      currentX = margin;
+      let currentX = margin;
 
       // Email (truncate if too long)
       const email = item.email || "N/A";
       const truncatedEmail =
         email.length > 35 ? email.substring(0, 32) + "..." : email;
-      doc.text(truncatedEmail, currentX + 5, y + 7, {
+      doc.text(truncatedEmail, currentX + 5, currentY + 7, {
         width: colWidths.email - 10,
         align: "left",
       });
 
       currentX += colWidths.email;
-      doc.text(item.order_id || "N/A", currentX + 5, y + 7, {
+      doc.text(item.order_id || "N/A", currentX + 5, currentY + 7, {
         width: colWidths.orderId - 10,
         align: "center",
       });
@@ -159,7 +168,7 @@ export function downloadOnlineSaleList(req, res, saleData) {
       doc
         .font("Helvetica-Bold")
         .fillColor("#27ae60")
-        .text(formattedPrice, currentX + 5, y + 7, {
+        .text(formattedPrice, currentX + 5, currentY + 7, {
           width: colWidths.price - 10,
           align: "center",
         });
@@ -168,10 +177,12 @@ export function downloadOnlineSaleList(req, res, saleData) {
       doc
         .font("Helvetica")
         .fillColor("#7f8c8d")
-        .text(formattedDate, currentX + 5, y + 7, {
+        .text(formattedDate, currentX + 5, currentY + 7, {
           width: colWidths.date - 10,
           align: "center",
         });
+
+      currentY += rowHeight;
     });
 
     // Calculate and add summary totals
@@ -179,32 +190,430 @@ export function downloadOnlineSaleList(req, res, saleData) {
       (sum, item) => sum + parseFloat(item.price || 0),
       0
     );
-    const summaryY = tableTop + headerHeight + saleData.length * rowHeight + 20;
+
+    // Check if we need space for summary
+    if (currentY + 60 > doc.page.height - 100) {
+      doc.addPage();
+      currentY = 50;
+    }
+
+    currentY += 20;
 
     // Add total summary
     doc
       .fontSize(14)
       .font("Helvetica-Bold")
       .fillColor("#2c3e50")
-      .text(`Total Revenue: $${totalAmount.toFixed(2)}`, margin, summaryY, {
+      .text(`Total Revenue: ₹${totalAmount.toFixed(2)}`, margin, currentY, {
         align: "right",
       });
 
-    // Add footer with better styling
-    doc
-      .fontSize(10)
-      .font("Helvetica")
-      .fillColor("#95a5a6")
-      .text("Generated by VSA Inventory System", 0, doc.page.height - 50, {
-        align: "center",
-        width: doc.page.width,
-      });
+    // Add footer on each page
+    const range = doc.bufferedPageRange();
+    for (let i = range.start; i < range.start + range.count; i++) {
+      doc.switchToPage(i);
 
-    // Finalize the PDF and end the stream
+      doc
+        .fontSize(10)
+        .font("Helvetica")
+        .fillColor("#95a5a6")
+        .text(
+          `Generated by VSA Inventory System | Page ${i + 1} of ${range.count}`,
+          0,
+          doc.page.height - 50,
+          {
+            align: "center",
+            width: doc.page.width,
+          }
+        );
+    }
     doc.end();
   } catch (error) {
     console.error("Error generating PDF:", error);
-    res.status(500).send("Error generating PDF");
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: "Error generating PDF",
+        error: error.message,
+      });
+    }
+  }
+}
+
+/**
+ * Generate and download offline users list as PDF
+ * @param {Array} userData - Array of user objects
+ * @param {Object} res - Express response object
+ */
+export function downloadOfflineUsersListPDF(userData, res) {
+  try {
+    const doc = new PDFDocument({
+      margin: 50,
+      size: "A4",
+    });
+
+    // Set response headers
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=offline-users-${Date.now()}.pdf`
+    );
+
+    // Pipe the PDF to response
+    doc.pipe(res);
+
+    // Title
+    doc
+      .fontSize(20)
+      .font("Helvetica-Bold")
+      .text("Offline Users Report", { align: "center" })
+      .moveDown();
+
+    // Metadata
+    doc
+      .fontSize(10)
+      .font("Helvetica")
+      .text(`Generated: ${new Date().toLocaleString()}`, { align: "right" })
+      .text(`Total Users: ${userData.length}`, { align: "right" })
+      .moveDown(2);
+
+    // Table headers
+    const tableTop = doc.y;
+    const colWidths = {
+      name: 140,
+      mobile: 100,
+      whatsapp: 100,
+      email: 150,
+    };
+    const startX = 50;
+
+    // Draw header background
+    doc.rect(startX, tableTop, 495, 25).fillAndStroke("#4B5563", "#374151");
+
+    // Header text
+    doc
+      .fontSize(11)
+      .font("Helvetica-Bold")
+      .fillColor("white")
+      .text("Full Name", startX + 5, tableTop + 7, { width: colWidths.name })
+      .text("Mobile", startX + colWidths.name + 5, tableTop + 7, {
+        width: colWidths.mobile,
+      })
+      .text(
+        "WhatsApp",
+        startX + colWidths.name + colWidths.mobile + 5,
+        tableTop + 7,
+        { width: colWidths.whatsapp }
+      )
+      .text(
+        "Email",
+        startX + colWidths.name + colWidths.mobile + colWidths.whatsapp + 5,
+        tableTop + 7,
+        { width: colWidths.email }
+      );
+
+    let currentY = tableTop + 30;
+
+    // Table rows
+    doc.fontSize(9).font("Helvetica").fillColor("black");
+
+    userData.forEach((user, index) => {
+      // Check if we need a new page
+      if (currentY > 720) {
+        doc.addPage();
+        currentY = 50;
+      }
+
+      // Alternate row background
+      if (index % 2 === 0) {
+        doc.rect(startX, currentY - 5, 495, 20).fill("#F3F4F6");
+        doc.fillColor("black");
+      }
+
+      // Row data
+      doc
+        .text(user.full_name || "N/A", startX + 5, currentY, {
+          width: colWidths.name - 10,
+          ellipsis: true,
+        })
+        .text(user.mobile || "N/A", startX + colWidths.name + 5, currentY, {
+          width: colWidths.mobile - 10,
+        })
+        .text(
+          user.whatsapp_number || "N/A",
+          startX + colWidths.name + colWidths.mobile + 5,
+          currentY,
+          { width: colWidths.whatsapp - 10 }
+        )
+        .text(
+          user.email || "N/A",
+          startX + colWidths.name + colWidths.mobile + colWidths.whatsapp + 5,
+          currentY,
+          { width: colWidths.email - 10, ellipsis: true }
+        );
+
+      currentY += 20;
+    });
+
+    // Footer
+    const pageCount = doc.bufferedPageRange().count;
+    for (let i = 0; i < pageCount; i++) {
+      doc.switchToPage(i);
+      doc
+        .fontSize(8)
+        .fillColor("gray")
+        .text(`Page ${i + 1} of ${pageCount}`, 50, doc.page.height - 50, {
+          align: "center",
+        });
+    }
+
+    // Finalize PDF
+    doc.end();
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: "Error generating PDF",
+        error: error.message,
+      });
+    }
+  }
+}
+/**
+ * Generate and download offline users list as CSV
+ * @param {Array} userData - Array of user objects
+ * @param {Object} res - Express response object
+ */
+export function downloadOfflineUsersListCSV(userData, res) {
+  try {
+    // Define CSV fields
+    const fields = [
+      { label: "Full Name", value: "full_name" },
+      { label: "Mobile", value: "mobile" },
+      { label: "WhatsApp Number", value: "whatsapp_number" },
+      { label: "Email", value: "email" },
+    ];
+
+    // Configure parser
+    const json2csvParser = new Parser({
+      fields,
+      header: true,
+      defaultValue: "N/A",
+    });
+
+    // Convert to CSV
+    const csv = json2csvParser.parse(userData);
+
+    // Set response headers
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=offline-users-${Date.now()}.csv`
+    );
+
+    // Send CSV
+    res.status(200).send(csv);
+  } catch (error) {
+    console.error("Error generating CSV:", error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: "Error generating CSV",
+        error: error.message,
+      });
+    }
+  }
+}
+
+// ... (previous offline user methods) ...
+
+/**
+ * Generate and download online users list as PDF
+ * @param {Array} userData - Array of user objects
+ * @param {Object} res - Express response object
+ */
+export function downloadOnlineUsersDataPDF(userData, res) {
+  try {
+    const doc = new PDFDocument({
+      margin: 50,
+      size: "A4",
+    });
+
+    // Set response headers
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=online-users-${Date.now()}.pdf`
+    );
+
+    // Pipe the PDF to response
+    doc.pipe(res);
+
+    // Title
+    doc
+      .fontSize(20)
+      .font("Helvetica-Bold")
+      .text("Online Users Report", { align: "center" })
+      .moveDown();
+
+    // Metadata
+    doc
+      .fontSize(10)
+      .font("Helvetica")
+      .text(`Generated: ${new Date().toLocaleString()}`, { align: "right" })
+      .text(`Total Users: ${userData.length}`, { align: "right" })
+      .moveDown(2);
+
+    // Table headers
+    const tableTop = doc.y;
+    const colWidths = {
+      userId: 80,
+      name: 160,
+      mobile: 110,
+      email: 145,
+    };
+    const startX = 50;
+
+    // Draw header background
+    doc.rect(startX, tableTop, 495, 25).fillAndStroke("#3B82F6", "#2563EB");
+
+    // Header text
+    doc
+      .fontSize(11)
+      .font("Helvetica-Bold")
+      .fillColor("white")
+      .text("User ID", startX + 5, tableTop + 7, { width: colWidths.userId })
+      .text("Full Name", startX + colWidths.userId + 5, tableTop + 7, {
+        width: colWidths.name,
+      })
+      .text(
+        "Mobile",
+        startX + colWidths.userId + colWidths.name + 5,
+        tableTop + 7,
+        { width: colWidths.mobile }
+      )
+      .text(
+        "Email",
+        startX + colWidths.userId + colWidths.name + colWidths.mobile + 5,
+        tableTop + 7,
+        { width: colWidths.email }
+      );
+
+    let currentY = tableTop + 30;
+
+    // Table rows
+    doc.fontSize(9).font("Helvetica").fillColor("black");
+
+    userData.forEach((user, index) => {
+      // Check if we need a new page
+      if (currentY > 720) {
+        doc.addPage();
+        currentY = 50;
+      }
+
+      // Alternate row background
+      if (index % 2 === 0) {
+        doc.rect(startX, currentY - 5, 495, 20).fill("#EFF6FF");
+        doc.fillColor("black");
+      }
+
+      // Row data
+      doc
+        .text(user.user_id || "N/A", startX + 5, currentY, {
+          width: colWidths.userId - 10,
+        })
+        .text(
+          user.full_name || "N/A",
+          startX + colWidths.userId + 5,
+          currentY,
+          { width: colWidths.name - 10, ellipsis: true }
+        )
+        .text(
+          user.mobile || "N/A",
+          startX + colWidths.userId + colWidths.name + 5,
+          currentY,
+          { width: colWidths.mobile - 10 }
+        )
+        .text(
+          user.email || "N/A",
+          startX + colWidths.userId + colWidths.name + colWidths.mobile + 5,
+          currentY,
+          { width: colWidths.email - 10, ellipsis: true }
+        );
+
+      currentY += 20;
+    });
+
+    // Footer
+    const pageCount = doc.bufferedPageRange().count;
+    for (let i = 0; i < pageCount; i++) {
+      doc.switchToPage(i);
+      doc
+        .fontSize(8)
+        .fillColor("gray")
+        .text(`Page ${i + 1} of ${pageCount}`, 50, doc.page.height - 50, {
+          align: "center",
+        });
+    }
+
+    // Finalize PDF
+    doc.end();
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: "Error generating PDF",
+        error: error.message,
+      });
+    }
+  }
+}
+
+/**
+ * Generate and download online users list as CSV
+ * @param {Array} userData - Array of user objects
+ * @param {Object} res - Express response object
+ */
+export function downloadOnlineUsersDataCSV(userData, res) {
+  try {
+    // Define CSV fields
+    const fields = [
+      { label: "User ID", value: "user_id" },
+      { label: "Full Name", value: "full_name" },
+      { label: "Mobile", value: "mobile" },
+      { label: "Email", value: "email" },
+    ];
+
+    // Configure parser
+    const json2csvParser = new Parser({
+      fields,
+      header: true,
+      defaultValue: "N/A",
+    });
+
+    // Convert to CSV
+    const csv = json2csvParser.parse(userData);
+
+    // Set response headers
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=online-users-${Date.now()}.csv`
+    );
+
+    // Send CSV
+    res.status(200).send(csv);
+  } catch (error) {
+    console.error("Error generating CSV:", error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: "Error generating CSV",
+        error: error.message,
+      });
+    }
   }
 }
 

@@ -3384,6 +3384,681 @@ app.get("/vsa/admin/get-single-item", middlewares.verifyToken, async (req, res) 
 });
 
 // Endpoint to edit item data
+app.put("/vsa/admin/edit-item", middlewares.verifyToken, 
+  itemUpload.any(), async (req, res) => {
+  let connection;
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    //parse item body
+    const itemData = typeof req.body.itemData === 'string'
+    ? JSON.parse(req.body.itemData)
+    : req.body.itemData ;
+    if (itemData.itemType === 'skatesAndBoots') {
+      // override the type to correct name
+      itemData.itemType = 'skates_and_boots';
+    }
+    const itemTypeList = ["skates_and_boots", "wheels", "helmets", "accessories"];
+
+    if (!itemTypeList.includes(itemData.itemType)) {
+      return res.status(400).json({
+        success: false,
+        message: "Wrong item type"
+      });
+    }
+
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    // Create a map of uploaded files by fieldname
+    const fileMap = {};
+    if (req.files) {
+      req.files.forEach(file => {
+         fileMap[file.fieldname] = "/images/shop-item-images/" + file.filename;
+      });
+    }
+    // Handle main image upload whne changed
+    const mainImagePath = fileMap['mainImage'] || itemData.mainImagePath || null;
+
+    await connection.query(
+      `UPDATE ${itemData.itemType}
+      SET
+        name = ?,
+        short_description = ?,
+        detailed_description = ?,
+        why_to_choose = ?,
+        main_image_path = ?,
+        features = ?,
+        is_shown = ?,
+        deleted_at = IF(?, NULL, NOW())
+      WHERE item_id = ?`,
+      [
+        itemData.name,
+        itemData.shortDescription,
+        itemData.detailedDescription,
+        JSON.stringify(itemData.whyToChoose),
+        mainImagePath,
+        JSON.stringify(itemData.features),
+        itemData.isShown ? 1 : 0,
+        itemData.isShown ? 1 : 0,
+        itemData.itemId
+      ]
+    );
+
+    // Handle variations update
+    // First, get existing variations to determine what to update/delete/insert
+    const [existingVariations] = await connection.query(
+      `SELECT item_variation_id FROM ${itemData.itemType}_variation WHERE item_id = ?`,
+      [itemData.itemId]
+    );    
+    
+    const existingVariationIds = existingVariations.map(variation => variation.item_variation_id);
+
+    const newVariationIds = [];
+
+    const variationPromises = itemData.variationData.map(async (variant, index) => {
+      const colorCode = variant.colorCode.substring(0, 4).toUpperCase();
+      const itemVariationId = `${itemData.itemId}-${colorCode}-${variant.size}`;
+      newVariationIds.push(itemVariationId);
+
+      const baseImagePath =
+      fileMap[`baseImage_${index}`] || variant.baseImage || null;
+
+      // Check if variation exists
+      const [variantExists] = await connection.query(
+        `SELECT item_variation_id FROM ${itemData.itemType}_variation WHERE item_variation_id = ?`,
+        [itemVariationId]
+      );
+
+      if (variantExists.length > 0) {
+        // Update existing variation 
+        await connection.query(
+          `UPDATE ${itemData.itemType}_variation 
+          SET color = ?, size = ?, quantity = ?, current_price = ?, 
+          old_price = ?, discount = ?, base_image_path = ?, 
+          show_on_main_page = ?, show_as_variation = ?
+           WHERE item_variation_id = ?`,
+          [
+            variant.color,
+            variant.size,
+            variant.quantity,
+            variant.currentPrice,
+            variant.oldPrice || null,
+            variant.discount || 0,
+            baseImagePath,
+            variant.showOnMainPage ? 1 : 0,
+            variant.showAsVariation ? 1 : 0,
+            itemVariationId
+          ]
+        );        
+      } else {
+        // Insert new variation
+        await connection.query(
+          `INSERT INTO ${itemData.itemType}_variation 
+          (item_variation_id, item_id, color, size, quantity, current_price, 
+          old_price, discount, base_image_path, show_on_main_page, show_as_variation) 
+          VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            itemVariationId,
+            itemData.itemId,
+            variant.color,
+            variant.size,
+            variant.quantity,
+            variant.currentPrice,
+            variant.oldPrice || null,
+            variant.discount || 0,
+            baseImagePath,
+            variant.showOnMainPage ? 1 : 0,
+            variant.showAsVariation ? 1 : 0
+           ]
+        );
+      }
+     // Delete existing variation images for this variation
+      await connection.query(
+        `DELETE FROM ${itemData.itemType}_variation_image WHERE item_variation_id = ?`,
+        [itemVariationId]
+      );
+
+      // Save variation images - handle both uploaded files and URLs
+      const variationImagePaths = [];
+
+      for (let i = 0 ; i < 10 ; i++) {
+        const fieldName = `variationImage_${index}_${i}`;
+        if (fileMap[fieldName]) {
+          variationImagePaths.push(fileMap[fieldName]);
+        }        
+      }
+
+      // Add any URL-based images from the form data
+      if (variant.variationImages && variant.variationImages.length > 0) {
+        variant.variationImages.forEach(img => {
+          if (img && img.trim()) {
+            variationImagePaths.push(img);
+          }
+        });
+      }
+      
+      if (variationImagePaths.length > 0) {
+        const imagePromises = variationImagePaths.map(async (imagePath) => {
+          await connection.query(
+            `INSERT INTO ${itemData.itemType}_variation_image
+            (item_variation_id, image_path) VALUES(?, ?)`,
+            [itemVariationId, imagePath]
+          );
+        });
+        await Promise.all(imagePromises);
+      }      
+    });
+
+    await Promise.all(variationPromises);
+
+    // Delete variations that are no longer in the updated data
+    const variationsToDelete = existingVariationIds.filter(
+      id => !newVariationIds.includes(id)
+    );
+
+    if (variationsToDelete.length > 0) {
+      // Delete variation images first (foreign key constraint)
+      await connection.query(
+        `DELETE FROM ${itemData.itemType}_variation_image 
+        WHERE item_variation_id IN (?)`,
+        [variationsToDelete]
+      );
+
+      // Delete variations
+      await connection.query(
+        `DELETE FROM ${itemData.itemType}_variation 
+        WHERE item_variation_id IN (?)`,
+        [variationsToDelete]
+      );
+    }
+
+    await connection.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: "Item updated successfully",
+      data: {
+        itemId: itemData.itemId,
+        name: itemData.name
+      }
+    });
+    } catch (error) {
+      if (connection) {
+        await connection.rollback();
+      }
+      console.error("Error updating item:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to update item",
+        error: error.message
+      });
+    } finally {
+      if (connection) {
+        connection.release();
+      }
+    }
+});
+
+// Endpoint to edit bearing 
+app.put("/vsa/admin/edit-bearing", 
+  middlewares.verifyToken, 
+  itemUpload.any(), 
+  async (req, res) => {
+    let connection;
+    try {
+      if (!req.user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Admins only.",
+        });
+      }
+
+      // Parse item body
+      const itemData = typeof req.body.itemData === 'string'
+        ? JSON.parse(req.body.itemData)
+        : req.body.itemData;
+
+      // Validate that item_id is provided for update
+      if (!itemData.itemId) {
+        return res.status(400).json({
+          success: false,
+          message: "Item ID is required for updating"
+        });
+      }
+
+      connection = await db.getConnection();
+      await connection.beginTransaction();
+
+      // Check if bearing exists
+      const [itemExists] = await connection.query(
+        `SELECT item_id, name FROM bearings WHERE item_id = ?`, 
+        [itemData.itemId]
+      );
+
+      if (itemExists.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({
+          success: false,
+          message: "Bearing not found"
+        });
+      }
+
+      // Check if new name conflicts with another bearing (excluding current item)
+      const [nameConflict] = await connection.query(
+        `SELECT item_id FROM bearings WHERE name = ? AND item_id != ?`, 
+        [itemData.name, itemData.itemId]
+      );
+
+      if (nameConflict.length > 0) {
+        await connection.rollback();
+        return res.status(409).json({
+          success: false,
+          message: "Bearing with this name already exists, please use another unique name"
+        });
+      }
+
+      // Create a map of uploaded files by fieldname
+      const fileMap = {};
+      if (req.files) {
+        req.files.forEach(file => {
+          fileMap[file.fieldname] = "/images/shop-item-images/" + file.filename;
+        });
+      }
+
+      // Handle main image upload when changed
+      const mainImagePath = fileMap['mainImage'] || itemData.mainImagePath || null;
+      
+      // Update main bearings table data
+      await connection.query(
+        `UPDATE bearings
+        SET name = ?, short_description = ?, detailed_description = ?, 
+        why_to_choose = ?, main_image_path = ?, features = ?, is_shown = ?,     
+        deleted_at = IF(?, NULL, NOW())
+        WHERE item_id = ?`,
+        [
+          itemData.name,
+          itemData.shortDescription || null,
+          itemData.detailedDescription || null,
+          itemData.whyToChoose || null,
+          mainImagePath,
+          JSON.stringify(itemData.features || []),
+          itemData.isShown ? 1 : 0,
+          itemData.isShown ? 1 : 0,
+          itemData.itemId
+        ]
+      );
+
+      // Handle variations update
+      // First, get existing variations to determine what to update/delete/insert
+      const [existingVariations] = await connection.query(
+        `SELECT item_variation_id FROM bearings_variation WHERE item_id = ?`,
+        [itemData.itemId]
+      );
+
+      const existingVariationIds = existingVariations.map(v => v.item_variation_id);
+      const newVariationIds = [];
+
+      // Process variations
+      const variationPromises = itemData.variationData.map(async (variant, index) => {
+        // Create unique variation ID based on bearing-specific attributes
+        const abecCode = variant.abecRating ? variant.abecRating.replace(/[^0-9]/g, '') : 'NA';
+        const materialCode = variant.material ? variant.material.substring(0, 3).toUpperCase() : 'STD';
+        const sizeCode = variant.size ? String(variant.size).substring(0, 3).toUpperCase() : '';
+        const packCode = variant.packSize || '8';
+        const typeCode = variant.bearingType ? variant.bearingType.substring(0, 3).toUpperCase() : 'STD';
+        
+        const itemVariationId = `${itemData.itemId}-${abecCode}-${materialCode}-${packCode}-${typeCode}`;
+        newVariationIds.push(itemVariationId);
+
+        // Handle base image - check if uploaded, otherwise use provided URL
+        const baseImagePath = fileMap[`baseImage_${index}`] || variant.baseImage || null;
+
+        // Validate material enum
+        const validMaterials = ['Steel', 'Ceramic', 'Titanium'];
+        const material = validMaterials.includes(variant.material) ? variant.material : 'Steel';
+
+        // Check if variation exists
+        const [variantExists] = await connection.query(
+          `SELECT item_variation_id FROM bearings_variation WHERE item_variation_id = ?`,
+          [itemVariationId]
+        );
+
+        if (variantExists.length > 0) {
+          // Update existing variation
+          await connection.query(
+            `UPDATE bearings_variation 
+            SET abec_rating = ?, material = ?, size = ?, pack_size = ?, bearing_type = ?,
+            quantity = ?, old_price = ?, current_price = ?, discount = ?, 
+            base_image_path = ?, show_on_main_page = ?, show_as_variation = ?
+            WHERE item_variation_id = ?`,
+            [
+              variant.abecRating || null,
+              material,
+              variant.size,
+              variant.packSize || null,
+              variant.bearingType || null,
+              variant.quantity || 0,
+              variant.oldPrice || null,
+              variant.currentPrice,
+              variant.discount || 0,
+              baseImagePath,
+              variant.showOnMainPage ? 1 : 0,
+              variant.showAsVariation ? 1 : 0,
+              itemVariationId
+            ]
+          );
+        } else {
+          // Insert new variation
+          await connection.query(
+            `INSERT INTO bearings_variation 
+            (item_variation_id, item_id, abec_rating, material, size, pack_size, bearing_type,
+            quantity, old_price, current_price, discount, base_image_path, 
+            show_on_main_page, show_as_variation) 
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              itemVariationId,
+              itemData.itemId,
+              variant.abecRating || null,
+              material,
+              variant.size,
+              variant.packSize || null,
+              variant.bearingType || null,
+              variant.quantity || 0,
+              variant.oldPrice || null,
+              variant.currentPrice,
+              variant.discount || 0,
+              baseImagePath,
+              variant.showOnMainPage ? 1 : 0,
+              variant.showAsVariation ? 1 : 0
+            ]
+          );
+        }
+
+        // Delete existing variation images for this variation
+        await connection.query(
+          `DELETE FROM bearings_variation_image WHERE item_variation_id = ?`,
+          [itemVariationId]
+        );
+
+        // Save variation images - handle both uploaded files and URLs
+        const variationImagePaths = [];
+        
+        // Check for uploaded files for this variation
+        for (let i = 0; i < 10; i++) { // Support up to 10 images per variation
+          const fieldName = `variationImage_${index}_${i}`;
+          if (fileMap[fieldName]) {
+            variationImagePaths.push(fileMap[fieldName]);
+          }
+        }
+
+        // Add any URL-based images from the form data
+        if (variant.variationImages && variant.variationImages.length > 0) {
+          variant.variationImages.forEach(img => {
+            if (img && img.trim()) {
+              variationImagePaths.push(img);
+            }
+          });
+        }
+
+        // Insert all variation images
+        if (variationImagePaths.length > 0) {
+          const imagePromises = variationImagePaths.map(async (imagePath) => {
+            await connection.query(
+              `INSERT INTO bearings_variation_image
+              (item_variation_id, image_path) VALUES(?, ?)`,
+              [itemVariationId, imagePath]
+            );
+          });
+          await Promise.all(imagePromises);
+        }
+      });
+
+      await Promise.all(variationPromises);
+
+      // Delete variations that are no longer in the updated data
+      const variationsToDelete = existingVariationIds.filter(
+        id => !newVariationIds.includes(id)
+      );
+
+      if (variationsToDelete.length > 0) {
+        // Delete variation images first (foreign key constraint)
+        await connection.query(
+          `DELETE FROM bearings_variation_image 
+          WHERE item_variation_id IN (?)`,
+          [variationsToDelete]
+        );
+
+        // Delete variations
+        await connection.query(
+          `DELETE FROM bearings_variation 
+          WHERE item_variation_id IN (?)`,
+          [variationsToDelete]
+        );
+      }
+
+      await connection.commit();
+
+      return res.status(200).json({
+        success: true,
+        message: "Bearing updated successfully",
+        data: {
+          itemId: itemData.itemId,
+          name: itemData.name
+        }
+      });
+
+    } catch (error) {
+      if (connection) {
+        await connection.rollback();
+      }
+      console.error("Error updating bearing:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to update bearing",
+        error: error.message
+      });
+    } finally {
+      if (connection) {
+        connection.release();
+      }
+    }
+  }
+);
+
+// Endpoint to soft delete an item
+// Soft delete endpoint for general items (skates_and_boots, wheels, helmets, accessories)
+app.delete("/vsa/admin/delete-item", 
+  middlewares.verifyToken, 
+  async (req, res) => {
+    let connection;
+    try {
+      if (!req.user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Admins only.",
+        });
+      }
+
+      let { itemId, itemType } = req.body;
+
+      // Validate inputs
+      if (!itemId || !itemType) {
+        return res.status(400).json({
+          success: false,
+          message: "Item ID and item type are required"
+        });
+      }
+
+      if (itemType === 'skatesAndBoots') {
+        // override the type to correct name
+        itemType = 'skates_and_boots';
+      }
+
+      const itemTypeList = ["skates_and_boots", "wheels", "helmets", "accessories"];
+
+      if (!itemTypeList.includes(itemType)) {
+        return res.status(400).json({
+          success: false,
+          message: "Wrong item type"
+        });
+      }
+
+      connection = await db.getConnection();
+      await connection.beginTransaction();
+
+      // Check if item exists
+      const [itemExists] = await connection.query(
+        `SELECT item_id, name, deleted_at FROM ${itemType} WHERE item_id = ?`, 
+        [itemId]
+      );
+
+      if (itemExists.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({
+          success: false,
+          message: "Item not found"
+        });
+      }
+
+      // Check if already soft deleted
+      if (itemExists[0].deleted_at !== null) {
+        await connection.rollback();
+        return res.status(400).json({
+          success: false,
+          message: "Item is already deleted"
+        });
+      }
+
+      // Soft delete - update is_shown to 0 and set deleted_at timestamp
+      await connection.query(
+        `UPDATE ${itemType}
+        SET is_shown = 0, deleted_at = NOW()
+        WHERE item_id = ?`,
+        [itemId]
+      );
+
+      await connection.commit();
+
+      return res.status(200).json({
+        success: true,
+        message: "Item deleted successfully",
+        data: {
+          itemId: itemId,
+          name: itemExists[0].name
+        }
+      });
+
+    } catch (error) {
+      if (connection) {
+        await connection.rollback();
+      }
+      console.error("Error deleting item:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to delete item",
+        error: error.message
+      });
+    } finally {
+      if (connection) {
+        connection.release();
+      }
+    }
+  }
+);
+
+// End point to soft delete bearing
+// Soft delete endpoint for bearings
+app.delete("/vsa/admin/delete-bearing", 
+  middlewares.verifyToken, 
+  async (req, res) => {
+    let connection;
+    try {
+      if (!req.user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Admins only.",
+        });
+      }
+
+      const { itemId } = req.body;
+
+      // Validate input
+      if (!itemId) {
+        return res.status(400).json({
+          success: false,
+          message: "Item ID is required"
+        });
+      }
+
+      connection = await db.getConnection();
+      await connection.beginTransaction();
+
+      // Check if bearing exists
+      const [itemExists] = await connection.query(
+        `SELECT item_id, name, deleted_at FROM bearings WHERE item_id = ?`, 
+        [itemId]
+      );
+
+      if (itemExists.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({
+          success: false,
+          message: "Bearing not found"
+        });
+      }
+
+      // Check if already soft deleted
+      if (itemExists[0].deleted_at !== null) {
+        await connection.rollback();
+        return res.status(400).json({
+          success: false,
+          message: "Bearing is already deleted"
+        });
+      }
+
+      // Soft delete - update is_shown to 0 and set deleted_at timestamp
+      await connection.query(
+        `UPDATE bearings
+        SET is_shown = 0, deleted_at = NOW()
+        WHERE item_id = ?`,
+        [itemId]
+      );
+
+      await connection.commit();
+
+      return res.status(200).json({
+        success: true,
+        message: "Bearing deleted successfully",
+        data: {
+          itemId: itemId,
+          name: itemExists[0].name
+        }
+      });
+
+    } catch (error) {
+      if (connection) {
+        await connection.rollback();
+      }
+      console.error("Error deleting bearing:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to delete bearing",
+        error: error.message
+      });
+    } finally {
+      if (connection) {
+        connection.release();
+      }
+    }
+  }
+);
+
 
 // Admin functionality endpoints ends here
 

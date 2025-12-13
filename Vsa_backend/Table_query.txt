@@ -1052,3 +1052,33 @@ CREATE TABLE accessories_customer_ratings (
   INDEX idx_item_ratings (item_id, created_at DESC),
   CHECK (rating BETWEEN 1 AND 10)
 );
+
+
+CREATE TABLE item_sold_offline (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  invoice_number VARCHAR(30) UNIQUE,
+  full_name VARCHAR(255) NOT NULL,
+  mobile VARCHAR(15),
+  whatsapp_number VARCHAR(15),
+  email VARCHAR(255),
+  amount_paid DECIMAL(10,2),
+  total_amount DECIMAL(10,2),
+  discount_applied DECIMAL(10,2),
+  pending_amount DECIMAL(10,2),
+  payment_type ENUM ('Cash', 'UPI', 'Credit Card', 'Debit Card', 'Others', "Mixed"),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE item_sold_offline_items (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  item_sold_offline_id INT NOT NULL,
+  item_id VARCHAR(20) NOT NULL,
+  item_type ENUM("skates_and_boots", "wheels", "bearings", "helmets", "accessories"),
+  item_variation_id VARCHAR(100) NOT NULL, 
+  quantity INT NOT NULL DEFAULT 1,
+  price_at_sale DECIMAL(10,2) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (item_sold_offline_id) REFERENCES item_sold_offline(id) ON DELETE CASCADE
+);

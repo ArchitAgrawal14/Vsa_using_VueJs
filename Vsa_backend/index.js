@@ -15,7 +15,7 @@ import { dirname } from "path";
 import path from "path";
 import { fileURLToPath } from "url";
 import multer from "multer";
-
+import PDFDocument from  "pdfkit";
 dotenv.config();
 
 const app = express();
@@ -1439,8 +1439,270 @@ app.post(
   }
 );
 
-//This create invoice functionlaity is yet to be tested and completed
-app.get("/vsa/create-invoice", middlewares.verifyToken, async (req, res) => {
+// Endpoint to fetch all the data for invoice page -
+app.get("/vsa/invoice", middlewares.verifyToken, async (req, res) => {
+  try {
+
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+    
+    const [results] = await db.query(`
+      SELECT 
+        'skates_and_boots' as category,
+        sab.item_id,
+        sab.name,
+        sabv.item_variation_id,
+        sabv.color,
+        sabv.size,
+        NULL AS pack_size,
+        NULL AS material,
+        sabv.quantity,
+        sabv.base_image_path,
+        sabv.current_price
+      FROM skates_and_boots sab
+      INNER JOIN skates_and_boots_variation sabv ON sab.item_id = sabv.item_id
+      WHERE sab.is_shown = 1 
+        AND sab.deleted_at IS NULL 
+        AND sabv.quantity > 0
+      
+      UNION ALL
+      
+      SELECT 
+        'wheels' as category,
+        w.item_id,
+        w.name,
+        wv.item_variation_id,
+        wv.color,
+        wv.size,
+        NULL AS pack_size,
+        NULL AS material,
+        wv.quantity,
+        wv.base_image_path,
+        wv.current_price
+      FROM wheels w
+      INNER JOIN wheels_variation wv ON w.item_id = wv.item_id
+      WHERE w.is_shown = 1 
+        AND w.deleted_at IS NULL 
+        AND wv.quantity > 0
+      
+      UNION ALL
+      
+      SELECT 
+        'helmets' as category,
+        h.item_id,
+        h.name,
+        hv.item_variation_id,
+        hv.color,
+        hv.size,
+        NULL AS pack_size,
+        NULL AS material,
+        hv.quantity,
+        hv.base_image_path,
+        hv.current_price
+      FROM helmets h
+      INNER JOIN helmets_variation hv ON h.item_id = hv.item_id
+      WHERE h.is_shown = 1 
+        AND h.deleted_at IS NULL 
+        AND hv.quantity > 0
+      
+      UNION ALL
+      
+      SELECT 
+        'bearings' as category,
+        b.item_id,
+        b.name,
+        bv.item_variation_id,
+        NULL AS color,
+        bv.size,
+        bv.pack_size,
+        bv.material,
+        bv.quantity,
+        bv.base_image_path,
+        bv.current_price
+      FROM bearings b
+      INNER JOIN bearings_variation bv ON b.item_id = bv.item_id
+      WHERE b.is_shown = 1 
+        AND b.deleted_at IS NULL 
+        AND bv.quantity > 0
+      
+      UNION ALL
+      
+      SELECT 
+        'accessories' as category,
+        a.item_id,
+        a.name,
+        av.item_variation_id,
+        av.color,
+        av.size,
+        NULL AS pack_size,
+        NULL AS material,
+        av.quantity,
+        av.base_image_path,
+        av.current_price
+      FROM accessories a
+      INNER JOIN accessories_variation av ON a.item_id = av.item_id
+      WHERE a.is_shown = 1 
+        AND a.deleted_at IS NULL 
+        AND av.quantity > 0
+    `);
+
+    // Group results by category
+    const skatesAndBootsData = results.filter(r => r.category === 'skates_and_boots');
+    const wheelsData = results.filter(r => r.category === 'wheels');
+    const helmetsData = results.filter(r => r.category === 'helmets');
+    const bearingsData = results.filter(r => r.category === 'bearings');
+    const accessoriesData = results.filter(r => r.category === 'accessories');
+
+    return res.status(200).json({
+      success: true,
+      message: "Successfully fetched items data",
+      skatesAndBootsData,
+      wheelsData,
+      helmetsData,
+      bearingsData,
+      accessoriesData
+    });
+
+  } catch (error) {
+    console.error("Error loading shop items:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error while loading shop items",
+      error: error.message
+    });
+  }
+});
+
+// Endpoint to sell items via invoice, this will be utilised when the admin clicks on confirm sale button if admin clicks on generate invoice button this will not be used as no insert and update is required as customer only wants an estimation of total price.
+app.post("/vsa/admin/sell-item-offline", middlewares.verifyToken, async (req, res) => {
+  let connection;
+  try {
+    if(!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const {soldItemData} = req.body;
+    if (!Array.isArray(soldItemData.items) || soldItemData.items.length === 0) {
+      return res.status(400).json({ 
+        success: false,
+        message: "At least one item is required"
+      });
+    }
+
+    // validate the data
+    const validationResult = validateOfflineSellingData(soldItemData);
+    if(!validationResult.success) {
+      return res.status(400).json({
+        success : validationResult.success,
+        message : validationResult.message
+      })
+    }
+
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    // validate total amount
+    const validateTotalAmountResult = await validateTotalAmount(soldItemData, connection);
+
+    if (!validateTotalAmountResult.success) {  
+      await connection.rollback(); 
+      connection.release();
+      return res.status(400).json({
+        success : validateTotalAmountResult.success,
+        message : validateTotalAmountResult.message
+      });
+    }
+
+    const trueTotalPrice = validateTotalAmountResult.trueTotalPrice;
+
+    if (trueTotalPrice !== soldItemData.payment.totalAmount) {
+      await connection.rollback(); 
+      connection.release();
+      return res.status(400).json({
+        success : false,
+        message : "Total amount should be same as total of all the amount of items chosen"
+      })
+    }
+
+    const payableAmount = soldItemData.payment.totalAmount - soldItemData.payment.discountApplied;
+
+    // calculate pending amount (for DB use)
+    const pendingAmount = payableAmount - soldItemData.payment.amountPaid;
+
+    const invoiceNumber = await getInvoiceNumber(connection);
+ 
+    // Insert the data in main table
+    const [result] = await connection.query(`INSERT INTO item_sold_offline 
+      (invoice_number, full_name, mobile, whatsapp_number, email, amount_paid, total_amount, discount_applied, pending_amount, payment_type) 
+      VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [invoiceNumber, soldItemData.customer.fullName, soldItemData.customer.mobile, soldItemData.customer.whatsappNumber, soldItemData.customer.email, soldItemData.payment.amountPaid, soldItemData.payment.totalAmount, soldItemData.payment.discountApplied, pendingAmount, soldItemData.payment.paymentType]);
+
+    // get the latest id
+    const soldOfflineId = result.insertId;
+
+    const offlineItemsValues = soldItemData.items.map(item => [
+      soldOfflineId,
+      item.itemId,
+      item.itemType,
+      item.itemVariationId,
+      item.quantity,
+      item.priceAtSale
+    ]);
+
+    // Insert items 
+    await connection.query(
+      `INSERT INTO item_sold_offline_items
+      (item_sold_offline_id, item_id, item_type, item_variation_id, quantity, price_at_sale)
+      VALUES ?`,
+      [offlineItemsValues]
+    );
+
+    // Update the stock tables
+    for (const item of soldItemData.items) {
+      const [updateResult] = await connection.query(
+        `UPDATE ${item.itemType}_variation
+        SET quantity = quantity - ?
+        WHERE item_variation_id = ?
+        AND quantity >= ?`,  // Removed unnecessary semicolon
+      [item.quantity, item.itemVariationId, item.quantity]);
+
+      if (updateResult.affectedRows === 0) {
+       throw new Error(`Insufficient stock for item variation ${item.itemVariationId}`);
+      }
+    }
+    
+    await connection.commit();
+    return res.status(201).json({
+      success: true,
+      message: "Item sold successfully",
+      invoiceNumber
+    });
+
+  } catch (error) {
+    if (connection) await connection.rollback();
+    console.error("Error selling item offline:", error);
+    return res.status(500).json({ 
+      success: false,
+      message: "Failed to process sale",
+      error: error.message
+    });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
+});
+
+// Express endpoint for PDF generation
+app.post("/vsa/admin/generate-invoice-pdf", middlewares.verifyToken, async (req, res) => {
   try {
     if (!req.user.isAdmin) {
       return res.status(403).json({
@@ -1449,36 +1711,406 @@ app.get("/vsa/create-invoice", middlewares.verifyToken, async (req, res) => {
       });
     }
 
-    const itemsData = [
-      "skates-and-boots",
-      "wheels",
-      "helmets",
-      "bearings",
-      "accessories",
-    ];
-    const allItemsData = {};
-    // Getting all the available stock
-    for (var i = 0; i < itemsData.length; i++) {
-      const [results] = await db.query(
-        `SELECT * FROM stock_${itemsData[i]} WHERE quantity >= 1`
-      );
-      allItemsData[itemsData[i]] = results;
+    const { invoiceData } = req.body;
+
+    if (!invoiceData) {
+      return res.status(400).json({
+        success: false,
+        message: "Invoice data is required"
+      });
     }
 
-    res.json({
-      success: true,
-      message: "Products fetched successfully",
-      data: allItemsData,
-      user: req.user,
-    });
+    // Validate required fields
+    if (!invoiceData.customer || !invoiceData.items || !invoiceData.payment) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required invoice data"
+      });
+    }
+
+    if (!Array.isArray(invoiceData.items) || invoiceData.items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one item is required"
+      });
+    }
+
+    // Generate PDF
+    const pdfBuffer = await generateInvoicePDF(invoiceData);
+
+    // Set response headers for PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${invoiceData.isFinal ? 'Invoice' : 'Estimate'}-${invoiceData.invoiceNumber}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+
+    res.send(pdfBuffer);
+
   } catch (error) {
-    console.error("Error fetching products:", error);
-    res.status(500).json({
+    console.error("Error generating PDF:", error);
+    return res.status(500).json({
       success: false,
-      message: "Error fetching product data",
+      message: "Failed to generate PDF",
+      error: error.message
     });
   }
 });
+
+function validateOfflineSellingData(soldItemData) {
+
+  if (soldItemData === null) {
+    return {
+      success : false,
+      message : "No data present cannot sell item"
+    }
+  }
+
+  // validate customer data
+  if (soldItemData.customer) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const mobileRegex = /^(\+?\d{1,4}[-\s]?)?\d{6,14}$/;
+    if (!emailRegex.test(soldItemData.customer.email)) {
+      return {
+        success: false,
+        message: "Invalid email format",
+      }
+    }
+
+    if (!mobileRegex.test(soldItemData.customer.mobile)) {
+      return {
+        success: false,
+        message:
+          'Invalid mobile number. Use format like "+1234567890" or "1234567890" with 6–14 digits.',
+      }
+    }
+
+    if(soldItemData.customer.whatsappNumber) {
+      if (!mobileRegex.test(soldItemData.customer.whatsappNumber)) {
+        return {
+          success: false,
+          message:
+            'Invalid whatsapp number. Use format like "+1234567890" or "1234567890" with 6–14 digits.',
+        }
+      }
+    }
+
+  }
+
+  // validate payment data
+  if (!soldItemData.payment) {
+    return {
+      success: false,
+      message: "Payment details are required"
+    };
+  }
+
+  const { totalAmount, discountApplied, amountPaid } = soldItemData.payment;
+
+  // Type validation
+  if (
+    typeof totalAmount !== "number" ||
+    typeof discountApplied !== "number" ||
+    typeof amountPaid !== "number"
+  ) {
+    return {
+      success: false,
+      message: "Payment values must be numbers"
+    }
+  }
+
+  // Value validation
+  if (totalAmount <= 0) {
+    return {
+      success: false,
+      message: "Total amount must be greater than 0"
+    }
+  }
+
+  if (discountApplied < 0) {
+    return {
+      success: false,
+      message: "Discount cannot be negative"
+    }
+  }
+
+  if (discountApplied > totalAmount) {
+    return {
+      success: false,
+      message: "Discount cannot be greater than total amount"
+    }
+  }
+
+  if (amountPaid < 0) {
+    return {
+      success: false,
+      message: "Amount paid cannot be negative"
+    }
+  }
+ 
+  const payableAmount = totalAmount - discountApplied;
+  if (amountPaid > payableAmount) {
+    return {
+      success: false,
+      message: "Amount paid cannot be greater than payable amount"
+    }
+  }
+
+  // Validate item type
+  const validItemType = [
+    "skates_and_boots",
+    "wheels",
+    "helmets",
+    "bearings",
+    "accessories"
+  ];
+
+  for (const item of soldItemData.items) {
+
+    if (!item.itemType) {
+      return {
+        success: false,
+        message: "Item type is required"
+      }
+    }
+
+    if (!validItemType.includes(item.itemType)) {
+      return {
+        success: false,
+        message: `Invalid item type: ${item.itemType}`
+      };
+    }
+  }
+
+  return {
+    success: true
+  };
+
+}
+
+async function validateTotalAmount(soldItemData, connection) {
+  // Get the price of each item_variation 
+  let trueTotalPrice = 0;
+
+   for (const item of soldItemData.items) {
+    const [rows] = await connection.query(
+      `SELECT current_price 
+       FROM ${item.itemType}_variation
+       WHERE item_variation_id = ? AND quantity > 0 FOR UPDATE`,
+      [item.itemVariationId]
+    );
+
+    if (rows.length === 0) {
+      return {
+        success: false,
+        message: `Invalid or out-of-stock item: ${item.itemVariationId}`
+      };
+    }
+
+    trueTotalPrice += rows[0].current_price * item.quantity;
+  }
+
+  return {
+    success: true,
+    trueTotalPrice
+  };
+}
+
+async function getInvoiceNumber(connection) {
+  const year = new Date().getFullYear();
+
+  const [rows] = await connection.query(
+    `SELECT invoice_number 
+     FROM item_sold_offline 
+     WHERE invoice_number LIKE ?
+     ORDER BY id DESC
+     LIMIT 1`,
+    [`OFF-VSA-${year}-%`]
+  );
+
+  let nextNumber = 1;
+
+  if (rows.length > 0) {
+    const lastInvoice = rows[0].invoice_number;
+    const lastSeq = parseInt(lastInvoice.split('-').pop(), 10);
+    nextNumber = lastSeq + 1;
+  }
+
+  const padded = String(nextNumber).padStart(6, '0');
+
+  return `OFF-VSA-${year}-${padded}`;
+}
+
+function generateInvoicePDF(invoiceData) {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ margin: 50, size: 'A4' });
+      const buffers = [];
+
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => {
+        const pdfData = Buffer.concat(buffers);
+        resolve(pdfData);
+      });
+      doc.on('error', reject);
+
+      const { invoiceNumber, isFinal, customer, items, payment, payableAmount, pendingAmount } = invoiceData;
+
+      // Header Section
+      doc.fontSize(24).font('Helvetica-Bold').text('VSA SKATE SHOP', { align: 'center' });
+      doc.fontSize(10).font('Helvetica').text('Vaibhav Skating Academy', { align: 'center' });
+      doc.moveDown(0.5);
+      
+      // Document Type
+      const docType = isFinal ? 'INVOICE' : 'ESTIMATE';
+      doc.fontSize(18).font('Helvetica-Bold')
+        .fillColor('#000000')
+        .text(docType, { align: 'center' });
+      
+      doc.moveDown(1);
+
+      // Invoice Details Box
+      const topY = doc.y;
+      doc.fontSize(10).font('Helvetica');
+      
+      // Left side - Invoice info
+      doc.text(`${isFinal ? 'Invoice' : 'Estimate'} Number: ${invoiceNumber}`, 50, topY);
+      doc.text(`Date: ${new Date().toLocaleDateString('en-IN')}`, 50, topY + 15);
+      doc.text(`Time: ${new Date().toLocaleTimeString('en-IN')}`, 50, topY + 30);
+
+      // Right side - Customer info
+      doc.text('Bill To:', 320, topY, { continued: false });
+      doc.text(customer.fullName || 'N/A', 320, topY + 15);
+      doc.text(customer.mobile || 'N/A', 320, topY + 30);
+      if (customer.email) {
+        doc.text(customer.email, 320, topY + 45);
+      }
+
+      doc.moveDown(3);
+      
+      // Horizontal line
+      doc.strokeColor('#000000').lineWidth(1)
+        .moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+      
+      doc.moveDown(1);
+
+      // Table Header
+      const tableTop = doc.y;
+      const col1X = 50;
+      const col2X = 250;
+      const col3X = 350;
+      const col4X = 420;
+      const col5X = 490;
+
+      doc.fontSize(10).font('Helvetica-Bold');
+      doc.text('Item', col1X, tableTop);
+      doc.text('Details', col2X, tableTop);
+      doc.text('Qty', col3X, tableTop);
+      doc.text('Price', col4X, tableTop);
+      doc.text('Total', col5X, tableTop);
+
+      // Line under header
+      doc.strokeColor('#000000').lineWidth(0.5)
+        .moveTo(50, tableTop + 15).lineTo(545, tableTop + 15).stroke();
+
+      // Table Rows
+      doc.font('Helvetica').fontSize(9);
+      let currentY = tableTop + 25;
+
+      items.forEach((item, index) => {
+        // Check if we need a new page
+        if (currentY > 700) {
+          doc.addPage();
+          currentY = 50;
+        }
+
+        const itemTotal = item.priceAtSale * item.quantity;
+
+        doc.text(item.name, col1X, currentY, { width: 180, ellipsis: true });
+        doc.text(`${item.color} | ${item.size}`, col2X, currentY, { width: 90 });
+        doc.text(item.quantity.toString(), col3X, currentY);
+        doc.text(`₹${item.priceAtSale}`, col4X, currentY);
+        doc.text(`₹${itemTotal}`, col5X, currentY);
+
+        currentY += 20;
+
+        // Light separator line
+        if (index < items.length - 1) {
+          doc.strokeColor('#CCCCCC').lineWidth(0.3)
+            .moveTo(50, currentY - 5).lineTo(545, currentY - 5).stroke();
+        }
+      });
+
+      // Summary Section
+      currentY += 10;
+      doc.strokeColor('#000000').lineWidth(1)
+        .moveTo(50, currentY).lineTo(545, currentY).stroke();
+      currentY += 15;
+
+      const summaryX = 380;
+      doc.font('Helvetica').fontSize(10);
+
+      // Subtotal
+      doc.text('Subtotal:', summaryX, currentY);
+      doc.text(`₹${payment.totalAmount}`, 490, currentY);
+      currentY += 20;
+
+      // Discount
+      if (payment.discountApplied > 0) {
+        doc.text('Discount:', summaryX, currentY);
+        doc.text(`- ₹${payment.discountApplied}`, 490, currentY);
+        currentY += 20;
+      }
+
+      // Line before total
+      doc.strokeColor('#000000').lineWidth(0.5)
+        .moveTo(380, currentY).lineTo(545, currentY).stroke();
+      currentY += 10;
+
+      // Payable Amount
+      doc.font('Helvetica-Bold').fontSize(12);
+      doc.text('Payable Amount:', summaryX, currentY);
+      doc.text(`₹${payableAmount}`, 490, currentY);
+      currentY += 25;
+
+      // Only show payment details for final invoices
+      if (isFinal) {
+        doc.font('Helvetica').fontSize(10);
+        
+        // Amount Paid
+        doc.text('Amount Paid:', summaryX, currentY);
+        doc.text(`₹${payment.amountPaid}`, 490, currentY);
+        currentY += 20;
+
+        // Pending Amount
+        if (pendingAmount > 0) {
+          doc.fillColor('#DC2626');
+          doc.text('Pending Amount:', summaryX, currentY);
+          doc.text(`₹${pendingAmount}`, 490, currentY);
+          doc.fillColor('#000000');
+          currentY += 20;
+        }
+
+        // Payment Type
+        doc.text('Payment Type:', summaryX, currentY);
+        doc.text(payment.paymentType.toUpperCase(), 490, currentY);
+      }
+
+      // Footer
+      doc.fontSize(8).font('Helvetica').fillColor('#666666');
+      const footerY = 750;
+      doc.text('Thank you for your business!', 50, footerY, { align: 'center' });
+      doc.text('For queries, contact: info@vaibhavskatingacademy.com | +91-9301139998', 50, footerY + 15, { align: 'center' });
+      
+      if (!isFinal) {
+        doc.fontSize(9).fillColor('#DC2626');
+        doc.text('This is an estimate only.', 50, footerY + 35, { align: 'center' });
+      }
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
 
 app.get(
   "/vsa/download-online-sale-list",
@@ -4058,7 +4690,6 @@ app.delete("/vsa/admin/delete-bearing",
     }
   }
 );
-
 
 // Admin functionality endpoints ends here
 

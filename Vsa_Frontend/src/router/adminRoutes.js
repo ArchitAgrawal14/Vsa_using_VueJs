@@ -13,7 +13,7 @@ import RegisterNewStudent from "@/components/admin_components/RegisterNewStudent
 import StudentAchievementDetail from "@/components/admin_components/StudentAchievementDetail.vue"
 export default [
   {
-    path: '/vsa/create-invoice',
+    path: '/vsa/invoice',
     name: 'CreateInvoice',
     component: CreateInvoice,
   },

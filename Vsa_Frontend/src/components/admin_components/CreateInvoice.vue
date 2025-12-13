@@ -1,724 +1,563 @@
 <template>
-  <div>
-    <!-- Loading Overlay -->
-    <div class="loading-overlay" :class="{ active: isLoading }">
-      <div class="loader"></div>
-    </div>
-    
-    <!-- Toast Notification -->
-    <div class="toast" :class="{ show: showToast }">
-      {{ toastMessage }}
-    </div>
-    
-    <!-- Header -->
-    <header>
-      <div class="container">
-        <div class="header-content">
-          <div class="logo">
-            <h1>Invoice Generator</h1>
+  <div class="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+      <!-- Header -->
+      <div class="bg-white rounded-lg shadow-sm p-6 mb-6 mt-8">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Create Invoice</h1>
+        <p class="text-gray-600 mt-1">Generate invoices for offline sales</p>
+      </div>
+
+      <!-- Main Content -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Section - Item Selection (2/3 width on large screens) -->
+        <div class="lg:col-span-2 space-y-6">
+          <!-- Category Tabs -->
+          <div class="bg-white rounded-lg shadow-sm p-4">
+            <div class="flex overflow-x-auto space-x-2 pb-2">
+              <button
+                v-for="category in categories"
+                :key="category.key"
+                @click="selectedCategory = category.key"
+                :class="[
+                  'px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors',
+                  selectedCategory === category.key
+                    ? 'bg-gray-900 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ]"
+              >
+                {{ category.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Items Grid -->
+          <div class="bg-white rounded-lg shadow-sm p-4">
+            <div v-if="loading" class="text-center py-12">
+              <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+              <p class="mt-2 text-gray-600">Loading items...</p>
+            </div>
+
+            <div v-else-if="filteredItems.length === 0" class="text-center py-12">
+              <p class="text-gray-500">No items available in this category</p>
+            </div>
+
+            <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div
+                v-for="item in filteredItems"
+                :key="`${item.item_id}-${item.item_variation_id}`"
+                class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+              >
+                <img
+                  v-if="item.base_image_path"
+                  :src="'http://localhost:3000' + item.base_image_path"
+                  :alt="item.name"
+                  class="w-full h-40 object-cover rounded-md mb-3"
+                />
+                <div v-else class="w-full h-40 bg-gray-200 rounded-md mb-3 flex items-center justify-center">
+                  <span class="text-gray-400">No Image</span>
+                </div>
+
+                <h3 class="font-semibold text-gray-900 truncate">{{ item.name }}</h3>
+                <div class="mt-2 space-y-1 text-sm">
+                  <!-- Color only for non-bearings -->
+                  <p v-if="item.category !== 'bearings'" class="text-gray-600">
+                    <span class="font-medium">Color:</span> {{ item.color }}
+                  </p>
+
+                  <!-- Bearings specific fields -->
+                  <p v-else class="text-gray-600">
+                    <span class="font-medium">Pack Size:</span> {{ item.pack_size }}
+                  </p>
+                  <p v-else class="text-gray-600">
+                    <span class="font-medium">Material:</span> {{ item.material }}
+                  </p>
+
+                  <!-- Common fields -->
+                  <p class="text-gray-600">
+                    <span class="font-medium">Size:</span> {{ item.size }}
+                  </p>
+                  <p class="text-gray-600">
+                    <span class="font-medium">Stock:</span> {{ item.quantity }}
+                  </p>
+                  <p class="text-lg font-bold text-gray-900 mt-2">
+                    ₹{{ item.current_price }}
+                  </p>
+                </div>
+
+                <button
+                  @click="addItemToInvoice(item)"
+                  class="mt-3 w-full bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800 transition-colors"
+                >
+                  Add to Invoice
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Section - Invoice Summary (1/3 width on large screens) -->
+        <div class="lg:col-span-1">
+          <div class="bg-white rounded-lg shadow-sm p-6 sticky top-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Invoice Summary</h2>
+
+            <!-- Customer Details -->
+            <div class="mb-6">
+              <h3 class="font-semibold text-gray-900 mb-3">Customer Details</h3>
+              <div class="space-y-3">
+                <input
+                  v-model="customer.fullName"
+                  type="text"
+                  placeholder="Full Name *"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                />
+                <input
+                  v-model="customer.mobile"
+                  type="tel"
+                  placeholder="Mobile *"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                />
+                <input
+                  v-model="customer.whatsappNumber"
+                  type="tel"
+                  placeholder="WhatsApp Number"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                />
+                <input
+                  v-model="customer.email"
+                  type="email"
+                  placeholder="Email *"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <!-- Selected Items -->
+            <div class="mb-6">
+              <h3 class="font-semibold text-gray-900 mb-3">Selected Items</h3>
+              <div v-if="selectedItems.length === 0" class="text-gray-500 text-sm text-center py-4">
+                No items selected
+              </div>
+              <div v-else class="space-y-3 max-h-64 overflow-y-auto">
+                <div
+                  v-for="(item, index) in selectedItems"
+                  :key="index"
+                  class="border border-gray-200 rounded-lg p-3"
+                >
+                  <div class="flex justify-between items-start mb-2">
+                    <div class="flex-1 pr-2">
+                      <p class="font-medium text-sm text-gray-900 truncate">{{ item.name }}</p>
+                      <p class="text-xs text-gray-600">{{ item.color }} | {{ item.size }}</p>
+                    </div>
+                    <button
+                      @click="removeItem(index)"
+                      class="text-red-600 hover:text-red-800"
+                    >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                      <button
+                        @click="updateQuantity(index, -1)"
+                        class="w-7 h-7 bg-gray-200 rounded hover:bg-gray-300"
+                      >-</button>
+                      <span class="w-8 text-center font-medium">{{ item.quantity }}</span>
+                      <button
+                        @click="updateQuantity(index, 1)"
+                        class="w-7 h-7 bg-gray-200 rounded hover:bg-gray-300"
+                      >+</button>
+                    </div>
+                    <p class="font-bold text-gray-900">₹{{ (item.priceAtSale * item.quantity).toFixed(2) }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Payment Details -->
+            <div class="border-t pt-4 space-y-3">
+              <div class="flex justify-between text-gray-700">
+                <span>Subtotal:</span>
+                <span class="font-semibold">₹{{ payment.totalAmount.toFixed(2) }}</span>
+              </div>
+
+              <div class="flex items-center space-x-2">
+                <label>Discount</label>
+                <input
+                  v-model.number="payment.discountApplied"
+                  type="number"
+                  min="0"
+                  :max="payment.totalAmount"
+                  class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                />
+              </div>
+
+              <div class="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t">
+                <span>Payable Amount:</span>
+                <span>₹{{ payableAmount.toFixed(2) }}</span>
+              </div>
+
+              <div class="flex items-center space-x-2">
+                <label> Amount paid</label>
+                <input
+                  v-model.number="payment.amountPaid"
+                  type="number"
+                  min="0"
+                  :max="payableAmount"
+                  placeholder="Amount Paid *"
+                  class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                />
+              </div>
+
+              <div class="flex justify-between text-gray-700">
+                <span>Pending:</span>
+                <span class="font-semibold text-red-600">₹{{ pendingAmount.toFixed(2) }}</span>
+              </div>
+
+              <select
+                v-model="payment.paymentType"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              >
+                <option value="">Select Payment Type *</option>
+                <option value="Cash">Cash</option>
+                <option value="Credit Card">Credit Card</option>
+                <option value="Debit Card">Debit Card</option>
+                <option value="UPI">UPI</option>
+                <option value="Others">Others</option>
+                <option value="Mixed">Mixed</option>
+              </select>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="mt-6 space-y-3">
+              <button
+                @click="confirmSale"
+                :disabled="processing || !isFormValid"
+                class="w-full bg-gray-900 text-white py-3 rounded-lg font-semibold hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              >
+                {{ processing ? 'Processing...' : 'Confirm Sale & Generate Invoice' }}
+              </button>
+
+              <button
+                @click="generateEstimate"
+                :disabled="processing || selectedItems.length === 0"
+                class="w-full bg-white text-gray-900 border-2 border-gray-900 py-3 rounded-lg font-semibold hover:bg-gray-50 disabled:border-gray-400 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+              >
+                Generate Estimate (No Stock Deduction)
+              </button>
+
+              <button
+                @click="resetForm"
+                class="w-full bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Reset
+              </button>
+            </div>
+
+            <!-- Error/Success Messages -->
+            <div v-if="message" :class="[
+              'mt-4 p-3 rounded-lg text-sm',
+              message.type === 'error' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+            ]">
+              {{ message.text }}
+            </div>
           </div>
         </div>
       </div>
-    </header>
-    
-    <!-- Main Content -->
-    <div class="container">
-      <h1>Select Items for Invoice</h1>
-      <p class="subtitle">Choose products and services to include in your invoice</p>
-      
-      <form id="items-form" @submit.prevent>
-        <!-- Customer Information Form -->
-        <div class="form-container">
-          <h2 class="form-title">Customer Information</h2>
-          <div class="form-row">
-            <div class="form-group" :class="{ active: customerData.name }">
-              <input 
-                type="text" 
-                id="customer_name" 
-                v-model="customerData.name" 
-                required 
-                @focus="setFieldActive('name', true)"
-                @blur="setFieldActive('name', false)"
-              />
-              <label for="customer_name">Customer Name</label>
-            </div>
-            <div class="form-group" :class="{ active: customerData.email }">
-              <input 
-                type="email" 
-                id="customer_email" 
-                v-model="customerData.email" 
-                required 
-                @focus="setFieldActive('email', true)"
-                @blur="setFieldActive('email', false)"
-              />
-              <label for="customer_email">Customer Email</label>
-            </div>
-            <div class="form-group" :class="{ active: customerData.number }">
-              <input 
-                type="text" 
-                id="customer_number" 
-                v-model="customerData.number" 
-                required 
-                @focus="setFieldActive('number', true)"
-                @blur="setFieldActive('number', false)"
-              />
-              <label for="customer_number">Mobile Number</label>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Selection Summary -->
-        <div class="selection-summary" :class="{ active: selectedItems.length > 0 }">
-          <div class="summary-title">
-            <h2>Selected Items</h2>
-            <span class="summary-count">{{ selectedItems.length }}</span>
-          </div>
-          <div class="summary-items">
-            <div 
-              v-for="item in selectedItems" 
-              :key="item.item_id"
-              style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;"
-            >
-              <span>{{ item.name }}</span>
-              <span>{{ item.price }}</span>
-            </div>
-          </div>
-          <div class="summary-total">
-            <span>Total:</span>
-            <span class="total-price">₹{{ totalPrice.toFixed(2) }}</span>
-          </div>
-        </div>
-        
-        <!-- Category Sections -->
-        <div v-for="(items, category) in itemData" :key="category" class="category-section">
-          <div class="category-title">
-            <h2>{{ formatCategoryName(category) }}</h2>
-          </div>
-          <div class="category-items">
-            <div 
-              v-for="item in items" 
-              :key="item.item_id"
-              class="item"
-              :class="{ selected: isItemSelected(item.item_id) }"
-              @click="toggleItemSelection(item)"
-            >
-              <div class="item-checkbox"></div>
-              <img :src="item.img" :alt="item.name" />
-              <p class="item-name">{{ item.name }}</p>
-              <p class="item-price">{{ item.price }}</p>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-          <button type="button" @click="generateDocument('invoice')" class="btn btn-primary">
-            Generate Invoice
-          </button>
-          <button type="button" @click="generateDocument('bill')" class="btn btn-outline">
-            Generate Bill
-          </button>
-        </div>
-      </form>
     </div>
   </div>
 </template>
 
 <script>
 export default {
-  name: 'InvoiceGenerator',
+  name: 'CreateInvoice',
   data() {
     return {
-      itemData: {},
+      categories: [
+        { key: 'skates_and_boots', label: 'Skates & Boots' },
+        { key: 'wheels', label: 'Wheels' },
+        { key: 'helmets', label: 'Helmets' },
+        { key: 'bearings', label: 'Bearings' },
+        { key: 'accessories', label: 'Accessories' }
+      ],
+      selectedCategory: 'skates_and_boots',
+      allItems: {
+        skates_and_boots: [],
+        wheels: [],
+        helmets: [],
+        bearings: [],
+        accessories: []
+      },
       selectedItems: [],
-      customerData: {
-        name: '',
-        email: '',
-        number: ''
+      customer: {
+        fullName: '',
+        mobile: '',
+        whatsappNumber: '',
+        email: ''
       },
-      activeFields: {
-        name: false,
-        email: false,
-        number: false
+      payment: {
+        totalAmount: 0,
+        discountApplied: 0,
+        amountPaid: 0,
+        paymentType: ''
       },
-      isLoading: false,
-      showToast: false,
-      toastMessage: ''
+      loading: false,
+      processing: false,
+      message: null
     };
   },
   computed: {
-    totalPrice() {
-      return this.selectedItems.reduce((total, item) => {
-        const priceValue = parseFloat(item.price.replace(/[^0-9.-]+/g, ""));
-        return total + priceValue;
-      }, 0);
+    filteredItems() {
+      return this.allItems[this.selectedCategory] || [];
+    },
+    payableAmount() {
+      return Math.max(0, this.payment.totalAmount - this.payment.discountApplied);
+    },
+    pendingAmount() {
+      return Math.max(0, this.payableAmount - this.payment.amountPaid);
+    },
+    isFormValid() {
+      return (
+        this.customer.fullName.trim() !== '' &&
+        this.customer.mobile.trim() !== '' &&
+        this.customer.email.trim() !== '' &&
+        this.selectedItems.length > 0 &&
+        this.payment.paymentType !== ''
+      );
+    }
+  },
+  watch: {
+    selectedItems: {
+      deep: true,
+      handler() {
+        this.calculateTotal();
+      }
     }
   },
   mounted() {
-    this.fetchItemData();
+    this.fetchItems();
   },
   methods: {
-    async fetchItemData() {
+    async fetchItems() {
+      this.loading = true;
       try {
-        this.isLoading = true;
-        
-        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-        if (!token) {
-          this.showToastMessage('Authentication token not found');
-          return;
-        }
-
-        const response = await fetch('/vsa/create-invoice', {
-          method: 'GET',
+        const response = await fetch('http://localhost:3000/vsa/invoice', {
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        const data = await response.json();
 
-        const result = await response.json();
-        
-        if (result.success) {
-          this.itemData = result.data;
+        if (data.success) {
+          this.allItems.skates_and_boots = data.skatesAndBootsData || [];
+          this.allItems.wheels = data.wheelsData || [];
+          this.allItems.helmets = data.helmetsData || [];
+          this.allItems.bearings = data.bearingsData || [];
+          this.allItems.accessories = data.accessoriesData || [];
         } else {
-          this.showToastMessage(result.message || 'Failed to fetch items');
+          this.showMessage('Failed to load items', 'error');
         }
       } catch (error) {
         console.error('Error fetching items:', error);
-        this.showToastMessage('Error fetching product data');
+        this.showMessage('Error loading items', 'error');
       } finally {
-        this.isLoading = false;
+        this.loading = false;
       }
     },
-    
-    formatCategoryName(category) {
-      return category.charAt(0).toUpperCase() + category.slice(1).replace(/-/g, ' ');
-    },
-    
-    setFieldActive(field, isActive) {
-      if (isActive || this.customerData[field]) {
-        this.activeFields[field] = true;
+
+    addItemToInvoice(item) {
+      const existingIndex = this.selectedItems.findIndex(
+        selected => selected.item_variation_id === item.item_variation_id
+      );
+
+      if (existingIndex !== -1) {
+        if (this.selectedItems[existingIndex].quantity < item.quantity) {
+          this.selectedItems[existingIndex].quantity++;
+        } else {
+          this.showMessage('Cannot add more than available stock', 'error');
+        }
       } else {
-        this.activeFields[field] = false;
-      }
-    },
-    
-    isItemSelected(itemId) {
-      return this.selectedItems.some(item => item.item_id === itemId);
-    },
-    
-    toggleItemSelection(item) {
-      const existingIndex = this.selectedItems.findIndex(selected => selected.item_id === item.item_id);
-      
-      if (existingIndex > -1) {
-        // Remove item
-        this.selectedItems.splice(existingIndex, 1);
-      } else {
-        // Add item
         this.selectedItems.push({
-          item_id: item.item_id,
-          item_type: item.item_type,
+          itemId: item.item_id,
+          itemVariationId: item.item_variation_id,
+          itemType: item.category,
           name: item.name,
-          price: item.price
+          color: item.color,
+          size: item.size,
+          quantity: 1,
+          priceAtSale: item.current_price,
+          maxQuantity: item.quantity
         });
       }
     },
-    
-    validateForm() {
-      if (!this.customerData.name || !this.customerData.email || !this.customerData.number) {
-        this.showToastMessage('Please fill in all customer information fields');
-        return false;
-      }
-      
-      if (this.selectedItems.length === 0) {
-        this.showToastMessage('Please select at least one item');
-        return false;
-      }
-      
-      return true;
+
+    removeItem(index) {
+      this.selectedItems.splice(index, 1);
     },
-    
-    async generateDocument(type) {
-      if (!this.validateForm()) {
+
+    updateQuantity(index, change) {
+      const item = this.selectedItems[index];
+      const newQuantity = item.quantity + change;
+
+      if (newQuantity <= 0) {
+        this.removeItem(index);
+      } else if (newQuantity <= item.maxQuantity) {
+        item.quantity = newQuantity;
+      } else {
+        this.showMessage('Cannot exceed available stock', 'error');
+      }
+    },
+
+    calculateTotal() {
+      this.payment.totalAmount = this.selectedItems.reduce(
+        (sum, item) => sum + (item.priceAtSale * item.quantity),
+        0
+      );
+    },
+
+    async confirmSale() {
+      if (!this.isFormValid) {
+        this.showMessage('Please fill all required fields', 'error');
         return;
       }
-      
+
+      this.processing = true;
+      this.message = null;
+
       try {
-        this.isLoading = true;
-        
-        const data = {
-          items: this.selectedItems.map(item => ({
-            item_name: item.name,
-            item_id: item.item_id,
-            item_type: item.item_type,
-            price: item.price
-          })),
-          customer_name: this.customerData.name,
-          customer_email: this.customerData.email,
-          customer_number: this.customerData.number
-        };
-        
-        const endpoint = type === 'invoice' ? '/generateInvoice' : '/generateBill';
-        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-        
-        const response = await fetch(endpoint, {
+        const response = await fetch('http://localhost:3000/vsa/admin/sell-item-offline', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
           },
-          body: JSON.stringify(data)
+          body: JSON.stringify({
+            soldItemData: {
+              customer: this.customer,
+              items: this.selectedItems.map(item => ({
+                itemId: item.itemId,
+                itemVariationId: item.itemVariationId,
+                itemType: item.itemType,
+                quantity: item.quantity,
+                priceAtSale: item.priceAtSale
+              })),
+              payment: this.payment
+            }
+          })
         });
-        
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
+
+        const data = await response.json();
+
+        if (data.success) {
+          this.showMessage(`Sale successful! Invoice: ${data.invoiceNumber}`, 'success');
+          
+          // Download PDF
+          await this.downloadPDF(data.invoiceNumber, true);
+          
+          // Reset form after short delay
+          setTimeout(() => this.resetForm(), 2000);
+        } else {
+          this.showMessage(data.message || 'Failed to process sale', 'error');
         }
-        
+      } catch (error) {
+        console.error('Error processing sale:', error);
+        this.showMessage('Error processing sale', 'error');
+      } finally {
+        this.processing = false;
+      }
+    },
+
+    async generateEstimate() {
+      if (this.selectedItems.length === 0) {
+        this.showMessage('Please add items to generate estimate', 'error');
+        return;
+      }
+
+      this.processing = true;
+
+      try {
+        await this.downloadPDF('ESTIMATE', false);
+        this.showMessage('Estimate generated successfully', 'success');
+      } catch (error) {
+        console.error('Error generating estimate:', error);
+        this.showMessage('Error generating estimate', 'error');
+      } finally {
+        this.processing = false;
+      }
+    },
+
+    async downloadPDF(invoiceNumber, isFinal) {
+      const response = await fetch('http://localhost:3000/vsa/admin/generate-invoice-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          invoiceData: {
+            invoiceNumber,
+            isFinal,
+            customer: this.customer,
+            items: this.selectedItems,
+            payment: this.payment,
+            payableAmount: this.payableAmount,
+            pendingAmount: this.pendingAmount
+          }
+        })
+      });
+
+      if (response.ok) {
         const blob = await response.blob();
-        
-        // Create download link
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = type === 'invoice' ? 'Invoice_VSA.pdf' : 'Bill_VSA.pdf';
+        a.download = `${isFinal ? 'Invoice' : 'Estimate'}-${invoiceNumber}-${Date.now()}.pdf`;
         document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
-        
-        this.showToastMessage(`${type.charAt(0).toUpperCase() + type.slice(1)} generated successfully!`);
-        
-      } catch (error) {
-        console.error('Error:', error);
-        this.showToastMessage(`Error generating ${type}. Please try again.`);
-      } finally {
-        this.isLoading = false;
+        document.body.removeChild(a);
+      } else {
+        throw new Error('Failed to generate PDF');
       }
     },
-    
-    showToastMessage(message) {
-      this.toastMessage = message;
-      this.showToast = true;
-      
+
+    resetForm() {
+      this.selectedItems = [];
+      this.customer = {
+        fullName: '',
+        mobile: '',
+        whatsappNumber: '',
+        email: ''
+      };
+      this.payment = {
+        totalAmount: 0,
+        discountApplied: 0,
+        amountPaid: 0,
+        paymentType: ''
+      };
+      this.message = null;
+    },
+
+    showMessage(text, type) {
+      this.message = { text, type };
       setTimeout(() => {
-        this.showToast = false;
-      }, 3000);
+        this.message = null;
+      }, 5000);
     }
   }
 };
 </script>
 
 <style scoped>
-:root {
-  --primary: #4361ee;
-  --primary-hover: #3a56d4;
-  --light-bg: #f8f9fa;
-  --border-color: #e0e0e0;
-  --text-color: #333;
-  --text-secondary: #666;
-  --success: #4CAF50;
-  --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --transition: all 0.3s ease;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f5f7fa;
-  color: var(--text-color);
-  line-height: 1.6;
-}
-
-.container {
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1rem;
-}
-
-header {
-  background-color: white;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  margin-bottom: 2rem;
-  padding: 1rem 0;
-}
-
-.header-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.logo h1 {
-  font-size: 1.5rem;
-  color: var(--primary);
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
   margin: 0;
 }
 
-h1, h2, h3 {
-  color: #2b2d42;
-  margin-bottom: 1rem;
-}
-
-.subtitle {
-  color: var(--text-secondary);
-  margin-bottom: 2rem;
-  text-align: center;
-}
-
-/* Form Styles */
-.form-container {
-  background-color: white;
-  border-radius: 10px;
-  box-shadow: var(--card-shadow);
-  padding: 2rem;
-  margin-bottom: 2rem;
-}
-
-.form-title {
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.form-row {
-  display: flex;
-  flex-wrap: wrap;
-  margin: 0 -0.5rem;
-}
-
-.form-group {
-  position: relative;
-  margin-bottom: 1.5rem;
-  width: 100%;
-  padding: 0 0.5rem;
-}
-
-@media (min-width: 768px) {
-  .form-group {
-    width: 33.33%;
-  }
-}
-
-.form-group input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--border-color);
-  border-radius: 5px;
-  font-size: 1rem;
-  transition: var(--transition);
-}
-
-.form-group input:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
-  outline: none;
-}
-
-.form-group label {
-  position: absolute;
-  top: 0;
-  left: 0.5rem;
-  transform: translateY(-50%);
-  background-color: white;
-  padding: 0 0.5rem;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  transition: var(--transition);
-  pointer-events: none;
-}
-
-.form-group.active label {
-  top: 0;
-  transform: translateY(-50%);
-  color: var(--primary);
-}
-
-/* Category Section */
-.category-section {
-  background-color: white;
-  border-radius: 10px;
-  box-shadow: var(--card-shadow);
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.category-title {
-  display: flex;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.category-title h2 {
-  margin-bottom: 0;
-  font-size: 1.25rem;
-}
-
-.category-items {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 1rem;
-}
-
-@media (min-width: 576px) {
-  .category-items {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  }
-}
-
-@media (min-width: 992px) {
-  .category-items {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  }
-}
-
-.item {
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  padding: 1rem;
-  text-align: center;
-  background-color: white;
-  transition: var(--transition);
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-}
-
-.item:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-}
-
-.item.selected {
-  border-color: var(--primary);
-  background-color: rgba(67, 97, 238, 0.05);
-}
-
-.item img {
-  width: 100%;
-  height: 100px;
-  object-fit: cover;
-  border-radius: 4px;
-  margin-bottom: 0.5rem;
-}
-
-.item-name {
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-  font-size: 0.875rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.item-price {
-  font-weight: 700;
-  color: var(--primary);
-  font-size: 1rem;
-}
-
-.item-checkbox {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  width: 1.25rem;
-  height: 1.25rem;
-  border: 2px solid var(--border-color);
-  border-radius: 50%;
-  background-color: white;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.item.selected .item-checkbox {
-  background-color: var(--primary);
-  border-color: var(--primary);
-}
-
-.item.selected .item-checkbox::after {
-  content: "✓";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: white;
-  font-size: 0.75rem;
-}
-
-/* Action Buttons */
-.action-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-top: 2rem;
-}
-
-@media (min-width: 576px) {
-  .action-buttons {
-    flex-direction: row;
-    justify-content: center;
-  }
-}
-
-.btn {
-  display: inline-block;
-  padding: 0.75rem 1.5rem;
-  border-radius: 5px;
-  font-weight: 600;
-  text-align: center;
-  cursor: pointer;
-  transition: var(--transition);
-  border: none;
-  font-size: 1rem;
-}
-
-.btn-primary {
-  background-color: var(--primary);
-  color: white;
-}
-
-.btn-primary:hover {
-  background-color: var(--primary-hover);
-}
-
-.btn-outline {
-  background-color: transparent;
-  border: 2px solid var(--primary);
-  color: var(--primary);
-}
-
-.btn-outline:hover {
-  background-color: var(--primary);
-  color: white;
-}
-
-/* Mobile Optimizations */
-@media (max-width: 575.98px) {
-  .form-title, .category-title h2 {
-    font-size: 1.25rem;
-  }
-  
-  .subtitle {
-    font-size: 0.875rem;
-  }
-  
-  .form-container, .category-section {
-    padding: 1rem;
-  }
-  
-  .btn {
-    width: 100%;
-  }
-}
-
-/* Selection Summary */
-.selection-summary {
-  background-color: white;
-  border-radius: 10px;
-  box-shadow: var(--card-shadow);
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  display: none;
-}
-
-.selection-summary.active {
-  display: block;
-}
-
-.summary-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.summary-title h2 {
-  margin-bottom: 0;
-}
-
-.summary-count {
-  background-color: var(--primary);
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.875rem;
-}
-
-.summary-items {
-  margin-bottom: 1rem;
-}
-
-.summary-total {
-  display: flex;
-  justify-content: space-between;
-  font-weight: 700;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--border-color);
-}
-
-/* Loading Indicator */
-.loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(255, 255, 255, 0.8);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  visibility: hidden;
-  opacity: 0;
-  transition: var(--transition);
-}
-
-.loading-overlay.active {
-  visibility: visible;
-  opacity: 1;
-}
-
-.loader {
-  width: 40px;
-  height: 40px;
-  border: 4px solid var(--border-color);
-  border-top: 4px solid var(--primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Toast Notification */
-.toast {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  background-color: var(--success);
-  color: white;
-  padding: 1rem;
-  border-radius: 5px;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-  transform: translateY(150%);
-  transition: transform 0.3s ease;
-  z-index: 1001;
-}
-
-.toast.show {
-  transform: translateY(0);
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 </style>

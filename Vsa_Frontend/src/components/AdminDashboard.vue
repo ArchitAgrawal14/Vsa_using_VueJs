@@ -337,7 +337,7 @@ export default {
           headerIcon: 'fas fa-file-invoice',
           icon: 'fas fa-file-invoice',
           description: 'Generate invoices for customers and transactions.',
-          link: '/vsa/create-invoice',
+          link: '/vsa/invoice',
           buttonIcon: 'fas fa-plus-circle',
           buttonText: 'Create Invoice',
           permission: 'show_invoice_generation'

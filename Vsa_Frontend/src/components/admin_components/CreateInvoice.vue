@@ -384,7 +384,7 @@ export default {
           itemVariationId: item.item_variation_id,
           itemType: item.category,
           name: item.name,
-          color: item.color,
+          color: item.color || item.material,
           size: item.size,
           quantity: 1,
           priceAtSale: item.current_price,

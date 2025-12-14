@@ -4,6 +4,7 @@ import AttendanceRecords from "@/components/admin_components/AttendanceRecords.v
 import CreateInvoice from "@/components/admin_components/CreateInvoice.vue"
 import EditItem from "@/components/admin_components/EditItem.vue"
 import EditShop from "@/components/admin_components/EditShop.vue"
+import ManageAcademyAchievements from "@/components/admin_components/ManageAcademyAchievements.vue"
 import ManageAchievements from "@/components/admin_components/ManageAchievements.vue"
 import ManageAdmins from "@/components/admin_components/ManageAdmins.vue"
 import ManageDashboard from "@/components/admin_components/ManageDashboard.vue"
@@ -76,5 +77,10 @@ export default [
     path: '/vsa/admin/add-new-item',
     name: 'AddNewItem',
     component: AddNewItemPage,
+  },
+  {
+    path: '/vsa/admin/edit/academy-achievements',
+    name: 'ManageAcademyAchievements',
+    component: ManageAcademyAchievements,
   }
 ]

@@ -46,7 +46,7 @@
               <span class="font-medium">Edit Shop</span>
             </a>
 
-            <a v-if="hasPermission('show_edit_achievements')" href="/updateAchievements"
+            <a v-if="hasPermission('show_edit_achievements')" href="/vsa/admin/edit/academy-achievements"
               class="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors duration-200 hover:bg-white/10 px-4 py-2 rounded-lg">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -98,7 +98,7 @@
               </svg>
               Edit Shop
             </a>
-            <a v-if="hasPermission('show_edit_achievements')" href="/updateAchievements"
+            <a v-if="hasPermission('show_edit_achievements')" href="/vsa/admin/edit/academy-achievements"
               class="flex items-center space-x-3 text-gray-300 hover:text-white px-4 py-3 rounded-lg hover:bg-white/10 transition-colors duration-200">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

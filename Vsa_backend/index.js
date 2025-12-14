@@ -16,6 +16,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import multer from "multer";
 import PDFDocument from  "pdfkit";
+import fs from "fs";
+
 dotenv.config();
 
 const app = express();
@@ -3440,7 +3442,7 @@ app.get(
   }
 );
 
-// End to get single students achievements.
+// Endpoint to get single students achievements.
 app.get(
   "/vsa/admin/get-student-for-manage-achievements",
   middlewares.verifyToken,
@@ -3478,7 +3480,7 @@ app.get(
   }
 );
 
-// Endpoint to add a new achievement
+// Endpoint to add a new student achievement
 app.post("/vsa/admin/add-new-achievement", middlewares.verifyToken, async (req, res) => {
 
   if (!req.user?.isAdmin) {
@@ -3556,7 +3558,7 @@ app.post("/vsa/admin/add-new-achievement", middlewares.verifyToken, async (req, 
   }
 });
 
-// Endpoint to delete a achievement
+// Endpoint to delete a student achievement
 app.delete("/vsa/admin/delete-achievement/:achievementId", middlewares.verifyToken, async (req, res) => {
 
   if (!req.user?.isAdmin) {
@@ -5169,6 +5171,753 @@ app.delete("/vsa/admin/delete-bearing",
     }
   }
 );
+
+// Endpoint to fetch all the academy achievements for admin 
+app.get("/vsa/admin/academy-achievements", middlewares.verifyToken, async (req, res) => {
+  try {
+   if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+    const [academyAchievementsData] = await db.query(
+      `SELECT * FROM academy_achievements ORDER BY id DESC`);
+
+    const [images] = await db.query("SELECT * FROM academy_achievements_images ORDER BY academy_achievement_id DESC");
+
+    const academyAchievementsImages = academyAchievementsData.map((achievement) => {
+      const relatedImages = images.filter(img => img.academy_achievement_id === achievement.id)
+      .map(img => img.images_url);
+      return {
+        ...achievement, 
+        images : relatedImages
+      }
+    });
+
+    return res.status(200).json({
+      success : true,
+      message : "Academy Achievements fetched successfully",
+      academyAchievements : academyAchievementsImages
+    });
+
+  } catch (error) {
+    
+    return res.status(500).json({
+      success : false,
+      message : "Failed to fetch Academy Achievements data",
+      error : error.message
+    });
+  }
+});
+
+// Dynamic multer configuration for handling multiple variation images for academy-achievement
+const academyAchievementStorage = multer.diskStorage({
+  destination: path.join(__dirname, "public/images/academy-achievement-images"),
+  filename: function (req, file, cb) {
+    const timestamp = Date.now();
+    const fileExt = path.extname(file.originalname);
+    const filename = `item-${timestamp}-${Math.random().toString(36).substring(7)}${fileExt}`;
+    cb(null, filename);
+  },
+});
+
+const academyAchievementUpload = multer({ storage: academyAchievementStorage });
+
+// Enpoint to insert new academy achievement
+app.post("/vsa/admin/add-new-academy-achievement", 
+  middlewares.verifyToken, 
+  academyAchievementUpload.any(), 
+  async (req, res) => {
+    try {
+      // Check admin access
+      if (!req.user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Admins only.",
+        });
+      }
+
+      // Parse academyAchievementsData from JSON string
+      let academyAchievementsData;
+      try {
+        academyAchievementsData = JSON.parse(req.body.academyAchievementsData);
+      } catch (parseError) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid JSON format for academyAchievementsData",
+        });
+      }
+
+      // Validate if data is an array
+      if (!Array.isArray(academyAchievementsData) || academyAchievementsData.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "academyAchievementsData must be a non-empty array",
+        });
+      }
+
+      // Valid competition categories and levels (must match ENUM values)
+      const validCategories = ['Roller Speed Skating', 'Roll Ball', 'Ice Skating', 'Record', 'Camp'];
+      const validLevels = ['school', 'block', 'district', 'division', 'state', 'national', 'international', 'record', 'RSFI', 'SGFI'];
+
+      // Organize uploaded files
+      const uploadedFiles = req.files || [];
+      const filesByFieldName = {};
+      uploadedFiles.forEach(file => {
+        if (!filesByFieldName[file.fieldname]) {
+          filesByFieldName[file.fieldname] = [];
+        }
+        filesByFieldName[file.fieldname].push(file);
+      });
+
+      const insertedAchievements = [];
+
+      // Process each achievement
+      for (let i = 0; i < academyAchievementsData.length; i++) {
+        const achievement = academyAchievementsData[i];
+
+        // Validation for required fields
+        if (!achievement.title || achievement.title.trim() === '') {
+          return res.status(400).json({
+            success: false,
+            message: `Title is required for achievement at index ${i}`,
+          });
+        }
+
+        if (achievement.title.length > 100) {
+          return res.status(400).json({
+            success: false,
+            message: `Title must not exceed 100 characters for achievement at index ${i}`,
+          });
+        }
+
+        // Validate competition_category if provided
+        if (achievement.competition_category && !validCategories.includes(achievement.competition_category)) {
+          return res.status(400).json({
+            success: false,
+            message: `Invalid competition_category at index ${i}. Must be one of: ${validCategories.join(', ')}`,
+          });
+        }
+
+        // Validate competition_level if provided
+        if (achievement.competition_level && !validLevels.includes(achievement.competition_level)) {
+          return res.status(400).json({
+            success: false,
+            message: `Invalid competition_level at index ${i}. Must be one of: ${validLevels.join(', ')}`,
+          });
+        }
+
+        // Validate medal counts
+        const totalMedals = parseInt(achievement.total_medals_won) || 0;
+        const goldMedals = parseInt(achievement.gold_medals) || 0;
+        const silverMedals = parseInt(achievement.silver_medals) || 0;
+        const bronzeMedals = parseInt(achievement.bronze_medals) || 0;
+
+        if (totalMedals < 0 || goldMedals < 0 || silverMedals < 0 || bronzeMedals < 0) {
+          return res.status(400).json({
+            success: false,
+            message: `Medal counts cannot be negative for achievement at index ${i}`,
+          });
+        }
+
+        // Validate date format if provided
+        if (achievement.event_date) {
+          const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+          if (!dateRegex.test(achievement.event_date)) {
+            return res.status(400).json({
+              success: false,
+              message: `Invalid date format at index ${i}. Use YYYY-MM-DD format`,
+            });
+          }
+        }
+
+        // Get banner image for this achievement
+        const bannerFieldName = `banner_image_${i}`;
+        const bannerFile = filesByFieldName[bannerFieldName] && filesByFieldName[bannerFieldName][0];
+        const bannerImagePath = bannerFile ? `/images/academy-achievement-images/${bannerFile.filename}` : null;
+
+        // Get additional images for this achievement
+        const imagesFieldName = `/images_${i}`;
+        const additionalImages = filesByFieldName[imagesFieldName] || [];
+
+        // Insert into academy_achievements table
+        const insertAchievementQuery = `
+          INSERT INTO academy_achievements 
+          (title, description, event_date, total_medals_won, gold_medals, silver_medals, 
+           bronze_medals, competition_name, competition_category, competition_level, 
+           location, banner_image)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+
+        const achievementValues = [
+          achievement.title.trim(),
+          achievement.description || null,
+          achievement.event_date || null,
+          totalMedals,
+          goldMedals,
+          silverMedals,
+          bronzeMedals,
+          achievement.competition_name || null,
+          achievement.competition_category || null,
+          achievement.competition_level || null,
+          achievement.location || null,
+          bannerImagePath
+        ];
+
+        const [achievementResult] = await db.query(insertAchievementQuery, achievementValues);
+        const achievementId = achievementResult.insertId;
+
+        // Insert additional images if any
+        if (additionalImages.length > 0) {
+          const imageInsertPromises = additionalImages.map(imageFile => {
+            const imagePath = `/images/academy-achievement-images/${imageFile.filename}`;
+            const insertImageQuery = `
+              INSERT INTO academy_achievements_images 
+              (academy_achievement_id, images_url)
+              VALUES (?, ?)
+            `;
+            return db.query(insertImageQuery, [achievementId, imagePath]);
+          });
+
+          await Promise.all(imageInsertPromises);
+        }
+
+        insertedAchievements.push({
+          id: achievementId,
+          title: achievement.title,
+          banner_image: bannerImagePath,
+          additional_images_count: additionalImages.length
+        });
+      }
+
+      return res.status(201).json({
+        success: true,
+        message: `Successfully added ${insertedAchievements.length} achievement(s)`,
+        data: insertedAchievements
+      });
+
+    } catch (error) {
+      console.error("Error adding academy achievements:", error);
+      
+      // Handle multer errors
+      if (error instanceof multer.MulterError) {
+        if (error.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({
+            success: false,
+            message: "File size too large. Maximum size is 5MB per file.",
+          });
+        }
+        return res.status(400).json({
+          success: false,
+          message: `File upload error: ${error.message}`,
+        });
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error while adding academy achievements",
+        error: error.message
+      });
+    }
+});
+
+// Endpoint to update an existing academy achievement
+app.put("/vsa/admin/update-academy-achievement/:id", 
+  middlewares.verifyToken, 
+  academyAchievementUpload.any(), 
+  async (req, res) => {
+    const connection = await db.getConnection();
+    
+    try {
+      // Check admin access
+      if (!req.user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Admins only.",
+        });
+      }
+
+      const achievementId = parseInt(req.params.id);
+
+      // Validate achievement ID
+      if (isNaN(achievementId) || achievementId <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid achievement ID",
+        });
+      }
+
+      // Check if achievement exists
+      const [existingAchievement] = await connection.query(
+        'SELECT * FROM academy_achievements WHERE id = ?',
+        [achievementId]
+      );
+
+      if (existingAchievement.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Achievement not found",
+        });
+      }
+
+      // Parse achievement data
+      let achievementData;
+      try {
+        achievementData = JSON.parse(req.body.achievementData);
+      } catch (parseError) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid JSON format for achievementData",
+        });
+      }
+
+      // Valid competition categories and levels
+      const validCategories = ['Roller Speed Skating', 'Roll Ball', 'Ice Skating', 'Record', 'Camp'];
+      const validLevels = ['school', 'block', 'district', 'division', 'state', 'national', 'international', 'record', 'RSFI', 'SGFI'];
+
+      // Validate title if provided
+      if (achievementData.title !== undefined) {
+        if (!achievementData.title || achievementData.title.trim() === '') {
+          return res.status(400).json({
+            success: false,
+            message: "Title cannot be empty",
+          });
+        }
+
+        if (achievementData.title.length > 100) {
+          return res.status(400).json({
+            success: false,
+            message: "Title must not exceed 100 characters",
+          });
+        }
+      }
+
+      // Validate competition_category if provided
+      if (achievementData.competition_category !== undefined && 
+          achievementData.competition_category !== null && 
+          !validCategories.includes(achievementData.competition_category)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid competition_category. Must be one of: ${validCategories.join(', ')}`,
+        });
+      }
+
+      // Validate competition_level if provided
+      if (achievementData.competition_level !== undefined && 
+          achievementData.competition_level !== null && 
+          !validLevels.includes(achievementData.competition_level)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid competition_level. Must be one of: ${validLevels.join(', ')}`,
+        });
+      }
+
+      // Validate medal counts if provided
+      if (achievementData.total_medals_won !== undefined) {
+        const totalMedals = parseInt(achievementData.total_medals_won);
+        if (isNaN(totalMedals) || totalMedals < 0) {
+          return res.status(400).json({
+            success: false,
+            message: "Total medals won must be a non-negative number",
+          });
+        }
+      }
+
+      if (achievementData.gold_medals !== undefined) {
+        const goldMedals = parseInt(achievementData.gold_medals);
+        if (isNaN(goldMedals) || goldMedals < 0) {
+          return res.status(400).json({
+            success: false,
+            message: "Gold medals must be a non-negative number",
+          });
+        }
+      }
+
+      if (achievementData.silver_medals !== undefined) {
+        const silverMedals = parseInt(achievementData.silver_medals);
+        if (isNaN(silverMedals) || silverMedals < 0) {
+          return res.status(400).json({
+            success: false,
+            message: "Silver medals must be a non-negative number",
+          });
+        }
+      }
+
+      if (achievementData.bronze_medals !== undefined) {
+        const bronzeMedals = parseInt(achievementData.bronze_medals);
+        if (isNaN(bronzeMedals) || bronzeMedals < 0) {
+          return res.status(400).json({
+            success: false,
+            message: "Bronze medals must be a non-negative number",
+          });
+        }
+      }
+
+      // Validate date format if provided
+      if (achievementData.event_date !== undefined && achievementData.event_date !== null) {
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(achievementData.event_date)) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid date format. Use YYYY-MM-DD format",
+          });
+        }
+      }
+
+      await connection.beginTransaction();
+
+      // Handle banner image update
+      const uploadedFiles = req.files || [];
+      const bannerFile = uploadedFiles.find(file => file.fieldname === 'banner_image');
+      let bannerImagePath = existingAchievement[0].banner_image;
+
+      if (bannerFile) {
+        // Delete old banner image if exists
+        if (existingAchievement[0].banner_image) {
+          const oldBannerPath = path.join(__dirname, 'public', existingAchievement[0].banner_image);
+          if (fs.existsSync(oldBannerPath)) {
+            fs.unlinkSync(oldBannerPath);
+          }
+        }
+        bannerImagePath = `/images/academy-achievement-images/${bannerFile.filename}`;
+      }
+
+      // Build dynamic update query
+      const updateFields = [];
+      const updateValues = [];
+
+      if (achievementData.title !== undefined) {
+        updateFields.push('title = ?');
+        updateValues.push(achievementData.title.trim());
+      }
+      if (achievementData.description !== undefined) {
+        updateFields.push('description = ?');
+        updateValues.push(achievementData.description || null);
+      }
+      if (achievementData.event_date !== undefined) {
+        updateFields.push('event_date = ?');
+        updateValues.push(achievementData.event_date || null);
+      }
+      if (achievementData.total_medals_won !== undefined) {
+        updateFields.push('total_medals_won = ?');
+        updateValues.push(parseInt(achievementData.total_medals_won) || 0);
+      }
+      if (achievementData.gold_medals !== undefined) {
+        updateFields.push('gold_medals = ?');
+        updateValues.push(parseInt(achievementData.gold_medals) || 0);
+      }
+      if (achievementData.silver_medals !== undefined) {
+        updateFields.push('silver_medals = ?');
+        updateValues.push(parseInt(achievementData.silver_medals) || 0);
+      }
+      if (achievementData.bronze_medals !== undefined) {
+        updateFields.push('bronze_medals = ?');
+        updateValues.push(parseInt(achievementData.bronze_medals) || 0);
+      }
+      if (achievementData.competition_name !== undefined) {
+        updateFields.push('competition_name = ?');
+        updateValues.push(achievementData.competition_name || null);
+      }
+      if (achievementData.competition_category !== undefined) {
+        updateFields.push('competition_category = ?');
+        updateValues.push(achievementData.competition_category || null);
+      }
+      if (achievementData.competition_level !== undefined) {
+        updateFields.push('competition_level = ?');
+        updateValues.push(achievementData.competition_level || null);
+      }
+      if (achievementData.location !== undefined) {
+        updateFields.push('location = ?');
+        updateValues.push(achievementData.location || null);
+      }
+      if (bannerFile) {
+        updateFields.push('banner_image = ?');
+        updateValues.push(bannerImagePath);
+      }
+
+      // Only update if there are fields to update
+      if (updateFields.length > 0) {
+        updateFields.push('updated_at = CURRENT_TIMESTAMP');
+        updateValues.push(achievementId);
+
+        const updateQuery = `
+          UPDATE academy_achievements 
+          SET ${updateFields.join(', ')}
+          WHERE id = ?
+        `;
+
+        await connection.query(updateQuery, updateValues);
+      }
+
+      // Handle additional images
+      const additionalImages = uploadedFiles.filter(file => file.fieldname === 'additional_images');
+      
+      // Parse images to delete if provided
+      let imagesToDelete = [];
+      if (req.body.delete_image_ids) {
+        try {
+          imagesToDelete = JSON.parse(req.body.delete_image_ids);
+          if (!Array.isArray(imagesToDelete)) {
+            imagesToDelete = [];
+          }
+        } catch (e) {
+          imagesToDelete = [];
+        }
+      }
+
+      // Delete specified images
+      if (imagesToDelete.length > 0) {
+        // Delete image files
+        imagesToDelete.forEach(imgUrl => {
+          const imagePath = path.join(__dirname, 'public', imgUrl);
+          if (fs.existsSync(imagePath)) {
+            fs.unlinkSync(imagePath);
+          }
+        });
+        // Delete from database
+        await connection.query(
+          'DELETE FROM academy_achievements_images WHERE images_url IN (?) AND academy_achievement_id = ?',
+          [imagesToDelete, achievementId]
+        );
+      }
+
+      // Insert new additional images
+      if (additionalImages.length > 0) {
+        const imageInsertPromises = additionalImages.map(imageFile => {
+          const imagePath = `/images/academy-achievement-images/${imageFile.filename}`;
+          const insertImageQuery = `
+            INSERT INTO academy_achievements_images 
+            (academy_achievement_id, images_url)
+            VALUES (?, ?)
+          `;
+          return connection.query(insertImageQuery, [achievementId, imagePath]);
+        });
+
+        await Promise.all(imageInsertPromises);
+      }
+
+      await connection.commit();
+
+      // Fetch updated achievement
+      const [updatedAchievement] = await connection.query(
+        'SELECT * FROM academy_achievements WHERE id = ?',
+        [achievementId]
+      );
+
+      const [images] = await connection.query(
+        'SELECT id, images_url FROM academy_achievements_images WHERE academy_achievement_id = ?',
+        [achievementId]
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: "Achievement updated successfully",
+        data: {
+          ...updatedAchievement[0],
+          additional_images: images
+        }
+      });
+
+    } catch (error) {
+      await connection.rollback();
+      console.error("Error updating academy achievement:", error);
+      
+      // Handle multer errors
+      if (error instanceof multer.MulterError) {
+        if (error.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({
+            success: false,
+            message: "File size too large. Maximum size is 5MB per file.",
+          });
+        }
+        return res.status(400).json({
+          success: false,
+          message: `File upload error: ${error.message}`,
+        });
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error while updating achievement",
+        error: error.message
+      });
+    } finally {
+      connection.release();
+    }
+});
+
+// Endpoint to delete an academy achievement
+app.delete("/vsa/admin/delete-academy-achievement/:id", 
+  middlewares.verifyToken, 
+  async (req, res) => {
+    const connection = await db.getConnection();
+    
+    try {
+      // Check admin access
+      if (!req.user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Admins only.",
+        });
+      }
+
+      const achievementId = parseInt(req.params.id);
+
+      // Validate achievement ID
+      if (isNaN(achievementId) || achievementId <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid achievement ID",
+        });
+      }
+
+      // Check if achievement exists
+      const [existingAchievement] = await connection.query(
+        'SELECT * FROM academy_achievements WHERE id = ?',
+        [achievementId]
+      );
+
+      if (existingAchievement.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Achievement not found",
+        });
+      }
+
+      // Get all associated images
+      const [associatedImages] = await connection.query(
+        'SELECT images_url FROM academy_achievements_images WHERE academy_achievement_id = ?',
+        [achievementId]
+      );
+
+      await connection.beginTransaction();
+
+      // Delete banner image file if exists
+      if (existingAchievement[0].banner_image) {
+        const bannerPath = path.join(__dirname, 'public', existingAchievement[0].banner_image);
+        if (fs.existsSync(bannerPath)) {
+          try {
+            fs.unlinkSync(bannerPath);
+          } catch (fileError) {
+            console.error("Error deleting banner image file:", fileError);
+          }
+        }
+      }
+
+      // Delete additional image files
+      associatedImages.forEach(img => {
+        const imagePath = path.join(__dirname, 'public', img.images_url);
+        if (fs.existsSync(imagePath)) {
+          try {
+            fs.unlinkSync(imagePath);
+          } catch (fileError) {
+            console.error("Error deleting image file:", fileError);
+          }
+        }
+      });
+
+      // Delete from database (images will be deleted automatically due to ON DELETE CASCADE)
+      await connection.query(
+        'DELETE FROM academy_achievements WHERE id = ?',
+        [achievementId]
+      );
+
+      await connection.commit();
+
+      return res.status(200).json({
+        success: true,
+        message: "Achievement deleted successfully",
+        data: {
+          deleted_achievement_id: achievementId,
+          deleted_images_count: associatedImages.length
+        }
+      });
+
+    } catch (error) {
+      await connection.rollback();
+      console.error("Error deleting academy achievement:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error while deleting achievement",
+        error: error.message
+      });
+    } finally {
+      connection.release();
+    }
+});
+
+// Endpoint to delete a specific image from an achievement
+app.delete("/vsa/admin/delete-achievement-image/:imageId", 
+  middlewares.verifyToken, 
+  async (req, res) => {
+    try {
+      // Check admin access
+      if (!req.user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Admins only.",
+        });
+      }
+
+      const imageId = parseInt(req.params.imageId);
+
+      // Validate image ID
+      if (isNaN(imageId) || imageId <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid image ID",
+        });
+      }
+
+      // Get image details
+      const [imageData] = await db.query(
+        'SELECT * FROM academy_achievements_images WHERE id = ?',
+        [imageId]
+      );
+
+      if (imageData.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Image not found",
+        });
+      }
+
+      // Delete image file
+      const imagePath = path.join(__dirname, 'public', imageData[0].images_url);
+      if (fs.existsSync(imagePath)) {
+        try {
+          fs.unlinkSync(imagePath);
+        } catch (fileError) {
+          console.error("Error deleting image file:", fileError);
+        }
+      }
+
+      // Delete from database
+      await db.query(
+        'DELETE FROM academy_achievements_images WHERE id = ?',
+        [imageId]
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: "Image deleted successfully",
+        data: {
+          deleted_image_id: imageId
+        }
+      });
+
+    } catch (error) {
+      console.error("Error deleting achievement image:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error while deleting image",
+        error: error.message
+      });
+    }
+});
 
 // Admin functionality endpoints ends here
 

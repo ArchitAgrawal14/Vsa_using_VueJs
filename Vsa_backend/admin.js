@@ -617,6 +617,589 @@ export function downloadOnlineUsersDataCSV(userData, res) {
   }
 }
 
+/**
+ * Generate and download available stock list as PDF
+ * @param {Array} stockData - Array of stock objects
+ * @param {Object} res - Express response object
+ */
+export function downloadAvailableStockPDF(stockData, res) {
+  try {
+    const doc = new PDFDocument({
+      margin: 40,
+      size: "A4",
+      layout: "landscape", // Landscape for more columns
+    });
+
+    // Set response headers
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=available-stock-${Date.now()}.pdf`
+    );
+
+    // Pipe the PDF to response
+    doc.pipe(res);
+
+    // Title
+    doc
+      .fontSize(22)
+      .font("Helvetica-Bold")
+      .text("Available Stock Inventory Report", { align: "center" })
+      .moveDown();
+
+    // Metadata
+    doc
+      .fontSize(10)
+      .font("Helvetica")
+      .text(`Generated: ${new Date().toLocaleString()}`, { align: "right" })
+      .text(`Total Items: ${stockData.length}`, { align: "right" })
+      .moveDown(1.5);
+
+    // Calculate totals by category
+    const categoryTotals = {};
+    stockData.forEach((item) => {
+      if (!categoryTotals[item.category]) {
+        categoryTotals[item.category] = 0;
+      }
+      categoryTotals[item.category] += item.quantity || 0;
+    });
+
+    // Display category summary
+    doc
+      .fontSize(11)
+      .font("Helvetica-Bold")
+      .text("Category Summary:", { underline: true })
+      .moveDown(0.5);
+
+    doc.fontSize(9).font("Helvetica");
+    Object.entries(categoryTotals).forEach(([category, total]) => {
+      const formattedCategory = category.replace(/_/g, " ").toUpperCase();
+      doc.text(`${formattedCategory}: ${total} units`, { indent: 20 });
+    });
+    doc.moveDown(1.5);
+
+    // Table headers
+    const tableTop = doc.y;
+    const colWidths = {
+      category: 80,
+      itemId: 50,
+      name: 110,
+      varId: 50,
+      color: 60,
+      size: 45,
+      pack: 45,
+      material: 60,
+      qty: 45,
+      price: 60,
+    };
+    const startX = 40;
+
+    // Draw header background
+    doc.rect(startX, tableTop, 765, 25).fillAndStroke("#059669", "#047857"); // Green theme for inventory
+
+    // Header text
+    doc.fontSize(9).font("Helvetica-Bold").fillColor("white");
+
+    let xPos = startX + 5;
+    doc.text("Category", xPos, tableTop + 7, {
+      width: colWidths.category - 10,
+    });
+    xPos += colWidths.category;
+    doc.text("Item ID", xPos, tableTop + 7, { width: colWidths.itemId - 10 });
+    xPos += colWidths.itemId;
+    doc.text("Name", xPos, tableTop + 7, { width: colWidths.name - 10 });
+    xPos += colWidths.name;
+    doc.text("Var ID", xPos, tableTop + 7, { width: colWidths.varId - 10 });
+    xPos += colWidths.varId;
+    doc.text("Color", xPos, tableTop + 7, { width: colWidths.color - 10 });
+    xPos += colWidths.color;
+    doc.text("Size", xPos, tableTop + 7, { width: colWidths.size - 10 });
+    xPos += colWidths.size;
+    doc.text("Pack", xPos, tableTop + 7, { width: colWidths.pack - 10 });
+    xPos += colWidths.pack;
+    doc.text("Material", xPos, tableTop + 7, {
+      width: colWidths.material - 10,
+    });
+    xPos += colWidths.material;
+    doc.text("Qty", xPos, tableTop + 7, { width: colWidths.qty - 10 });
+    xPos += colWidths.qty;
+    doc.text("Price (₹)", xPos, tableTop + 7, { width: colWidths.price - 10 });
+
+    let currentY = tableTop + 30;
+
+    // Table rows
+    doc.fontSize(8).font("Helvetica").fillColor("black");
+
+    stockData.forEach((item, index) => {
+      // Check if we need a new page
+      if (currentY > 520) {
+        doc.addPage();
+        currentY = 40;
+      }
+
+      // Alternate row background
+      if (index % 2 === 0) {
+        doc.rect(startX, currentY - 5, 765, 18).fill("#F0FDF4");
+        doc.fillColor("black");
+      }
+
+      // Format data
+      const category = (item.category || "N/A")
+        .replace(/_/g, " ")
+        .substring(0, 15);
+      const name = (item.name || "N/A").substring(0, 20);
+      const color = item.color || "-";
+      const size = item.size || "-";
+      const packSize = item.pack_size || "-";
+      const material = item.material || "-";
+      const qty =
+        item.quantity !== null && item.quantity !== undefined
+          ? item.quantity
+          : 0;
+      const price = item.current_price
+        ? `₹${parseFloat(item.current_price).toFixed(2)}`
+        : "-";
+
+      // Row data
+      xPos = startX + 5;
+      doc.text(category, xPos, currentY, {
+        width: colWidths.category - 10,
+        ellipsis: true,
+      });
+      xPos += colWidths.category;
+      doc.text(item.item_id || "-", xPos, currentY, {
+        width: colWidths.itemId - 10,
+      });
+      xPos += colWidths.itemId;
+      doc.text(name, xPos, currentY, {
+        width: colWidths.name - 10,
+        ellipsis: true,
+      });
+      xPos += colWidths.name;
+      doc.text(item.item_variation_id || "-", xPos, currentY, {
+        width: colWidths.varId - 10,
+      });
+      xPos += colWidths.varId;
+      doc.text(color, xPos, currentY, {
+        width: colWidths.color - 10,
+        ellipsis: true,
+      });
+      xPos += colWidths.color;
+      doc.text(size, xPos, currentY, { width: colWidths.size - 10 });
+      xPos += colWidths.size;
+      doc.text(packSize, xPos, currentY, { width: colWidths.pack - 10 });
+      xPos += colWidths.pack;
+      doc.text(material, xPos, currentY, {
+        width: colWidths.material - 10,
+        ellipsis: true,
+      });
+      xPos += colWidths.material;
+      doc.text(qty.toString(), xPos, currentY, { width: colWidths.qty - 10 });
+      xPos += colWidths.qty;
+      doc.text(price, xPos, currentY, { width: colWidths.price - 10 });
+
+      currentY += 18;
+    });
+
+    // Footer with page numbers
+    const pageCount = doc.bufferedPageRange().count;
+    for (let i = 0; i < pageCount; i++) {
+      doc.switchToPage(i);
+      doc
+        .fontSize(8)
+        .fillColor("gray")
+        .text(
+          `Page ${i + 1} of ${pageCount} | Available Stock Report`,
+          40,
+          doc.page.height - 40,
+          { align: "center", width: doc.page.width - 80 }
+        );
+    }
+
+    // Finalize PDF
+    doc.end();
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: "Error generating PDF",
+        error: error.message,
+      });
+    }
+  }
+}
+
+/**
+ * Generate and download available stock list as CSV
+ * @param {Array} stockData - Array of stock objects
+ * @param {Object} res - Express response object
+ */
+export function downloadAvailableStockCSV(stockData, res) {
+  try {
+    // Define CSV fields
+    const fields = [
+      { label: "Category", value: "category" },
+      { label: "Item ID", value: "item_id" },
+      { label: "Name", value: "name" },
+      { label: "Variation ID", value: "item_variation_id" },
+      { label: "Color", value: "color" },
+      { label: "Size", value: "size" },
+      { label: "Pack Size", value: "pack_size" },
+      { label: "Material", value: "material" },
+      { label: "Quantity", value: "quantity" },
+      { label: "Current Price (₹)", value: "current_price" },
+    ];
+
+    // Transform data to format category names
+    const formattedData = stockData.map((item) => ({
+      ...item,
+      category: (item.category || "").replace(/_/g, " ").toUpperCase(),
+      quantity:
+        item.quantity !== null && item.quantity !== undefined
+          ? item.quantity
+          : 0,
+      current_price: item.current_price
+        ? parseFloat(item.current_price).toFixed(2)
+        : "",
+    }));
+
+    // Configure parser
+    const json2csvParser = new Parser({
+      fields,
+      header: true,
+      defaultValue: "-",
+    });
+
+    // Convert to CSV
+    const csv = json2csvParser.parse(formattedData);
+
+    // Set response headers
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=available-stock-${Date.now()}.csv`
+    );
+
+    // Send CSV
+    res.status(200).send(csv);
+  } catch (error) {
+    console.error("Error generating CSV:", error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: "Error generating CSV",
+        error: error.message,
+      });
+    }
+  }
+}
+
+/**
+ * Generate and download offline sales list as PDF
+ * @param {Array} saleData - Array of sale objects with line items
+ * @param {Object} res - Express response object
+ */
+export function downloadOfflineSaleListPDF(saleData, res) {
+  try {
+    const doc = new PDFDocument({
+      margin: 40,
+      size: "A4",
+    });
+
+    // Set response headers
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=offline-sales-${Date.now()}.pdf`
+    );
+
+    // Pipe the PDF to response
+    doc.pipe(res);
+
+    // Group data by invoice
+    const invoiceMap = {};
+    saleData.forEach((row) => {
+      if (!invoiceMap[row.invoice_number]) {
+        invoiceMap[row.invoice_number] = {
+          invoice_number: row.invoice_number,
+          full_name: row.full_name,
+          mobile: row.mobile,
+          payment_type: row.payment_type,
+          total_amount: row.total_amount,
+          discount_applied: row.discount_applied,
+          amount_paid: row.amount_paid,
+          pending_amount: row.pending_amount,
+          created_at: row.created_at,
+          items: [],
+        };
+      }
+      invoiceMap[row.invoice_number].items.push({
+        item_type: row.item_type,
+        item_id: row.item_id,
+        item_variation_id: row.item_variation_id,
+        quantity: row.quantity,
+        price_at_sale: row.price_at_sale,
+        line_total: row.line_total,
+      });
+    });
+
+    const invoices = Object.values(invoiceMap);
+
+    // Title
+    doc
+      .fontSize(22)
+      .font("Helvetica-Bold")
+      .text("Offline Sales Report", { align: "center" })
+      .moveDown();
+
+    // Metadata
+    const totalRevenue = invoices.reduce(
+      (sum, inv) => sum + (parseFloat(inv.total_amount) || 0),
+      0
+    );
+    const totalPending = invoices.reduce(
+      (sum, inv) => sum + (parseFloat(inv.pending_amount) || 0),
+      0
+    );
+
+    doc
+      .fontSize(10)
+      .font("Helvetica")
+      .text(`Generated: ${new Date().toLocaleString()}`, { align: "right" })
+      .text(`Total Invoices: ${invoices.length}`, { align: "right" })
+      .text(`Total Revenue: ₹${totalRevenue.toFixed(2)}`, { align: "right" })
+      .text(`Total Pending: ₹${totalPending.toFixed(2)}`, { align: "right" })
+      .moveDown(2);
+
+    // Process each invoice
+    invoices.forEach((invoice, invIndex) => {
+      // Check if we need a new page (reserve space for invoice + items)
+      const requiredSpace = 120 + invoice.items.length * 18;
+      if (doc.y + requiredSpace > 700) {
+        doc.addPage();
+      }
+
+      // Invoice header background
+      const headerY = doc.y;
+      doc.rect(50, headerY, 495, 80).fillAndStroke("#7C3AED", "#6D28D9"); // Purple theme for sales
+
+      // Invoice header details
+      doc.fontSize(11).font("Helvetica-Bold").fillColor("white");
+
+      doc.text(`Invoice #${invoice.invoice_number}`, 60, headerY + 10);
+
+      doc
+        .fontSize(9)
+        .font("Helvetica")
+        .text(`Customer: ${invoice.full_name || "N/A"}`, 60, headerY + 28)
+        .text(`Mobile: ${invoice.mobile || "N/A"}`, 60, headerY + 42)
+        .text(
+          `Date: ${new Date(invoice.created_at).toLocaleString()}`,
+          60,
+          headerY + 56
+        );
+
+      doc
+        .text(`Payment: ${invoice.payment_type || "N/A"}`, 300, headerY + 28)
+        .text(
+          `Total: ₹${parseFloat(invoice.total_amount || 0).toFixed(2)}`,
+          300,
+          headerY + 42
+        )
+        .text(
+          `Paid: ₹${parseFloat(invoice.amount_paid || 0).toFixed(2)}`,
+          300,
+          headerY + 56
+        );
+
+      doc
+        .text(
+          `Discount: ₹${parseFloat(invoice.discount_applied || 0).toFixed(2)}`,
+          440,
+          headerY + 28
+        )
+        .text(
+          `Pending: ₹${parseFloat(invoice.pending_amount || 0).toFixed(2)}`,
+          440,
+          headerY + 42
+        );
+
+      let currentY = headerY + 90;
+
+      // Items table header
+      const itemTableTop = currentY;
+      doc.rect(50, itemTableTop, 495, 20).fillAndStroke("#4B5563", "#374151");
+
+      doc
+        .fontSize(9)
+        .font("Helvetica-Bold")
+        .fillColor("white")
+        .text("Type", 60, itemTableTop + 5, { width: 80 })
+        .text("Item ID", 145, itemTableTop + 5, { width: 50 })
+        .text("Var ID", 200, itemTableTop + 5, { width: 50 })
+        .text("Qty", 255, itemTableTop + 5, { width: 35 })
+        .text("Price", 295, itemTableTop + 5, { width: 60 })
+        .text("Line Total", 360, itemTableTop + 5, { width: 70 });
+
+      currentY = itemTableTop + 25;
+
+      // Items rows
+      doc.fontSize(8).font("Helvetica").fillColor("black");
+
+      invoice.items.forEach((item, itemIndex) => {
+        if (itemIndex % 2 === 0) {
+          doc.rect(50, currentY - 3, 495, 16).fill("#F3F4F6");
+          doc.fillColor("black");
+        }
+
+        const itemType = (item.item_type || "N/A").replace(/_/g, " ");
+
+        doc
+          .text(itemType, 60, currentY, { width: 80, ellipsis: true })
+          .text(item.item_id || "-", 145, currentY, { width: 50 })
+          .text(item.item_variation_id || "-", 200, currentY, { width: 50 })
+          .text(item.quantity || 0, 255, currentY, { width: 35 })
+          .text(
+            `₹${parseFloat(item.price_at_sale || 0).toFixed(2)}`,
+            295,
+            currentY,
+            { width: 60 }
+          )
+          .text(
+            `₹${parseFloat(item.line_total || 0).toFixed(2)}`,
+            360,
+            currentY,
+            { width: 70 }
+          );
+
+        currentY += 16;
+      });
+
+      // Add spacing between invoices
+      doc.moveDown(2);
+    });
+
+    // Footer with page numbers
+    const pageCount = doc.bufferedPageRange().count;
+    for (let i = 0; i < pageCount; i++) {
+      doc.switchToPage(i);
+      doc
+        .fontSize(8)
+        .fillColor("gray")
+        .text(
+          `Page ${i + 1} of ${pageCount} | Offline Sales Report`,
+          50,
+          doc.page.height - 50,
+          { align: "center", width: 495 }
+        );
+    }
+
+    // Finalize PDF
+    doc.end();
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: "Error generating PDF",
+        error: error.message,
+      });
+    }
+  }
+}
+
+/**
+ * Generate and download offline sales list as CSV
+ * @param {Array} saleData - Array of sale objects with line items
+ * @param {Object} res - Express response object
+ */
+export function downloadOfflineSaleListCSV(saleData, res) {
+  try {
+    // Define CSV fields (flat structure - one row per line item)
+    const fields = [
+      { label: "Invoice Number", value: "invoice_number" },
+      { label: "Customer Name", value: "full_name" },
+      { label: "Mobile", value: "mobile" },
+      { label: "Payment Type", value: "payment_type" },
+      { label: "Total Amount (₹)", value: "total_amount" },
+      { label: "Discount Applied (₹)", value: "discount_applied" },
+      { label: "Amount Paid (₹)", value: "amount_paid" },
+      { label: "Pending Amount (₹)", value: "pending_amount" },
+      { label: "Date", value: "created_at" },
+      { label: "Item Type", value: "item_type" },
+      { label: "Item ID", value: "item_id" },
+      { label: "Variation ID", value: "item_variation_id" },
+      { label: "Quantity", value: "quantity" },
+      { label: "Price at Sale (₹)", value: "price_at_sale" },
+      { label: "Line Total (₹)", value: "line_total" },
+    ];
+
+    // Transform data to format values
+    const formattedData = saleData.map((item) => ({
+      invoice_number: item.invoice_number || "",
+      full_name: item.full_name || "N/A",
+      mobile: item.mobile || "N/A",
+      payment_type: item.payment_type || "N/A",
+      total_amount: item.total_amount
+        ? parseFloat(item.total_amount).toFixed(2)
+        : "0.00",
+      discount_applied: item.discount_applied
+        ? parseFloat(item.discount_applied).toFixed(2)
+        : "0.00",
+      amount_paid: item.amount_paid
+        ? parseFloat(item.amount_paid).toFixed(2)
+        : "0.00",
+      pending_amount: item.pending_amount
+        ? parseFloat(item.pending_amount).toFixed(2)
+        : "0.00",
+      created_at: item.created_at
+        ? new Date(item.created_at).toLocaleString()
+        : "",
+      item_type: item.item_type
+        ? item.item_type.replace(/_/g, " ").toUpperCase()
+        : "N/A",
+      item_id: item.item_id || "-",
+      item_variation_id: item.item_variation_id || "-",
+      quantity: item.quantity || 0,
+      price_at_sale: item.price_at_sale
+        ? parseFloat(item.price_at_sale).toFixed(2)
+        : "0.00",
+      line_total: item.line_total
+        ? parseFloat(item.line_total).toFixed(2)
+        : "0.00",
+    }));
+
+    // Configure parser
+    const json2csvParser = new Parser({
+      fields,
+      header: true,
+    });
+
+    // Convert to CSV
+    const csv = json2csvParser.parse(formattedData);
+
+    // Set response headers
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=offline-sales-${Date.now()}.csv`
+    );
+
+    // Send CSV
+    res.status(200).send(csv);
+  } catch (error) {
+    console.error("Error generating CSV:", error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: "Error generating CSV",
+        error: error.message,
+      });
+    }
+  }
+}
+
 export async function updateAdminPermission(
   userId,
   permissionKey,

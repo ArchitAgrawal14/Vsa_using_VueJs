@@ -477,8 +477,7 @@ export default {
           title: 'Offline Sales',
           headerIcon: 'fas fa-shopping-bag',
           icon: 'fas fa-receipt',
-          description: 'Download the complete list of items sold offline in PDF format.',
-          endpoint: '/downloadOfflineSaleList',
+          description: 'Download the complete list of items sold offline in PDF or CSV format.',
           endpoints: {
             pdf: '/vsa/download-offline-sale-list',
             csv: '/vsa/download-offline-sale-list-csv'

@@ -2291,6 +2291,332 @@ app.get("/vsa/download-online-user-data-csv", middlewares.verifyToken, async (re
   }
 });
 
+// Endpoint to download available stock list in PDF
+app.get("/vsa/download-available-stock", middlewares.verifyToken, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const [results] = await db.query(`
+      SELECT 
+        'skates_and_boots' AS category,
+        sb.item_id,
+        sb.name,
+        sbv.item_variation_id,
+        sbv.color,
+        sbv.size,
+        NULL AS pack_size,
+        NULL AS material,
+        sbv.quantity,
+        sbv.current_price
+      FROM skates_and_boots sb
+      LEFT JOIN skates_and_boots_variation sbv ON sb.item_id = sbv.item_id
+
+      UNION ALL
+
+      SELECT 
+        'wheels' AS category,
+        w.item_id,
+        w.name,
+        wv.item_variation_id,
+        wv.color,
+        wv.size,
+        NULL AS pack_size,
+        NULL AS material,
+        wv.quantity,
+        wv.current_price
+      FROM wheels w
+      LEFT JOIN wheels_variation wv ON w.item_id = wv.item_id
+
+      UNION ALL
+
+      SELECT 
+        'helmets' AS category,
+        h.item_id,
+        h.name,
+        hv.item_variation_id,
+        hv.color,
+        hv.size,
+        NULL AS pack_size,
+        NULL AS material,
+        hv.quantity,
+        hv.current_price
+      FROM helmets h
+      LEFT JOIN helmets_variation hv ON h.item_id = hv.item_id
+
+      UNION ALL
+
+      SELECT 
+        'bearings' AS category,
+        b.item_id,
+        b.name,
+        bv.item_variation_id,
+        NULL AS color,
+        bv.size,
+        bv.pack_size,
+        bv.material,
+        bv.quantity,
+        bv.current_price
+      FROM bearings b
+      LEFT JOIN bearings_variation bv ON b.item_id = bv.item_id
+
+      UNION ALL
+
+      SELECT 
+        'accessories' AS category,
+        a.item_id,
+        a.name,
+        av.item_variation_id,
+        av.color,
+        av.size,
+        NULL AS pack_size,
+        NULL AS material,
+        av.quantity,
+        av.current_price
+      FROM accessories a
+      LEFT JOIN accessories_variation av ON a.item_id = av.item_id
+    `);
+
+    admin.downloadAvailableStockPDF(results, res);
+
+  } catch (error) {
+    console.error("Error fetching available stock:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching available stock",
+      error: error.message
+    });
+  }
+});
+
+// Endpoint to download available stock list in CSV
+app.get("/vsa/download-available-stock-csv", middlewares.verifyToken, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const [results] = await db.query(`
+      SELECT 
+        'skates_and_boots' AS category,
+        sb.item_id,
+        sb.name,
+        sbv.item_variation_id,
+        sbv.color,
+        sbv.size,
+        NULL AS pack_size,
+        NULL AS material,
+        sbv.quantity,
+        sbv.current_price
+      FROM skates_and_boots sb
+      LEFT JOIN skates_and_boots_variation sbv ON sb.item_id = sbv.item_id
+
+      UNION ALL
+
+      SELECT 
+        'wheels' AS category,
+        w.item_id,
+        w.name,
+        wv.item_variation_id,
+        wv.color,
+        wv.size,
+        NULL AS pack_size,
+        NULL AS material,
+        wv.quantity,
+        wv.current_price
+      FROM wheels w
+      LEFT JOIN wheels_variation wv ON w.item_id = wv.item_id
+
+      UNION ALL
+
+      SELECT 
+        'helmets' AS category,
+        h.item_id,
+        h.name,
+        hv.item_variation_id,
+        hv.color,
+        hv.size,
+        NULL AS pack_size,
+        NULL AS material,
+        hv.quantity,
+        hv.current_price
+      FROM helmets h
+      LEFT JOIN helmets_variation hv ON h.item_id = hv.item_id
+
+      UNION ALL
+
+      SELECT 
+        'bearings' AS category,
+        b.item_id,
+        b.name,
+        bv.item_variation_id,
+        NULL AS color,
+        bv.size,
+        bv.pack_size,
+        bv.material,
+        bv.quantity,
+        bv.current_price
+      FROM bearings b
+      LEFT JOIN bearings_variation bv ON b.item_id = bv.item_id
+
+      UNION ALL
+
+      SELECT 
+        'accessories' AS category,
+        a.item_id,
+        a.name,
+        av.item_variation_id,
+        av.color,
+        av.size,
+        NULL AS pack_size,
+        NULL AS material,
+        av.quantity,
+        av.current_price
+      FROM accessories a
+      LEFT JOIN accessories_variation av ON a.item_id = av.item_id
+    `);
+
+    admin.downloadAvailableStockCSV(results, res);
+
+  } catch (error) {
+    console.error("Error fetching available stock:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching available stock",
+      error: error.message
+    });
+  }
+});
+
+// Endpoint to download offline users data in PDF
+app.get("/vsa/download-offline-sale-list", middlewares.verifyToken, async (req, res) => {
+  try {
+    console.log("Generating offline sale data report...");
+
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const [saleData] = await db.query(`
+      SELECT
+        iso.invoice_number,
+        iso.full_name,
+        iso.mobile,
+        iso.payment_type,
+        iso.total_amount,
+        iso.discount_applied,
+        iso.amount_paid,
+        iso.pending_amount,
+        iso.created_at,
+
+        isoi.item_type,
+        isoi.item_id,
+        isoi.item_variation_id,
+        isoi.quantity,
+        isoi.price_at_sale,
+        (isoi.quantity * isoi.price_at_sale) AS line_total
+
+      FROM item_sold_offline AS iso
+      INNER JOIN item_sold_offline_items AS isoi
+        ON iso.id = isoi.item_sold_offline_id
+
+      ORDER BY iso.created_at DESC, iso.invoice_number
+    `);
+
+    if (!saleData || saleData.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No offline sale data found",
+      });
+    }
+
+    // PDF / CSV / Excel generator
+    admin.downloadOfflineSaleListPDF(saleData, res);
+
+  } catch (error) {
+    console.error("Error fetching offline sale list:", error);
+
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: "Error fetching offline sale list",
+        error: error.message,
+      });
+    }
+  }
+});
+
+// Endpoint to download offline users data in CSV
+app.get("/vsa/download-offline-sale-list-csv", middlewares.verifyToken, async (req, res) => {
+  try {
+    console.log("Generating offline sale data report...");
+
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const [saleData] = await db.query(`
+      SELECT
+        iso.invoice_number,
+        iso.full_name,
+        iso.mobile,
+        iso.payment_type,
+        iso.total_amount,
+        iso.discount_applied,
+        iso.amount_paid,
+        iso.pending_amount,
+        iso.created_at,
+
+        isoi.item_type,
+        isoi.item_id,
+        isoi.item_variation_id,
+        isoi.quantity,
+        isoi.price_at_sale,
+        (isoi.quantity * isoi.price_at_sale) AS line_total
+
+      FROM item_sold_offline AS iso
+      INNER JOIN item_sold_offline_items AS isoi
+        ON iso.id = isoi.item_sold_offline_id
+
+      ORDER BY iso.created_at DESC, iso.invoice_number
+    `);
+
+    if (!saleData || saleData.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No offline sale data found",
+      });
+    }
+
+    // CSV / Excel generator
+    admin.downloadOfflineSaleListCSV(saleData, res);
+
+  } catch (error) {
+    console.error("Error fetching offline sale list:", error);
+
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: "Error fetching offline sale list",
+        error: error.message,
+      });
+    }
+  }
+});
+
 // Multer config to upload image/files
 const storage = multer.diskStorage({
   destination: path.join(__dirname, "public/images/students"),

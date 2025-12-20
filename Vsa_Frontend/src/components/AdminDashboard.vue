@@ -182,7 +182,7 @@
               <h3 class="text-xl font-bold text-white mb-2">{{ operation.title }}</h3>
               <p class="text-gray-300 text-sm mb-6 leading-relaxed">{{ operation.description }}</p>
 
-              <div v-if="operation.id === 1 || operation.id === 7 || operation.id === 8">
+              <div v-if="operation.id === 1 || operation.id === 7 || operation.id === 8 || operation.id === 9">
                 <!-- Single button for operations with links -->
                 <a :href="operation.link"
                   class="inline-flex items-center justify-center w-full px-4 py-3 bg-white text-black font-medium rounded-xl hover:bg-gray-800 hover:text-white transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl">
@@ -510,6 +510,17 @@ export default {
           buttonIcon: 'fas fa-plus-circle',
           buttonText: 'Update',
           permission: 'show_manage_dashboard'
+        },
+        {
+          id: 9,
+          title: 'Manage Policy',
+          headerIcon: 'fas fa-boxes',
+          icon: 'fas fa-clipboard-list',
+          description: 'Manage and edit policies',
+          link: '/vsa/admin/update-existing-policy',
+          buttonIcon: 'fas fa-plus-circle',
+          buttonText: 'Update',
+          permission: 'show_manage_policy'
         }
       ],
       studentManagement: [

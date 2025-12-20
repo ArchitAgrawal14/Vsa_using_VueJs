@@ -276,8 +276,8 @@ async function isUserAdmin(password, user, isAdmin, res) {
               show_online_users, show_available_stocks, show_offline_sales,
               show_send_mails, show_new_student, show_attendance, show_manage_students,
               show_students_achievements, show_attendance_records, show_news_letter,
-              show_manage_admins, show_manage_dashboard
-            ) VALUES (?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+              show_manage_admins, show_manage_dashboard, show_manage_policy
+            ) VALUES (?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
           `,
         [user.user_id]
       );
@@ -299,6 +299,7 @@ async function isUserAdmin(password, user, isAdmin, res) {
         show_attendance_records: false,
         show_news_letter: false,
         show_manage_admins: false,
+        show_manage_policy: false,
       };
     }
   }
@@ -542,51 +543,6 @@ app.post("/vsa/google-auth-exchange", async (req, res) => {
     });
   }
 });
-
-const staticContentConfig = {
-  faq: {
-    table: "faqs",
-    orderBy: "id",
-    errorMessage: "Failed to fetch FAQs",
-    useWrappedResponse: false,
-  },
-  "privacy-policy": {
-    table: "privacy_policies",
-    orderBy: "id",
-    errorMessage: "Failed to fetch privacy policy",
-    useWrappedResponse: false,
-  },
-  "refund-policy": {
-    table: "refund_policies",
-    orderBy: "id",
-    errorMessage: "Failed to fetch refund policy",
-    useWrappedResponse: false,
-  },
-  "return-policy": {
-    table: "return_policies",
-    orderBy: "step_number",
-    errorMessage: "Failed to fetch return policy",
-    useWrappedResponse: false,
-  },
-  "shipping-policy": {
-    table: "shipping_policies",
-    orderBy: "id",
-    errorMessage: "Failed to fetch shipping policy",
-    useWrappedResponse: false,
-  },
-  "terms-conditions": {
-    table: "terms_and_conditions",
-    orderBy: "id",
-    errorMessage: "Failed to fetch terms and conditions",
-    useWrappedResponse: false,
-  },
-  "cancellation-refunds": {
-    table: "cancellation_refunds",
-    orderBy: "id",
-    errorMessage: "Server error",
-    useWrappedResponse: true,
-  },
-};
 
 // Endpoint to fetch all the data for user dashboard and also used in manage dashboard for admin page
 app.get("/vsa/dashboard", async (req, res) => {
@@ -1354,7 +1310,8 @@ app.get(
         a.show_attendance_records,
         a.show_news_letter,
         a.show_manage_admins,
-        a.show_manage_dashboard
+        a.show_manage_dashboard,
+        a.show_manage_policy
       FROM users u
       LEFT JOIN admin_access a ON u.user_id = a.user_id
       ORDER BY u.created_at DESC
@@ -5919,7 +5876,299 @@ app.delete("/vsa/admin/delete-achievement-image/:imageId",
     }
 });
 
+const staticContentConfig = {
+  faq: {
+    table: "faqs",
+    orderBy: "id",
+    errorMessage: "Failed to fetch FAQs",
+    useWrappedResponse: false,
+  },
+  "privacy-policy": {
+    table: "privacy_policies",
+    orderBy: "id",
+    errorMessage: "Failed to fetch privacy policy",
+    useWrappedResponse: false,
+  },
+  "refund-policy": {
+    table: "refund_policies",
+    orderBy: "id",
+    errorMessage: "Failed to fetch refund policy",
+    useWrappedResponse: false,
+  },
+  "return-policy": {
+    table: "return_policies",
+    orderBy: "step_number",
+    errorMessage: "Failed to fetch return policy",
+    useWrappedResponse: false,
+  },
+  "shipping-policy": {
+    table: "shipping_policies",
+    orderBy: "id",
+    errorMessage: "Failed to fetch shipping policy",
+    useWrappedResponse: false,
+  },
+  "terms-conditions": {
+    table: "terms_and_conditions",
+    orderBy: "id",
+    errorMessage: "Failed to fetch terms and conditions",
+    useWrappedResponse: false,
+  },
+  "cancellation-refunds": {
+    table: "cancellation_refunds",
+    orderBy: "id",
+    errorMessage: "Server error",
+    useWrappedResponse: true,
+  },
+};
+
+// Endpoint to get all the data of the policies
+app.get(
+  "/vsa/admin/get-all-policies-data",
+  middlewares.verifyToken,
+  async (req, res) => {
+    try {
+      // Check admin access
+      if (!req.user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Admins only.",
+        });
+      }
+
+      // Fetch all policies in parallel
+      const [
+        [privacyPolicies],
+        [refundPolicies],
+        [returnPolicies],
+        [shippingPolicies],
+        [termsAndConditions],
+        [cancellationRefunds],
+      ] = await Promise.all([
+        db.query("SELECT id, heading, content FROM privacy_policies"),
+        db.query("SELECT id, heading, description FROM refund_policies"),
+        db.query("SELECT id, step_number, description FROM return_policies"),
+        db.query("SELECT id, content FROM shipping_policies"),
+        db.query("SELECT id, title, content FROM terms_and_conditions"),
+        db.query("SELECT id, title, content FROM cancellation_refunds"),
+      ]);
+
+      return res.status(200).json({
+        success: true,
+        message: "Policies fetched successfully",
+        privacyPolicies,
+        refundPolicies,
+        returnPolicies,
+        shippingPolicies,
+        termsAndConditions,
+        cancellationRefunds,
+      });
+    } catch (error) {
+      console.error("Error fetching policies:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: "Policies fetching failed",
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Endpoint to update existing policies
+app.put(
+  "/vsa/admin/update-existing-policy",
+  middlewares.verifyToken,
+  async (req, res) => {
+    try {
+      // Check admin access
+      if (!req.user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Admins only.",
+        });
+      }
+
+      const {
+        policyType,
+        id,
+        // Privacy Policy fields
+        heading,
+        content,
+        // Refund Policy fields
+        description,
+        // Return Policy fields
+        step_number,
+        // Terms and Conditions fields
+        title,
+      } = req.body;
+
+      // Validate required fields
+      if (!policyType || !id) {
+        return res.status(400).json({
+          success: false,
+          message: "Policy type and ID are required",
+        });
+      }
+
+      let query = "";
+      let params = [];
+      let updateFields = [];
+
+      // Build dynamic UPDATE query based on policy type and provided fields
+      switch (policyType) {
+        case "privacy_policies":
+          if (heading) {
+            updateFields.push("heading = ?");
+            params.push(heading);
+          }
+          if (content) {
+            updateFields.push("content = ?");
+            params.push(content);
+          }
+          
+          if (updateFields.length === 0) {
+            return res.status(400).json({
+              success: false,
+              message: "At least one field (heading or content) must be provided",
+            });
+          }
+
+          query = `UPDATE privacy_policies SET ${updateFields.join(", ")} WHERE id = ?`;
+          params.push(id);
+          break;
+
+        case "refund_policies":
+          if (heading) {
+            updateFields.push("heading = ?");
+            params.push(heading);
+          }
+          if (description) {
+            updateFields.push("description = ?");
+            params.push(description);
+          }
+
+          if (updateFields.length === 0) {
+            return res.status(400).json({
+              success: false,
+              message: "At least one field (heading or description) must be provided",
+            });
+          }
+
+          query = `UPDATE refund_policies SET ${updateFields.join(", ")} WHERE id = ?`;
+          params.push(id);
+          break;
+
+        case "return_policies":
+          if (step_number !== undefined) {
+            updateFields.push("step_number = ?");
+            params.push(step_number);
+          }
+          if (description) {
+            updateFields.push("description = ?");
+            params.push(description);
+          }
+
+          if (updateFields.length === 0) {
+            return res.status(400).json({
+              success: false,
+              message: "At least one field (step_number or description) must be provided",
+            });
+          }
+
+          query = `UPDATE return_policies SET ${updateFields.join(", ")} WHERE id = ?`;
+          params.push(id);
+          break;
+
+        case "shipping_policies":
+          if (!content) {
+            return res.status(400).json({
+              success: false,
+              message: "Content is required for shipping policies",
+            });
+          }
+
+          query = "UPDATE shipping_policies SET content = ? WHERE id = ?";
+          params = [content, id];
+          break;
+
+        case "terms_and_conditions":
+          if (title) {
+            updateFields.push("title = ?");
+            params.push(title);
+          }
+          if (content) {
+            updateFields.push("content = ?");
+            params.push(content);
+          }
+
+          if (updateFields.length === 0) {
+            return res.status(400).json({
+              success: false,
+              message: "At least one field (title or content) must be provided",
+            });
+          }
+
+          query = `UPDATE terms_and_conditions SET ${updateFields.join(", ")} WHERE id = ?`;
+          params.push(id);
+          break;
+
+        case "cancellation_refunds":
+          if (title) {
+            updateFields.push("title = ?");
+            params.push(title);
+          }
+          if (content) {
+            updateFields.push("content = ?");
+            params.push(content);
+          }
+
+          if (updateFields.length === 0) {
+            return res.status(400).json({
+              success: false,
+              message: "At least one field (title or content) must be provided",
+            });
+          }
+
+          query = `UPDATE cancellation_refunds SET ${updateFields.join(", ")} WHERE id = ?`;
+          params.push(id);
+          break;
+
+        default:
+          return res.status(400).json({
+            success: false,
+            message: "Invalid policy type. Valid types: privacy_policies, refund_policies, return_policies, shipping_policies, terms_and_conditions, cancellation_refunds",
+          });
+      }
+
+      // Execute the update query
+      const [result] = await db.query(query, params);
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          success: false,
+          message: `Policy with ID ${id} not found in ${policyType}`,
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: `${policyType} updated successfully`,
+        updatedId: id,
+        affectedRows: result.affectedRows,
+      });
+    } catch (error) {
+      console.error("Error updating policy:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: "Policy update failed",
+        error: error.message,
+      });
+    }
+  }
+);
 // Admin functionality endpoints ends here
+
 
 app.get("/vsa/:policyType", async (req, res) => {
   const { policyType } = req.params;

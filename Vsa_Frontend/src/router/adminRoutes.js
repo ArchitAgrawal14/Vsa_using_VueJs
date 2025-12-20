@@ -8,6 +8,7 @@ import ManageAcademyAchievements from "@/components/admin_components/ManageAcade
 import ManageAchievements from "@/components/admin_components/ManageAchievements.vue"
 import ManageAdmins from "@/components/admin_components/ManageAdmins.vue"
 import ManageDashboard from "@/components/admin_components/ManageDashboard.vue"
+import ManageExistingPolicies from "@/components/admin_components/ManageExistingPolicies.vue"
 import ManageShop from "@/components/admin_components/ManageShop.vue"
 import ManageStudents from "@/components/admin_components/ManageStudents.vue"
 import RegisterNewStudent from "@/components/admin_components/RegisterNewStudent.vue"
@@ -82,5 +83,10 @@ export default [
     path: '/vsa/admin/edit/academy-achievements',
     name: 'ManageAcademyAchievements',
     component: ManageAcademyAchievements,
+  },
+  {
+    path: '/vsa/admin/update-existing-policy',
+    name: 'ManageExistingPolicies',
+    component: ManageExistingPolicies,
   }
 ]

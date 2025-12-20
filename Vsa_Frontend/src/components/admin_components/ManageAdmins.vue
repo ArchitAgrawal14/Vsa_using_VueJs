@@ -247,6 +247,7 @@ export default {
         { key: 'show_news_letter', label: 'Newsletter' },
         { key: 'show_manage_admins', label: 'Manage Admins' },
         { key: 'show_manage_dashboard', label: 'Manage Dashboard' },
+        { key: 'show_manage_policy', label: 'Manage Policies' },
       ],
     }
   },

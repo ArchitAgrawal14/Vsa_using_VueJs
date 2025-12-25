@@ -17,6 +17,12 @@
             </a>
           </li>
           <li class="nav-item">
+            <a @click="navigateTo('/my-skater-detail')" class="nav-link">
+              <i class="icon-user"></i>
+              <span>My Skater</span>
+            </a>
+          </li>
+          <li class="nav-item">
             <a @click="navigateTo('/join-us')" class="nav-link">
               <i class="icon-users"></i>
               <span>Join Us</span>
@@ -86,6 +92,12 @@
             <a @click="navigateToMobile('/')" class="mobile-nav-link">
               <i class="icon-home"></i>
               <span>Home</span>
+            </a>
+          </li>
+          <li class="mobile-nav-item">
+            <a @click="navigateToMobile('/my-skater-detail')" class="mobile-nav-link">
+              <i class="icon-user"></i>
+              <span>My Skater</span>
             </a>
           </li>
           <li class="mobile-nav-item">

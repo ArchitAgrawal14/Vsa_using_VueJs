@@ -1267,6 +1267,86 @@ app.post("/vsa/newsletter-subscribe", async (req, res) => {
   }
 });
 
+app.get("/vsa/my-skater-details" , middlewares.verifyToken, async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Please login to continue.",
+      });
+    }
+
+    const id = req.user?.userId;
+    const email = req.user?.email;
+
+    // Get user's user_id as it the key used as foriegn key in students table 
+    const [userRows] = await db.query(`SELECT user_id FROM users WHERE email = ? AND id = ?`, [email, id]);
+
+    if(userRows.length === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Please Try again later.",
+      });
+    }
+
+    const usersUserId = userRows[0].user_id;
+    // Get the students + address associated to this user
+    const [students] = await db.query(
+      `SELECT 
+        s.*,
+        sa.address_line1,
+        sa.address_line2,
+        sa.city,
+        sa.state,
+        sa.postal_code,
+        sa.country
+      FROM students s
+      LEFT JOIN student_address sa 
+        ON s.student_id = sa.student_id
+      WHERE s.users_user_id = ?`,
+      [usersUserId]
+    );
+
+    if(students.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No skater data exists with the logged in email, Join us to continue",
+      });
+    }
+
+    // Get the address entered for this particular student
+    const studentIds = students.map(s => s.student_id);
+    const [fees] = await db.query(
+      `SELECT student_id, transaction_id, amount_paid, payment_mode, status, payment_date 
+      FROM student_fee WHERE student_id IN (?)`, [studentIds]);
+      
+    const [attendance] = await db.query(
+      `SELECT student_id, status, attendance_date FROM students_attendance WHERE student_id IN (?)
+      AND MONTH(attendance_date) = MONTH(CURRENT_DATE()) 
+      AND YEAR(attendance_date) = YEAR(CURRENT_DATE())`, [studentIds]);
+    // Group fees and attendance under each student
+    const groupedData = students.map(student => {
+      return {
+        ...student,
+        fees: fees.filter(f => f.student_id === student.student_id),
+        attendance: attendance.filter(a => a.student_id === student.student_id),
+      };
+    });
+    return res.status(200).json({
+      success: true,
+      message : "Skaters data fetched successfully",
+      data: groupedData
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
+  }
+});
+
 // Admin functionlaity endpoints starts here
 app.get(
   "/vsa/admin/manage-admins",

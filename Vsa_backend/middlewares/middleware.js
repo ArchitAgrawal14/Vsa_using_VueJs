@@ -54,7 +54,7 @@ const verifyToken = (req, res, next) => {
     console.error('Token verification error:', error.message);
     return res.status(401).json({
       success: false,
-      message: 'Invalid token, try re-login '
+      message: 'Try re-login or login to continue'
     });
   }
 };

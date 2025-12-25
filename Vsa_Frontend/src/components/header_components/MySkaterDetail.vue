@@ -213,7 +213,7 @@
 import InfoItem from './InfoItem.vue';
 
 export default {
-  name: 'MySkaters',
+  name: 'MySkaterDetail',
   components: {
     InfoItem
   },

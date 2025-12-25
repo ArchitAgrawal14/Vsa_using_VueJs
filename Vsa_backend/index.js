@@ -117,7 +117,8 @@ app.post(
       );
 
       verifyUserEmail(email);
-
+      // Update the students table if the user has already registered student in offline mode
+      await updateUsersUserIdForStudents(email, userId);
       return res.status(201).json({
         success: true,
         message:
@@ -174,8 +175,12 @@ app.post(
         }
 
         if (user.is_admin === 1) {
+          // Update the students table if an existing user has already registered student
+          await updateUsersUserIdForStudents(email, user.user_id);
           return await isUserAdmin(password, user, true, res);
         } else {
+          // Update the students table if an existing user has already registered student
+          await updateUsersUserIdForStudents(email, user.user_id);
           return await isUserAdmin(password, user, false, res);
         }
       } else {
@@ -544,6 +549,17 @@ app.post("/vsa/google-auth-exchange", async (req, res) => {
     });
   }
 });
+
+// Function to update usersUserId in students table for login and /signup scenario
+async function updateUsersUserIdForStudents(email, userId) {
+  await db.query(
+    `UPDATE students 
+     SET users_user_id = ?
+     WHERE email = ?
+     AND users_user_id IS NULL`,
+    [userId, email]
+  );
+}
 
 // Endpoint to fetch all the data for user dashboard and also used in manage dashboard for admin page
 app.get("/vsa/dashboard", async (req, res) => {
@@ -1267,7 +1283,7 @@ app.post("/vsa/newsletter-subscribe", async (req, res) => {
   }
 });
 
-app.get("/vsa/my-skater-details" , middlewares.verifyToken, async (req, res) => {
+app.get("/vsa/my-skater-details", middlewares.verifyToken, async (req, res) => {
   try {
     if (!req.user) {
       return res.status(403).json({

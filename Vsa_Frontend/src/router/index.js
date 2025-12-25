@@ -57,16 +57,26 @@ const routes = [
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes,
-  // ✅ Scroll to top on every route change
+  routes,  
   scrollBehavior(to, from, savedPosition) {
-    // if browser's back/forward navigation, use saved position
-    if (savedPosition) {
-      return savedPosition
-    } else {
-      return { top: 0 }
-    }
+  if (savedPosition) {
+    return savedPosition
   }
+
+  if (to.hash) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          el: to.hash,
+          behavior: 'smooth'
+        })
+      }, 400) // allow DOM + images to render
+    })
+  }
+
+  return { top: 0 }
+}
+
 })
 
 // Navigation guard

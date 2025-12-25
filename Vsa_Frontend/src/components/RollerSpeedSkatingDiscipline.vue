@@ -58,11 +58,13 @@
                     </p>
                     <div class="flex flex-col sm:flex-row gap-4 justify-center">
                         <button
-                            class="px-8 py-4 bg-black text-white rounded-full text-lg font-semibold hover:bg-gray-800 transition-all transform hover:scale-105">
+                            class="px-8 py-4 bg-black text-white rounded-full text-lg font-semibold hover:bg-gray-800 transition-all transform hover:scale-105"
+                            @click="navigateTo('/join-us')">
                             {{ hero.primaryCTA }}
                         </button>
                         <button
-                            class="px-8 py-4 bg-white text-black border-2 border-black rounded-full text-lg font-semibold hover:bg-gray-50 transition-all transform hover:scale-105">
+                            class="px-8 py-4 bg-white text-black border-2 border-black rounded-full text-lg font-semibold hover:bg-gray-50 transition-all transform hover:scale-105"
+                            @click="navigateTo('/#programs')" >
                             {{ hero.secondaryCTA }}
                         </button>
                     </div>

@@ -80,10 +80,12 @@
                     </p>
                     <div class="flex flex-col sm:flex-row gap-4 justify-center">
                         <button
+                            @click="navigateTo('/join-us')"                        
                             class="px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-full text-lg font-semibold hover:from-blue-700 hover:to-cyan-700 transition-all transform hover:scale-105 shadow-xl hover:shadow-2xl">
                             {{ hero.primaryCTA }}
                         </button>
                         <button
+                            @click="navigateTo('/#programs')"
                             class="px-8 py-4 bg-white/80 backdrop-blur-sm text-blue-700 border-2 border-blue-400 rounded-full text-lg font-semibold hover:bg-white transition-all transform hover:scale-105 shadow-lg">
                             {{ hero.secondaryCTA }}
                         </button>

@@ -248,6 +248,7 @@ export default {
         { key: 'show_manage_admins', label: 'Manage Admins' },
         { key: 'show_manage_dashboard', label: 'Manage Dashboard' },
         { key: 'show_manage_policy', label: 'Manage Policies' },
+        { key: 'show_manage_disciplines', label: 'Manage Disciplines' },
       ],
     }
   },

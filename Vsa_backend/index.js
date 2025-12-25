@@ -276,8 +276,8 @@ async function isUserAdmin(password, user, isAdmin, res) {
               show_online_users, show_available_stocks, show_offline_sales,
               show_send_mails, show_new_student, show_attendance, show_manage_students,
               show_students_achievements, show_attendance_records, show_news_letter,
-              show_manage_admins, show_manage_dashboard, show_manage_policy
-            ) VALUES (?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+              show_manage_admins, show_manage_dashboard, show_manage_policy, show_manage_disciplines
+            ) VALUES (?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
           `,
         [user.user_id]
       );
@@ -300,6 +300,7 @@ async function isUserAdmin(password, user, isAdmin, res) {
         show_news_letter: false,
         show_manage_admins: false,
         show_manage_policy: false,
+        show_manage_disciplines: false
       };
     }
   }
@@ -1040,7 +1041,7 @@ app.get("/vsa/roller-speed-skating-discipline", async (req, res) => {
   try {
     const [eventsData] = await db.query(
       `SELECT * FROM skating_events_and_tours 
-      WHERE competition_category NOT IN ('Ice Skating') 
+      WHERE competition_category NOT IN ('Ice Skating') AND event_date > NOW()
       ORDER BY event_date DESC`);
 
     const formattedEvents = eventsData.map(event => {
@@ -1048,6 +1049,7 @@ app.get("/vsa/roller-speed-skating-discipline", async (req, res) => {
       const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
       return {
+        id : event.id,
         date : eventDate.getDate().toString(),
         month : months[eventDate.getMonth()],
         year : eventDate.getFullYear().toString(),
@@ -1080,7 +1082,7 @@ app.get("/vsa/ice-skating-discipline", async (req, res) => {
   try {
     const [eventsData] = await db.query(
       `SELECT * FROM skating_events_and_tours 
-      WHERE competition_category NOT IN ('Roller Speed Skating', 'Roll Ball') 
+      WHERE competition_category NOT IN ('Roller Speed Skating', 'Roll Ball') AND event_date > NOW()
       ORDER BY event_date DESC`);
 
     const formattedEvents = eventsData.map(event => {
@@ -1088,6 +1090,7 @@ app.get("/vsa/ice-skating-discipline", async (req, res) => {
       const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
       return {
+        id : event.id,
         date : eventDate.getDate().toString(),
         month : months[eventDate.getMonth()],
         year : eventDate.getFullYear().toString(),
@@ -1311,7 +1314,8 @@ app.get(
         a.show_news_letter,
         a.show_manage_admins,
         a.show_manage_dashboard,
-        a.show_manage_policy
+        a.show_manage_policy,
+        a.show_manage_disciplines
       FROM users u
       LEFT JOIN admin_access a ON u.user_id = a.user_id
       ORDER BY u.created_at DESC
@@ -6167,8 +6171,320 @@ app.put(
     }
   }
 );
-// Admin functionality endpoints ends here
 
+// Endpoint to insert a new skating events and tours is used with these two GET endpoints (/vsa/roller-speed-skating-discipline, /vsa/ice-skating-discipline) 
+app.post("/vsa/admin/add-skating-events-and-tours", middlewares.verifyToken, async(req, res) => {
+  let connection;
+  try {
+    // Check admin access
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+  // skating_events_and_tours table name
+
+  const {insertedData} = req.body;
+
+  const result = validateEventsData(insertedData);
+
+  if(!result.success) {
+    return res.status(400).json(result);
+  }
+
+  connection = await db.getConnection();
+  await connection.beginTransaction();
+  
+  const values = insertedData.map(event => [
+    event.title,
+    event.description,
+    event.eventDate,
+    event.competitionCategory,
+    event.competitionLevel,
+    event.location,
+    event.tourFees
+  ]);
+
+  const query = `INSERT INTO skating_events_and_tours(title, description, event_date, competition_category, competition_level, location, tour_fees)
+  VALUES ?`;
+
+  await connection.query(query, [values]);
+
+  await connection.commit();
+
+  return res.status(201).json({
+    success: true,
+    message: "Skating events and tours added successfully",
+    insertedCount: insertedData.length
+  });
+
+
+  } catch (error) {
+    if (connection) await connection.rollback();
+
+      console.error("Bulk insert error:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error"
+      });
+
+    } finally {
+      if (connection) connection.release();
+    }
+});
+
+// Helper function to validate events data
+function validateEventsData(insertedData) {
+
+  const validCompetitionCategory = [
+    'Roller Speed Skating',
+    'Roll Ball',
+    'Ice Skating',
+    'Record',
+    'Camp'
+  ];
+
+  const validCompetitionLevel = [
+    'school',
+    'block',
+    'district',
+    'division',
+    'state',
+    'national',
+    'international',
+    'record',
+    'RSFI',
+    'SGFI'
+  ];
+
+  for (let i = 0; i < insertedData.length; i++) {
+    const data = insertedData[i];
+
+    if (!validCompetitionCategory.includes(data.competitionCategory)) {
+      return {
+        success: false,
+        message: `Invalid competition category at index ${i}`
+      };
+    }
+
+    if (!validCompetitionLevel.includes(data.competitionLevel)) {
+      return {
+        success: false,
+        message: `Invalid competition level at index ${i}`
+      };
+    }
+
+    const eventDate = new Date(data.eventDate);
+    if (isNaN(eventDate.getTime())) {
+      return {
+        success: false,
+        message: `Invalid event date format at index ${i}`
+      };
+    }
+
+    if (eventDate < new Date()) {
+      return {
+        success: false,
+        message: `Event date cannot be in the past at index ${i}`
+      };
+    }
+  }
+
+  return {
+    success: true,
+    message: "All events data is valid"
+  };
+}
+
+// UPDATE endpoint - Update existing skating event/tour
+app.put("/vsa/admin/update-skating-event/:id", middlewares.verifyToken, async(req, res) => {
+  let connection;
+  try {
+    // Check admin access
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const eventId = req.params.id;
+    const {
+      title,
+      description,
+      eventDate,
+      competitionCategory,
+      competitionLevel,
+      location,
+      tourFees
+    } = req.body;
+
+    // Basic validation
+    if (!eventId || isNaN(eventId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid event ID is required"
+      });
+    }
+
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    // Check if event exists
+    const [existing] = await connection.query(
+      `SELECT id FROM skating_events_and_tours WHERE id = ?`,
+      [eventId]
+    );
+
+    if (existing.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "Event not found"
+      });
+    }
+
+    // Build dynamic update query based on provided fields
+    const updateFields = [];
+    const updateValues = [];
+
+    if (title !== undefined) {
+      updateFields.push("title = ?");
+      updateValues.push(title);
+    }
+    if (description !== undefined) {
+      updateFields.push("description = ?");
+      updateValues.push(description);
+    }
+    if (eventDate !== undefined) {
+      updateFields.push("event_date = ?");
+      updateValues.push(eventDate);
+    }
+    if (competitionCategory !== undefined) {
+      updateFields.push("competition_category = ?");
+      updateValues.push(competitionCategory);
+    }
+    if (competitionLevel !== undefined) {
+      updateFields.push("competition_level = ?");
+      updateValues.push(competitionLevel);
+    }
+    if (location !== undefined) {
+      updateFields.push("location = ?");
+      updateValues.push(location);
+    }
+    if (tourFees !== undefined) {
+      updateFields.push("tour_fees = ?");
+      updateValues.push(tourFees);
+    }
+
+    if (updateFields.length === 0) {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "No fields to update"
+      });
+    }
+
+    updateValues.push(eventId);
+
+    const query = `UPDATE skating_events_and_tours 
+                   SET ${updateFields.join(", ")} 
+                   WHERE id = ?`;
+
+    await connection.query(query, updateValues);
+    await connection.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: "Skating event updated successfully"
+    });
+
+  } catch (error) {
+    if (connection) await connection.rollback();
+
+    console.error("Update error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
+
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+// DELETE endpoint - Delete skating event/tour
+app.delete("/vsa/admin/delete-skating-event/:id", middlewares.verifyToken, async(req, res) => {
+  let connection;
+  try {
+    // Check admin access
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const eventId = req.params.id;
+
+    // Basic validation
+    if (!eventId || isNaN(eventId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid event ID is required"
+      });
+    }
+
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    // Check if event exists
+    const [existing] = await connection.query(
+      `SELECT id, title FROM skating_events_and_tours WHERE id = ?`,
+      [eventId]
+    );
+
+    if (existing.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "Event not found"
+      });
+    }
+
+    const query = `DELETE FROM skating_events_and_tours WHERE id = ?`;
+
+    await connection.query(query, [eventId]);
+    await connection.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: "Skating event deleted successfully",
+      deletedEvent: {
+        id: existing[0].id,
+        title: existing[0].title
+      }
+    });
+
+  } catch (error) {
+    if (connection) await connection.rollback();
+
+    console.error("Delete error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
+
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+// Admin functionality endpoints ends here
 
 app.get("/vsa/:policyType", async (req, res) => {
   const { policyType } = req.params;

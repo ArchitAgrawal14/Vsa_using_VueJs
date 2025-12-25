@@ -10,6 +10,7 @@ import ManageAdmins from "@/components/admin_components/ManageAdmins.vue"
 import ManageDashboard from "@/components/admin_components/ManageDashboard.vue"
 import ManageExistingPolicies from "@/components/admin_components/ManageExistingPolicies.vue"
 import ManageShop from "@/components/admin_components/ManageShop.vue"
+import ManageSkatingDisciplines from "@/components/admin_components/ManageSkatingDisciplines.vue"
 import ManageStudents from "@/components/admin_components/ManageStudents.vue"
 import RegisterNewStudent from "@/components/admin_components/RegisterNewStudent.vue"
 import StudentAchievementDetail from "@/components/admin_components/StudentAchievementDetail.vue"
@@ -88,5 +89,10 @@ export default [
     path: '/vsa/admin/update-existing-policy',
     name: 'ManageExistingPolicies',
     component: ManageExistingPolicies,
+  },
+  {
+    path: '/vsa/admin/manage-skating-disciplines',
+    name: 'ManageSkatingDisciplines',
+    component: ManageSkatingDisciplines,
   }
 ]

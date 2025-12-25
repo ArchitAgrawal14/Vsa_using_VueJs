@@ -1233,7 +1233,8 @@ export async function updateAdminPermission(
       "show_news_letter",
       "show_manage_admins",
       "show_manage_dashboard",
-      "show_manage_policy"
+      "show_manage_policy",
+      "show_manage_disciplines"
     ];
 
     if (!allowedPermissions.includes(permissionKey)) {

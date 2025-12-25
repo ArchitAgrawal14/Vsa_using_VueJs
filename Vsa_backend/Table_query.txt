@@ -59,6 +59,7 @@ CREATE TABLE admin_access (
   show_manage_admins BOOLEAN,
   show_manage_dashboard BOOLEAN,
   show_manage_policy BOOLEAN,
+  show_manage_disciplines BOOLEAN,
   FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 

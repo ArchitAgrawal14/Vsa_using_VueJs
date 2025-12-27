@@ -319,7 +319,7 @@ async function isUserAdmin(password, user, isAdmin, res) {
       permissions: adminPermissions,
     },
     JWT_SECRET,
-    { expiresIn: "2m" }
+    { expiresIn: "1d" }
   );
   const refreshToken = jwt.sign(
     {

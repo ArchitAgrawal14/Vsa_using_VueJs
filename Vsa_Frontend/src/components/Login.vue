@@ -247,7 +247,7 @@
               </div>
             </div>
 
-            <div ref="recaptcha" class="g-recaptcha" :data-sitekey="googleRecaptchaSiteKey"></div>
+            <div ref="recaptchaSignup" class="g-recaptcha" :data-sitekey="googleRecaptchaSiteKey"></div>
 
             <button type="submit" class="submit-btn" :disabled="isLoading">
               <span v-if="isLoading" class="loading-spinner"></span>
@@ -303,9 +303,7 @@ export default {
       }, 100);
     });
     this.handleGoogleCallback();
-    if (this.isLogin) {
-      this.renderRecaptcha()
-    }
+    this.renderRecaptcha();
   },
   data() {
     return {
@@ -315,8 +313,9 @@ export default {
       showConfirmPassword: false,
       apiBaseURL: 'http://localhost:3000/vsa',
       captcha: '',
-      googleRecaptchaSiteKey : import.meta.env.VITE_GOOGLE_RECAPTCHA_SITE_KEY,
+      googleRecaptchaSiteKey: import.meta.env.VITE_GOOGLE_RECAPTCHA_SITE_KEY,
       recaptchaWidgetId: null,
+      recaptchaSignupId: null,
       captchaCode: this.generateCaptcha(),
       toast: null,
       isRefreshing: false,
@@ -331,17 +330,17 @@ export default {
         email: '',
         password: '',
         confirmPassword: ''
-      },
-      watch: {
-        isLogin(newVal) {
-          if (newVal) {
-            this.$nextTick(() => {
-              this.renderRecaptcha()
-            })
-          }
-        }
-      },
+      }
     }
+  },
+  watch: {
+    isLogin(newVal) {
+      this.$nextTick(() => {
+        this.recaptchaWidgetId = null
+        this.recaptchaSignupId = null
+        this.renderRecaptcha()
+      })
+    }    
   },
   methods: {
     setupAxiosInterceptors() {
@@ -362,10 +361,10 @@ export default {
         (response) => response,
         async (error) => {
           const originalRequest = error.config;
-          const isAuthEndpoint = 
-                  originalRequest.url?.includes('/login') ||
-                  originalRequest.url?.includes('/signup') ||
-                  originalRequest.url?.includes('/refresh-token');
+          const isAuthEndpoint =
+            originalRequest.url?.includes('/login') ||
+            originalRequest.url?.includes('/signup') ||
+            originalRequest.url?.includes('/refresh-token');
 
           if (isAuthEndpoint) {
             return Promise.reject(error);
@@ -445,6 +444,16 @@ export default {
     },
 
     switchMode(login) {
+      // Destroy existing reCAPTCHA widget before switching
+      if (this.recaptchaWidgetId !== null && window.grecaptcha) {
+        try {
+          window.grecaptcha.reset(this.recaptchaWidgetId);
+        } catch (e) {
+          console.log('Error resetting reCAPTCHA:', e);
+        }
+      }
+
+      this.recaptchaWidgetId = null;
       this.isLogin = login;
       this.showPassword = false;
       this.showConfirmPassword = false;
@@ -481,8 +490,9 @@ export default {
     },
     async handleSubmit() {
       this.isLoading = true;
-      const captchaToken = window.grecaptcha?.getResponse();
-      window.grecaptcha.reset(this.recaptchaWidgetId);
+      const widgetId = this.isLogin ? this.recaptchaWidgetId : this.recaptchaSignupId;
+      const captchaToken = window.grecaptcha?.getResponse(widgetId);
+      window.grecaptcha.reset(widgetId);
       if (!captchaToken) {
         this.showToast('error', 'Please verify that you are not a robot.')
         this.isLoading = false
@@ -514,7 +524,7 @@ export default {
               this.$router.replace('/');
             } else {
               this.$router.replace('/admin-dashboard');
-            } 
+            }
           }
         } else {
           if (!this.signupForm.fullName || !this.signupForm.mobile || !this.signupForm.email || !this.signupForm.password) {
@@ -656,18 +666,31 @@ export default {
     },
 
     renderRecaptcha() {
-      if (!window.grecaptcha || !this.$refs.recaptcha) return
+      if (!window.grecaptcha) return;
 
-      // Prevent double render
-      if (this.recaptchaWidgetId !== null) return
-
-      this.recaptchaWidgetId = window.grecaptcha.render(
-        this.$refs.recaptcha,
-        {
-          sitekey: this.googleRecaptchaSiteKey
+      this.$nextTick(() => {
+        // recaptchaWidgetId is for login
+        if (this.isLogin && this.$refs.recaptcha) {
+          if (this.recaptchaWidgetId !== null) {
+            window.grecaptcha.reset(this.recaptchaWidgetId);
+          } else {
+            this.recaptchaWidgetId = window.grecaptcha.render(
+              this.$refs.recaptcha,
+              { sitekey: this.googleRecaptchaSiteKey }
+            );
+          }
+        } else if (!this.isLogin && this.$refs.recaptchaSignup) {
+          if (this.recaptchaSignupId !== null) {
+            window.grecaptcha.reset(this.recaptchaSignupId);
+          } else {
+            this.recaptchaSignupId = window.grecaptcha.render(
+              this.$refs.recaptchaSignup,
+              { sitekey: this.googleRecaptchaSiteKey }
+            );
+          }
         }
-      )
-    }  
+      });
+    },
   }
 }
 </script>

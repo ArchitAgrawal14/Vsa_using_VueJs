@@ -79,10 +79,26 @@ const router = createRouter({
 
 })
 
+function isTokenExpired(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.exp * 1000 < Date.now()
+  } catch {
+    return true
+  }
+}
+
 // Navigation guard
 router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('token')
-  if (to.name === 'login' && token) {
+  const token = localStorage.getItem('token');
+
+  if (token && isTokenExpired(token)) {
+    localStorage.removeItem('token')
+    localStorage.removeItem('refreshToken')
+    localStorage.removeItem('user')
+  }
+
+  if (to.name === 'login' && token && !isTokenExpired(token)) {
     return next({ name: 'dashboard' })
   }
   next()

@@ -122,16 +122,7 @@
               </div>
             </div>
 
-            <div class="captcha-group">
-              <label class="form-label">CAPTCHA</label>
-              <div class="captcha-container">
-                <div class="captcha-code">{{ captchaCode }}</div>
-                <button type="button" @click="refreshCaptcha" class="captcha-refresh">
-                  <i class="fas fa-sync-alt"></i>
-                </button>
-              </div>
-              <input v-model="captcha" type="text" placeholder="Enter CAPTCHA" class="form-input" required />
-            </div>
+            <div ref="recaptcha" class="g-recaptcha" :data-sitekey="googleRecaptchaSiteKey"></div>
 
             <button type="submit" class="submit-btn" :disabled="isLoading">
               <span v-if="isLoading" class="loading-spinner"></span>
@@ -256,16 +247,7 @@
               </div>
             </div>
 
-            <div class="captcha-group">
-              <label class="form-label">CAPTCHA</label>
-              <div class="captcha-container">
-                <div class="captcha-code">{{ captchaCode }}</div>
-                <button type="button" @click="refreshCaptcha" class="captcha-refresh">
-                  <i class="fas fa-sync-alt"></i>
-                </button>
-              </div>
-              <input v-model="captcha" type="text" placeholder="Enter CAPTCHA" class="form-input" required />
-            </div>
+            <div ref="recaptcha" class="g-recaptcha" :data-sitekey="googleRecaptchaSiteKey"></div>
 
             <button type="submit" class="submit-btn" :disabled="isLoading">
               <span v-if="isLoading" class="loading-spinner"></span>
@@ -321,6 +303,9 @@ export default {
       }, 100);
     });
     this.handleGoogleCallback();
+    if (this.isLogin) {
+      this.renderRecaptcha()
+    }
   },
   data() {
     return {
@@ -330,6 +315,8 @@ export default {
       showConfirmPassword: false,
       apiBaseURL: 'http://localhost:3000/vsa',
       captcha: '',
+      googleRecaptchaSiteKey : import.meta.env.VITE_GOOGLE_RECAPTCHA_SITE_KEY,
+      recaptchaWidgetId: null,
       captchaCode: this.generateCaptcha(),
       toast: null,
       isRefreshing: false,
@@ -344,7 +331,16 @@ export default {
         email: '',
         password: '',
         confirmPassword: ''
-      }
+      },
+      watch: {
+        isLogin(newVal) {
+          if (newVal) {
+            this.$nextTick(() => {
+              this.renderRecaptcha()
+            })
+          }
+        }
+      },
     }
   },
   methods: {
@@ -484,12 +480,14 @@ export default {
       }
     },
     async handleSubmit() {
-      if (this.captcha.toUpperCase() !== this.captchaCode) {
-        this.showToast('error', 'Invalid CAPTCHA. Please try again.');
-        this.refreshCaptcha();
-        return;
-      }
       this.isLoading = true;
+      const captchaToken = window.grecaptcha?.getResponse();
+      window.grecaptcha.reset(this.recaptchaWidgetId);
+      if (!captchaToken) {
+        this.showToast('error', 'Please verify that you are not a robot.')
+        this.isLoading = false
+        return
+      }
       try {
         if (this.isLogin) {
           if (!this.loginForm.email || !this.loginForm.password) {
@@ -500,7 +498,7 @@ export default {
           const response = await axios.post(`${this.apiBaseURL}/login`, {
             email: this.loginForm.email,
             password: this.loginForm.password,
-            captcha: this.captcha
+            captchaToken
           });
           if (response.data.success) {
             try {
@@ -535,7 +533,7 @@ export default {
             password: this.signupForm.password,
             fullName: this.signupForm.fullName,
             mobile: this.signupForm.mobile,
-            captcha: this.captcha,
+            captchaToken,
             confirmPassword: this.signupForm.confirmPassword
           });
 
@@ -631,6 +629,7 @@ export default {
         this.$router.push('/login');
       }
     },
+
     checkVerificationStatus() {
       const urlParams = new URLSearchParams(window.location.search);
       const verified = urlParams.get('verified');
@@ -654,7 +653,21 @@ export default {
         const newUrl = window.location.pathname;
         window.history.replaceState({}, document.title, newUrl);
       }
-    }
+    },
+
+    renderRecaptcha() {
+      if (!window.grecaptcha || !this.$refs.recaptcha) return
+
+      // Prevent double render
+      if (this.recaptchaWidgetId !== null) return
+
+      this.recaptchaWidgetId = window.grecaptcha.render(
+        this.$refs.recaptcha,
+        {
+          sitekey: this.googleRecaptchaSiteKey
+        }
+      )
+    }  
   }
 }
 </script>

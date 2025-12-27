@@ -17,6 +17,7 @@ import { fileURLToPath } from "url";
 import multer from "multer";
 import PDFDocument from  "pdfkit";
 import fs from "fs";
+import axios from "axios";
 
 dotenv.config();
 
@@ -45,7 +46,7 @@ app.post(
   middlewares.handleValidationErrors,
   async (req, res) => {
     try {
-      const { email, password, fullName, mobile, confirmPassword } = req.body;
+      const { email, password, fullName, mobile, confirmPassword, captchaToken } = req.body;
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       const mobileRegex = /^(\+?\d{1,4}[-\s]?)?\d{6,14}$/;
       const passwordRegex =
@@ -56,6 +57,13 @@ app.post(
       fullName: ${fullName}
       mobile: ${mobile}`);
 
+      if (!captchaToken) {
+        return res.status(400).json({
+          success: false,
+          message: 'Captcha verification required'
+        })
+      }
+      
       if (!emailRegex.test(email)) {
         return res.status(400).json({
           success: false,
@@ -84,6 +92,15 @@ app.post(
           success: false,
           message: "Password and Confirm password field should be same.",
         });
+      }
+
+      const isHuman = await verifyGoogleRecaptcha(captchaToken);
+
+      if (!isHuman) {
+        return res.status(400).json({
+          success: false,
+          message: 'Captcha verification failed'
+        })
       }
 
       const [userDuplicacyCheck] = await db.query(
@@ -140,9 +157,24 @@ app.post(
   middlewares.handleValidationErrors,
   async (req, res) => {
     try {
-      const { email, password, captcha } = req.body;
+      const { email, password, captchaToken } = req.body;
+      if (!captchaToken) {
+        return res.status(400).json({
+          success: false,
+          message: 'Captcha verification required'
+        })
+      }
 
-      if (email == null || password == null || captcha == null) {
+      const isHuman = await verifyGoogleRecaptcha(captchaToken);
+
+      if (!isHuman) {
+        return res.status(400).json({
+          success: false,
+          message: 'Captcha verification failed'
+        })
+      }
+
+      if (email == null || password == null) {
         return res.status(401).json({
           success: false,
           message: "Fields cannot be empty, Please fill in valid values",
@@ -350,6 +382,23 @@ async function isUserAdmin(password, user, isAdmin, res) {
       },
     },
   });
+}
+
+// Function to verify google recaptcha
+async function verifyGoogleRecaptcha(token) {
+  const secret  = process.env.GOOGLE_RECAPTCHA_SECRET_KEY;
+
+  const response = await axios.post(process.env.GOOGLE_RECAPTCHA_POST_REQUEST_API,
+    null,
+    {
+      params: {
+        secret,
+        response: token
+      }
+    }
+  )
+
+  return response.data.success
 }
 
 app.post("/vsa/refresh-token", async (req, res) => {

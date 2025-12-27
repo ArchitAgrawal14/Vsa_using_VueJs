@@ -19,8 +19,7 @@ const validateSignup = [
 
 const validateLogin = [
   body('email').isEmail().withMessage('Please enter a valid email address'),
-  body('password').notEmpty().withMessage('Password is required'),
-  body('captcha').notEmpty().withMessage('CAPTCHA is required')
+  body('password').notEmpty().withMessage('Password is required')
 ];
 
 // Helper function to handle validation errors

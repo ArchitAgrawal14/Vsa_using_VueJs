@@ -90,7 +90,7 @@
     </div>
 
     <!-- Student Detail View -->
-    <div v-else class="bg-white rounded-lg shadow-md">
+    <div v-else class="bg-white rounded-lg shadow-md mt-8">
       <!-- Back Button -->
       <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <div class="flex items-center">
@@ -444,6 +444,7 @@
                 step="0.01"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 @input="markAsChanged"
+                readonly
               />
             </div>
 

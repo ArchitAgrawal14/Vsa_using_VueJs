@@ -9,7 +9,7 @@ const route = useRoute();
   <div>
     <Header v-if="route.path !== '/login'" />
     <router-view />    
-    <Footer></Footer>
+    <Footer v-if="route.path !== '/login' && route.path !== '/admin-dashboard'" ></Footer>
   </div>
 </template>
 

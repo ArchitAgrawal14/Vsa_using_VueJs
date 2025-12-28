@@ -1464,7 +1464,7 @@ export async function registerNewStudent(body, file, connection) {
   }
 }
 
-function calculateNextPaymentDate(cycleStartDate, feeCycle) {
+export function calculateNextPaymentDate(cycleStartDate, feeCycle) {
   const startDate = new Date(cycleStartDate);
   const nextPaymentDate = new Date(startDate);
 
@@ -1576,13 +1576,33 @@ export async function getStudentAttendance(db, studentId, month, year) {
       };
     }
 
+    const downloadResult = await downloadStudentAttendance(
+      attendanceDetails,
+      studentId,
+      month,
+      year
+    );
+
+    if (!downloadResult.success) {
+      return {
+        success: true,
+        message: "Attendance records retrieved successfully, but file generation failed.",
+        count: attendanceDetails.length,
+        attendanceDetails,
+        files: null,
+        statusCode: 200,
+      };
+    }
+
     return {
       success: true,
       message: "Attendance records retrieved successfully.",
       count: attendanceDetails.length,
       attendanceDetails,
+      files: downloadResult.files,
       statusCode: 200,
     };
+    
   } catch (error) {
     console.error("Error fetching attendance:", error);
     return {
@@ -1590,6 +1610,143 @@ export async function getStudentAttendance(db, studentId, month, year) {
       message: "Internal server error. Please try again later.",
       statusCode: 500,
     };
+  }
+}
+
+export async function downloadStudentAttendance(attendanceDetails, studentId, month, year) {
+  try {
+    const pdf = await generateAttendancePDF(attendanceDetails, studentId, month, year);
+    const csv = await generateAttendanceCSV(attendanceDetails, studentId, month, year);
+
+    return {
+      success: true,
+      message: "Files generated successfully.",
+      files: {
+        pdf: pdf.toString('base64'),
+        csv: csv.toString('base64')
+      },
+      statusCode: 200
+    };
+  } catch (error) {
+    console.error("Error generating files:", error);
+    return {
+      success: false,
+      message: "Failed to generate download files.",
+      statusCode: 500
+    };
+  }
+}
+
+// Generate PDF for student attendance
+async function generateAttendancePDF(attendanceDetails, studentId, month, year) {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ margin: 50 });
+      const chunks = [];
+
+      doc.on('data', chunk => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      // Header
+      doc.fontSize(20).text('Student Attendance Report', { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(12).text(`Student ID: ${studentId}`);
+      doc.text(`Month: ${month}/${year}`);
+      doc.text(`Total Records: ${attendanceDetails.length}`);
+      doc.moveDown();
+
+      // Calculate summary
+      const summary = {
+        present: 0,
+        absent: 0,
+        sick: 0
+      };
+      attendanceDetails.forEach(record => {
+        if (record.status === 'Present') summary.present++;
+        else if (record.status === 'Absent') summary.absent++;
+        else if (record.status === 'Sick') summary.sick++;
+      });
+
+      // Summary section
+      doc.fontSize(11).font('Helvetica-Bold').text('Summary:', { underline: true });
+      doc.fontSize(10).font('Helvetica');
+      doc.text(`Present: ${summary.present}  |  Absent: ${summary.absent}  |  Sick: ${summary.sick}`);
+      doc.moveDown();
+
+      // Table Header
+      const tableTop = doc.y;
+      const colWidths = { date: 120, status: 100, markedBy: 150 };
+      
+      doc.fontSize(10).font('Helvetica-Bold');
+      doc.text('Date', 50, tableTop, { width: colWidths.date });
+      doc.text('Status', 170, tableTop, { width: colWidths.status });
+      doc.text('Marked By', 270, tableTop, { width: colWidths.markedBy });
+      
+      doc.moveTo(50, tableTop + 15).lineTo(520, tableTop + 15).stroke();
+      
+      // Table Rows
+      let y = tableTop + 25;
+      doc.font('Helvetica');
+      
+      attendanceDetails.forEach((record, i) => {
+        if (y > 700) {
+          doc.addPage();
+          y = 50;
+        }
+
+        const date = new Date(record.attendance_date).toLocaleDateString();
+        doc.text(date, 50, y, { width: colWidths.date });
+        doc.text(record.status || 'N/A', 170, y, { width: colWidths.status });
+        doc.text(record.marked_by || '-', 270, y, { width: colWidths.markedBy });
+        
+        y += 20;
+        
+        if (i < attendanceDetails.length - 1) {
+          doc.moveTo(50, y - 5).lineTo(520, y - 5).stroke();
+        }
+      });
+
+      // Footer
+      doc.fontSize(8).text(
+        `Generated on ${new Date().toLocaleString()}`,
+        50,
+        doc.page.height - 50,
+        { align: 'center' }
+      );
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+// Generate CSV for student attendance
+async function generateAttendanceCSV(attendanceDetails, studentId, month, year) {
+  try {
+    const fields = [
+      { label: 'Student ID', value: 'student_id' },
+      { label: 'Date', value: 'attendance_date' },
+      { label: 'Status', value: 'status' },
+      { label: 'Marked By', value: 'marked_by' },
+      { label: 'Time', value: 'created_at' }
+    ];
+
+    const formattedData = attendanceDetails.map(record => ({
+      student_id: studentId,
+      attendance_date: new Date(record.attendance_date).toLocaleDateString(),
+      status: record.status || 'N/A',
+      marked_by: record.marked_by || '-',
+      created_at: record.created_at ? new Date(record.created_at).toLocaleTimeString() : '-'
+    }));
+
+    const parser = new Parser({ fields });
+    const csv = parser.parse(formattedData);
+    
+    return Buffer.from(csv, 'utf-8');
+  } catch (error) {
+    throw new Error(`CSV generation failed: ${error.message}`);
   }
 }
 
@@ -2027,3 +2184,176 @@ export async function calculateAndUpdatePendingStudentsFees(connection) {
     throw error;
   }
 }
+
+// app.put(
+//   "/vsa/admin/update-student",
+//   middlewares.verifyToken,
+//   async (req, res) => {
+//     if (!req.user.isAdmin) {
+//       return res.status(403).json({
+//         success: false,
+//         message: "Access denied. Admins only.",
+//       });
+//     }
+
+//     const {
+//       student_id,
+//       // Students table fields
+//       full_name,
+//       father_name,
+//       mother_name,
+//       email,
+//       mobile_number,
+//       whatsapp_number,
+//       dob,
+//       class: studentClass,
+//       gender,
+//       school_name,
+//       hobbies,
+//       student_group,
+//       skate_type,
+//       fee_structure,
+//       fee_cycle,
+//       next_payment_date,
+//       pending_fee,
+//       transportation,
+//       status,
+//       // Student address fields
+//       address_line1,
+//       address_line2,
+//       city,
+//       state,
+//       postal_code,
+//       country,
+//       // Student fee fields
+//       transaction_id,
+//       amount_paid,
+//       remarks,
+//       payment_mode,
+//       payment_status,
+//       payment_date,
+//     } = req.body;
+
+//     // Basic validation
+//     if (!student_id) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Student ID is required.",
+//       });
+//     }
+
+//     // Email validation only if email is provided
+//     if (email) {
+//       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+//       if (!emailRegex.test(email)) {
+//         return res.status(400).json({
+//           success: false,
+//           message: "Invalid email format.",
+//         });
+//       }
+//     }
+
+//     // Mobile number validation only if mobile number is provided
+//     if (mobile_number) {
+//       const mobileRegex = /^[6-9]\d{9}$/;
+//       if (!mobileRegex.test(mobile_number.replace(/\D/g, "").slice(-10))) {
+//         return res.status(400).json({
+//           success: false,
+//           message: "Invalid mobile number format.",
+//         });
+//       }
+//     }
+
+//     const connection = await db.getConnection();
+//     try {
+//       await connection.beginTransaction();
+
+//       // Check if student exists
+//       const [existingStudent] = await connection.query(
+//         "SELECT * FROM students WHERE student_id = ?",
+//         [student_id]
+//       );
+
+//       if (existingStudent.length === 0) {
+//         await connection.rollback();
+//         return res.status(404).json({
+//           success: false,
+//           message: "Student not found.",
+//         });
+//       }
+
+//       // Calculate next_payment_date, amount_paid if needed
+//       let finalNextPaymentDate;
+//       let finalAmountPaid;
+//       if(next_payment_date !== undefined) {
+//         finalNextPaymentDate = next_payment_date;
+//       }
+
+//       // Fee cycle changed & no date exists
+//       else if (fee_cycle !== undefined) {
+//         finalNextPaymentDate = admin.calculateNextPaymentDate(
+//           existingStudent.next_payment_date,
+//           fee_cycle
+//         );
+//       }
+//       // Payment cleared → move to next cycle
+//       else if (pending_fee !== undefined && Number(pending_fee) === 0) {
+//         finalNextPaymentDate = admin.calculateNextPaymentDate(
+//           existingStudent.next_payment_date,
+//           fee_cycle ?? existingStudent.fee_cycle
+//         );
+//       }
+
+//       if(pending_fee) {
+//         finalAmountPaid = existingStudent.pending_fee - pending_fee;
+//       }
+
+//       // Build dynamic update query for students table
+//       const studentUpdates = [];
+//       const studentValues = [];
+
+//       // Helper function to add field to update if it exists in request
+//       const addFieldUpdate = (fieldName, value, dbFieldName = fieldName) => {
+//         if (value !== undefined) {
+//           studentUpdates.push(`${dbFieldName} = ?`);
+//           studentValues.push(value || null);
+//         }
+//       };
+
+//       addFieldUpdate("full_name", full_name);
+//       addFieldUpdate("father_name", father_name);
+//       addFieldUpdate("mother_name", mother_name);
+//       addFieldUpdate("email", email);
+//       addFieldUpdate("mobile_number", mobile_number);
+//       addFieldUpdate("whatsapp_number", whatsapp_number);
+//       addFieldUpdate("dob", dob);
+//       addFieldUpdate("class", studentClass);
+//       addFieldUpdate("gender", gender);
+//       addFieldUpdate("school_name", school_name);
+//       addFieldUpdate("hobbies", hobbies);
+//       addFieldUpdate("student_group", student_group);
+//       addFieldUpdate("skate_type", skate_type);
+//       addFieldUpdate("fee_structure", fee_structure);
+//       addFieldUpdate("fee_cycle", fee_cycle);
+//       addFieldUpdate("next_payment_date", next_payment_date);
+//       addFieldUpdate("pending_fee", pending_fee);
+//       addFieldUpdate("transportation", transportation);
+//       addFieldUpdate("status", status);
+
+//       if (finalNextPaymentDate) {
+//         addFieldUpdate("")
+//       }
+//       // Only update students table if there are fields to update
+//       if (studentUpdates.length > 0) {
+//         studentUpdates.push("updated_at = CURRENT_TIMESTAMP");
+//         studentValues.push(student_id);
+
+//         const updateQuery = `UPDATE students SET ${studentUpdates.join(
+//           ", "
+//         )} WHERE student_id = ?`;
+//         await connection.query(updateQuery, studentValues);
+//       }
+
+//     } catch (error) {}
+//   }
+// );

@@ -73,7 +73,7 @@
       <!-- Attendance Details Modal -->
       <div
         v-if="showAttendanceDetails"
-        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]"
         @click.self="closeAttendanceDetails"
       >
         <div class="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
@@ -109,6 +109,30 @@
               <p class="text-sm text-yellow-700 font-medium">Sick</p>
               <p class="text-3xl font-bold text-yellow-800">{{ attendanceSummary.sick }}</p>
             </div>
+          </div>
+
+          <!-- Download Buttons -->
+          <div class="px-6 py-4 bg-gray-50 border-y border-gray-200 flex gap-3">
+            <button
+              @click="downloadPDF"
+              :disabled="isDownloading"
+              class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition font-medium"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              {{ isDownloading ? 'Downloading...' : 'Download PDF' }}
+            </button>
+            <button
+              @click="downloadCSV"
+              :disabled="isDownloading"
+              class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition font-medium"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {{ isDownloading ? 'Downloading...' : 'Download CSV' }}
+            </button>
           </div>
 
           <!-- Attendance Table -->
@@ -235,6 +259,8 @@ export default {
       showAttendanceDetails: false,
       attendanceRecords: [],
       isLoadingAttendance: false,
+      isDownloading: false,
+      downloadFiles: null,
       months: [
         { value: '1', label: 'January' },
         { value: '2', label: 'February' },
@@ -340,6 +366,7 @@ export default {
         }
 
         this.attendanceRecords = data.attendanceDetails || [];
+        this.downloadFiles = data.files || null;
         this.showAttendanceDetails = true;
       } catch (err) {
         alert(err.message);
@@ -351,6 +378,73 @@ export default {
     closeAttendanceDetails() {
       this.showAttendanceDetails = false;
       this.attendanceRecords = [];
+      this.downloadFiles = null;
+    },
+    downloadPDF() {
+      if (!this.downloadFiles || !this.downloadFiles.pdf) {
+        alert('PDF file not available');
+        return;
+      }
+
+      this.isDownloading = true;
+      try {
+        // Convert base64 to blob
+        const byteCharacters = atob(this.downloadFiles.pdf);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/pdf' });
+
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `attendance_${this.selectedStudentId}_${this.getMonthName(this.selectedMonth)}_${this.selectedYear}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('Error downloading PDF:', err);
+        alert('Failed to download PDF');
+      } finally {
+        this.isDownloading = false;
+      }
+    },
+    downloadCSV() {
+      if (!this.downloadFiles || !this.downloadFiles.csv) {
+        alert('CSV file not available');
+        return;
+      }
+
+      this.isDownloading = true;
+      try {
+        // Convert base64 to blob
+        const byteCharacters = atob(this.downloadFiles.csv);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'text/csv' });
+
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `attendance_${this.selectedStudentId}_${this.getMonthName(this.selectedMonth)}_${this.selectedYear}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('Error downloading CSV:', err);
+        alert('Failed to download CSV');
+      } finally {
+        this.isDownloading = false;
+      }
     },
     formatDate(dateString) {
       const date = new Date(dateString);

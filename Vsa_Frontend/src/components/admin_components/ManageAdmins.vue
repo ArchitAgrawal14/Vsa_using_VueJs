@@ -104,7 +104,7 @@
           </div>
 
           <!-- Permissions Section (only for admins) -->
-          <div v-if="user.is_admin" class="p-6">
+          <div class="p-6">
             <h4 class="text-sm font-medium text-gray-900 mb-4">Permissions</h4>
             <div class="space-y-3">
               <div

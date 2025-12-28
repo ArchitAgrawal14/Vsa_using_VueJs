@@ -137,6 +137,19 @@ app.post(
       verifyUserEmail(email);
       // Update the students table if the user has already registered student in offline mode
       await updateUsersUserIdForStudents(email, userId);
+      await db.query(
+        `
+            INSERT INTO admin_access (
+              user_id, show_order_status, show_edit_shop, show_edit_achievements,
+              show_invoice_generation, show_online_sales, show_offline_customers,
+              show_online_users, show_available_stocks, show_offline_sales,
+              show_send_mails, show_new_student, show_attendance, show_manage_students,
+              show_students_achievements, show_attendance_records, show_news_letter,
+              show_manage_admins, show_manage_dashboard, show_manage_policy, show_manage_disciplines
+            ) VALUES (?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+          `,
+      [userId]);
+
       return res.status(201).json({
         success: true,
         message:
@@ -3276,22 +3289,51 @@ app.put(
         });
       }
 
-      const currentStudent = existingStudent[0];
+      // const currentStudent = existingStudent[0];
 
       // Check if email is already used by another student (only if email is being updated)
-      if (email && email !== currentStudent.email) {
-        const [emailCheck] = await connection.query(
-          "SELECT student_id FROM students WHERE email = ? AND student_id != ?",
-          [email, student_id]
-        );
+      // if (email && email !== currentStudent.email) {
+      //   const [emailCheck] = await connection.query(
+      //     "SELECT student_id FROM students WHERE email = ? AND student_id != ?",
+      //     [email, student_id]
+      //   );
 
-        if (emailCheck.length > 0) {
-          await connection.rollback();
-          return res.status(400).json({
-            success: false,
-            message: "Email is already registered with another student.",
-          });
+      //   if (emailCheck.length > 0) {
+      //     await connection.rollback();
+      //     return res.status(400).json({
+      //       success: false,
+      //       message: "Email is already registered with another student.",
+      //     });
+      //   }
+      // }
+
+      let finalNextPaymentDate;
+
+      // 1️⃣ Explicit date from frontend → highest priority
+      if (next_payment_date !== undefined) {
+        finalNextPaymentDate = next_payment_date;
+      }
+
+      // 2️⃣ Payment cleared → move to next cycle
+      else if (pending_fee !== undefined ) {
+        amount_paid = existingStudent.pending_fee - pending_fee;
+        if(Number(pending_fee) === 0) {
+          finalNextPaymentDate = admin.calculateNextPaymentDate(
+            existingStudent.next_payment_date,
+            fee_cycle ?? existingStudent.fee_cycle
+          );
         }
+      }
+
+      // 3️⃣ Fee cycle changed & no date exists
+      else if (
+        fee_cycle !== undefined &&
+        existingStudent.next_payment_date == null
+      ) {
+        finalNextPaymentDate = admin.calculateNextPaymentDate(
+          new Date(),
+          fee_cycle
+        );
       }
 
       // Build dynamic update query for students table

@@ -63,7 +63,7 @@ app.post(
           message: 'Captcha verification required'
         })
       }
-      
+
       if (!emailRegex.test(email)) {
         return res.status(400).json({
           success: false,
@@ -2749,7 +2749,7 @@ app.post(
     try {
       // Check admin access
       if (!req.user.isAdmin) {
-        await connection.rollback();
+        if (connection) connection.release();
         return res.status(403).json({
           success: false,
           message: "Access denied. Admins only.",
@@ -2758,6 +2758,7 @@ app.post(
 
       const validationErrors = validateStudent(req.body);
       if (validationErrors.length > 0) {
+        if (connection) connection.release();
         return res.status(400).json({
           success: false,
           validationErrors,
@@ -2868,9 +2869,9 @@ function validateStudent(data) {
   }
 
   // feeStructure (optional)
-  if (data.feeStructure && typeof data.feeStructure !== "string") {
-    errors.push("Fee structure must be a string");
-  }
+  // if (data.feeStructure && typeof data.feeStructure !== "string") {
+  //   errors.push("Fee structure must be a string");
+  // }
 
   // feeCycle (optional but must be valid if given)
   if (

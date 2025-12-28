@@ -278,6 +278,11 @@
               rows="3"
             ></textarea>
           </div>
+          
+          <div class="form-group">
+            <label for="cycleStartDate">Fee Cycle start date</label>
+            <input type="date" id="cycleStartDate" v-model="formData.cycleStartDate" />
+          </div>
         </div>
       </div>
 
@@ -406,6 +411,7 @@ export default {
         amountPaid: 0,
         paymentMode: 'cash',
         remarks: '',
+        cycleStartDate : '',
         transportation: false,
         status: 'Active',
         addressLine1: '',
@@ -533,7 +539,7 @@ export default {
 
     async submitForm() {
       if (!this.validateForm()) {
-        this.errorMessage = 'Please fix the validation errors before submitting.'
+        this.errorMessage = 'Please fix the errors before submitting.'
         return
       }
 
@@ -544,6 +550,10 @@ export default {
       try {
         if (!this.formData.dateOfJoining) {
             this.formData.dateOfJoining = new Date().toISOString().split('T')[0]
+        }
+
+        if (!this.formData.cycleStartDate) {
+            this.formData.cycleStartDate = new Date().toISOString().split('T')[0]
         }
 
         const formData = new FormData();
@@ -560,6 +570,11 @@ export default {
         // Set dateOfJoining to today if not provided
         if (!this.formData.dateOfJoining) {
           this.formData.dateOfJoining = new Date().toISOString().split('T')[0]
+        }
+        
+        // Set cycleStartDate to today if not provided
+        if (!this.formData.cycleStartDate) {
+          this.formData.cycleStartDate = new Date().toISOString().split('T')[0]
         }
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         const response = await fetch('http://localhost:3000/vsa/admin/register-new-student', {
@@ -614,6 +629,7 @@ export default {
         amountPaid: 0,
         paymentMode: 'cash',
         remarks: '',
+        cycleStartDate : '',
         transportation: false,
         status: 'Active',
         addressLine1: '',

@@ -13,8 +13,7 @@ const validateSignup = [
       throw new Error('Passwords do not match');
     }
     return true;
-  }),
-  body('captcha').notEmpty().withMessage('CAPTCHA is required')
+  })
 ];
 
 const validateLogin = [

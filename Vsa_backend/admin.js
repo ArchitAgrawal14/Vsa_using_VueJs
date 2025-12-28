@@ -1322,10 +1322,11 @@ export async function registerNewStudent(body, file, connection) {
     };
   }
 
-  // Fix: Handle dob properly for generateStudentId
+  // Handle dob for generateStudentId
   const dobDate = body.dob ? new Date(body.dob) : new Date();
   const studentId = generateStudentId(body.fullName, dobDate, body.motherName);
   const doj = body.dateOfJoining ? new Date(body.dateOfJoining) : new Date();
+  const cycleStartDate = body.cycleStartDate ? new Date(body.cycleStartDate) : new Date();
   let imagePath = null;
   if (file) {
     // Rename file to include studentId
@@ -1341,8 +1342,8 @@ export async function registerNewStudent(body, file, connection) {
   // Calculate next payment date based on initial payment
   const initialPayment = body.amountPaid || 0;
 
-  // Fix: Handle case where feeStructure might be 0 or null
-  if (!body.feeStructure || body.feeStructure <= 0) {
+  // Handle case where feeStructure might be 0 or null
+  if (!body.feeStructure || Number(body.feeStructure) <= 0) {
     return {
       success: false,
       message: "Fee structure must be greater than 0",
@@ -1350,14 +1351,12 @@ export async function registerNewStudent(body, file, connection) {
   }
 
   const nextPaymentDate = calculateNextPaymentDate(
-    doj,
-    body.feeCycle,
-    body.feeStructure,
-    initialPayment
+    cycleStartDate,
+    body.feeCycle
   );
 
   // Calculate pending fee
-  const pendingFee = Math.max(0, body.feeStructure - initialPayment);
+  const pendingFee = Math.max(0, Number(body.feeStructure) - initialPayment);
   let transportation = 0;
   if (body.transportation === true) {
     transportation = 1;
@@ -1390,7 +1389,7 @@ export async function registerNewStudent(body, file, connection) {
         doj,
         body.studentGroup,
         body.skateType,
-        body.feeStructure,
+        Number(body.feeStructure),
         body.feeCycle,
         nextPaymentDate,
         pendingFee,
@@ -1449,85 +1448,34 @@ export async function registerNewStudent(body, file, connection) {
   }
 }
 
-function calculateNextPaymentDate(
-  dateOfJoining,
-  feeCycle,
-  feeStructure,
-  amountPaid
-) {
-  const doj = new Date(dateOfJoining);
-
-  if (amountPaid >= feeStructure) {
-    let nextPaymentDate = new Date(doj);
-
-    switch (feeCycle.toLowerCase()) {
-      case "monthly":
-        nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
-        break;
-      case "quarterly":
-        nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 3);
-        break;
-      case "half-yearly":
-        nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 6);
-        break;
-      case "yearly":
-        nextPaymentDate.setFullYear(nextPaymentDate.getFullYear() + 1);
-        break;
-      default:
-        nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
-    }
-
-    return nextPaymentDate.toISOString().split("T")[0];
-  }
-
-  // Calculate how much of the cycle period is covered by the amount paid
-  const coverageRatio = amountPaid / feeStructure;
-
-  let nextPaymentDate = new Date(doj);
+function calculateNextPaymentDate(cycleStartDate, feeCycle) {
+  const startDate = new Date(cycleStartDate);
+  const nextPaymentDate = new Date(startDate);
 
   switch (feeCycle.toLowerCase()) {
     case "monthly":
-      // Add days based on coverage ratio for monthly
-      const daysInMonth = new Date(
-        doj.getFullYear(),
-        doj.getMonth() + 1,
-        0
-      ).getDate();
-      const additionalDays = Math.floor(coverageRatio * daysInMonth);
-      nextPaymentDate.setDate(nextPaymentDate.getDate() + additionalDays);
+      nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
       break;
 
     case "quarterly":
-      // Add days based on coverage ratio (quarterly = ~90 days)
-      const quarterlyDays = Math.floor(coverageRatio * 90);
-      nextPaymentDate.setDate(nextPaymentDate.getDate() + quarterlyDays);
+      nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 3);
       break;
 
     case "half-yearly":
-      // Add days based on coverage ratio (half-yearly = ~180 days)
-      const halfYearlyDays = Math.floor(coverageRatio * 180);
-      nextPaymentDate.setDate(nextPaymentDate.getDate() + halfYearlyDays);
+      nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 6);
       break;
 
     case "yearly":
-      // Add days based on coverage ratio (yearly = 365 days)
-      const yearlyDays = Math.floor(coverageRatio * 365);
-      nextPaymentDate.setDate(nextPaymentDate.getDate() + yearlyDays);
+      nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 11);
       break;
 
     default:
-      // Default to monthly if cycle is not recognized
-      const defaultDaysInMonth = new Date(
-        doj.getFullYear(),
-        doj.getMonth() + 1,
-        0
-      ).getDate();
-      const defaultAdditionalDays = Math.floor(
-        coverageRatio * defaultDaysInMonth
-      );
-      nextPaymentDate.setDate(
-        nextPaymentDate.getDate() + defaultAdditionalDays
-      );
+      nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
+  }
+
+  // Handle month overflow (31st → last day of month)
+  if (nextPaymentDate.getDate() !== startDate.getDate()) {
+    nextPaymentDate.setDate(0);
   }
 
   return nextPaymentDate.toISOString().split("T")[0];

@@ -309,18 +309,20 @@ CREATE TABLE student_address (
   FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE SET NULL
 );
 
-CREATE TABLE student_fee (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    student_id VARCHAR(30) NOT NULL,
-    transaction_id VARCHAR(100) UNIQUE DEFAULT NULL,
-    amount_paid DECIMAL(10,2) NOT NULL,
-    remarks TEXT DEFAULT NULL,
-    payment_mode ENUM('admin_manual','cash','upi','card','bank') DEFAULT 'cash',
-    status ENUM('success','failed','pending') DEFAULT 'success',
-    payment_date DATE DEFAULT (CURRENT_DATE),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE
+CREATE TABLE student_fee_auto_update_log (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  student_id VARCHAR(30) NOT NULL,
+  old_pending_fee INT DEFAULT 0, 
+  new_pending_fee INT DEFAULT 0, 
+  fee_added INT DEFAULT 0, 
+  cycles_missed INT DEFAULT 1,    
+  fee_cycle VARCHAR(20),           
+  trigger_type VARCHAR(30),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE,
+  INDEX idx_student_created (student_id, created_at),  
+  INDEX idx_created_at (created_at)                   
 );
 
 CREATE TABLE students_attendance (
@@ -361,6 +363,17 @@ CREATE TABLE deleted_student_achievements (
     link TEXT DEFAULT NULL,
     date_of_achievement DATE NOT NULL,
     deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE student_fee_auto_update_log (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  student_id VARCHAR(30) NOT NULL,
+  old_pending_fee INT DEFAULT 0, 
+  fee_added INT DEFAULT 0, 
+  trigger_type VARCHAR(30),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE
 );
 
 DELIMITER $$

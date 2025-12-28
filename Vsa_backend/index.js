@@ -18,6 +18,7 @@ import multer from "multer";
 import PDFDocument from  "pdfkit";
 import fs from "fs";
 import axios from "axios";
+import cron from "node-cron";
 
 dotenv.config();
 
@@ -3517,6 +3518,34 @@ app.put(
     }
   }
 );
+
+// In-memory lock flag
+let isRunning = false;
+
+// Run every day at 10:00 PM to update pending fees if required
+cron.schedule('0 22 * * *', async () => {
+  // Check if already running
+  if (isRunning) {
+    console.warn(`[${new Date().toISOString()}] Cron job already running, skipping...`);
+    return;
+  }
+
+  // Acquire lock
+  isRunning = true;
+  const connection = await db.getConnection();
+  
+  try {
+    console.log(`[${new Date().toISOString()}] Cron job started - Lock acquired`);
+    const result = await admin.calculateAndUpdatePendingStudentsFees(connection);
+    console.log('Cron job completed:', result);
+  } catch (error) {
+    console.error('Cron job failed:', error);
+  } finally {
+    if (connection) connection.release();
+    isRunning = false;
+    console.log(`[${new Date().toISOString()}] Lock released`);
+  }
+});
 
 // Endpoint to get all students for ManageAchievements.vue
 app.get(

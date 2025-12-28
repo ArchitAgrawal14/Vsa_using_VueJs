@@ -3,6 +3,7 @@ import PDFDocument from "pdfkit";
 import path from "path";
 import fs from "fs";
 import { Parser } from "json2csv";
+
 const app = express();
 app.use(express.json());
 
@@ -1234,7 +1235,7 @@ export async function updateAdminPermission(
       "show_manage_admins",
       "show_manage_dashboard",
       "show_manage_policy",
-      "show_manage_disciplines"
+      "show_manage_disciplines",
     ];
 
     if (!allowedPermissions.includes(permissionKey)) {
@@ -1324,19 +1325,29 @@ export async function registerNewStudent(body, file, connection) {
 
   // Handle dob for generateStudentId
   const dobDate = body.dob ? new Date(body.dob) : new Date();
-  const studentId = generateStudentId(body.fullName, dobDate, body.motherName);
+  const studentId = generateStudentId(
+    body.fullName?.trim(),
+    dobDate,
+    body.motherName?.trim()
+  );
   const doj = body.dateOfJoining ? new Date(body.dateOfJoining) : new Date();
-  const cycleStartDate = body.cycleStartDate ? new Date(body.cycleStartDate) : new Date();
+  const cycleStartDate = body.cycleStartDate
+    ? new Date(body.cycleStartDate)
+    : new Date();
   let imagePath = null;
   if (file) {
-    // Rename file to include studentId
-    const oldPath = file.path;
-    const fileExt = path.extname(file.originalname);
-    const newFilename = `${studentId}${fileExt}`;
-    const newPath = path.join(path.dirname(oldPath), newFilename);
-    // Rename the file
-    fs.renameSync(oldPath, newPath);
-    imagePath = `/images/students/${newFilename}`;
+    try {
+      const oldPath = file.path;
+      const fileExt = path.extname(file.originalname);
+      const newFilename = `${studentId}${fileExt}`;
+      const newPath = path.join(path.dirname(oldPath), newFilename);
+
+      // Use async version
+      await fs.promises.rename(oldPath, newPath);
+      imagePath = `/images/students/${newFilename}`;
+    } catch (fileError) {
+      throw new Error(`Failed to save student image: ${fileError.message}`);
+    }
   }
 
   // Calculate next payment date based on initial payment
@@ -1358,7 +1369,12 @@ export async function registerNewStudent(body, file, connection) {
   // Calculate pending fee
   const pendingFee = Math.max(0, Number(body.feeStructure) - initialPayment);
   let transportation = 0;
-  if (body.transportation === true) {
+  if (
+    body.transportation === true ||
+    body.transportation === "true" ||
+    body.transportation === 1 ||
+    body.transportation === "1"
+  ) {
     transportation = 1;
   }
 
@@ -1375,9 +1391,9 @@ export async function registerNewStudent(body, file, connection) {
         studentId,
         usersUserId,
         imagePath,
-        body.fullName,
-        body.fatherName,
-        body.motherName,
+        body.fullName?.trim(),
+        body.fatherName?.trim(),
+        body.motherName?.trim(),
         body.email,
         body.mobileNumber,
         body.whatsappNumber,
@@ -1492,13 +1508,17 @@ function generateStudentId(fullName, dob, motherName) {
 
   const day = String(dobDate.getDate()).padStart(2, "0");
   const month = String(dobDate.getMonth() + 1).padStart(2, "0");
+  const timestamp = Date.now().toString().slice(-3); // 3 digits
+  const random = Math.floor(10 + Math.random() * 90); // 2 digits (10-99)
 
   const studentId =
     "VSA" +
     studentsFirstTwoLettersOfName +
     day +
     month +
-    mothersFirstTwoLettersOfName;
+    mothersFirstTwoLettersOfName +
+    timestamp +
+    random;
 
   return studentId;
 }
@@ -1885,4 +1905,125 @@ export async function updateCoaches(connection, updatedCoachesData) {
     message: "Coaches data updated successfully",
     updatedRows: updatedRows,
   };
+}
+
+// Function to calculate and update pending fees in students table when admin open ManageStundets.vue page
+export async function calculateAndUpdatePendingStudentsFees(connection) {
+  try {
+    await connection.beginTransaction();
+
+    const [affectedStudents] = await connection.query(`
+      SELECT 
+        student_id,
+        COALESCE(pending_fee, 0) as old_pending_fee,
+        COALESCE(fee_structure, 0) as fee_structure,
+        fee_cycle,
+        next_payment_date,
+        CASE
+          WHEN LOWER(TRIM(fee_cycle)) = 'monthly' THEN 
+            TIMESTAMPDIFF(MONTH, next_payment_date, CURDATE()) + 1
+          WHEN LOWER(TRIM(fee_cycle)) = 'quarterly' THEN 
+            FLOOR(TIMESTAMPDIFF(MONTH, next_payment_date, CURDATE()) / 3) + 1
+          WHEN LOWER(TRIM(fee_cycle)) = 'half-yearly' THEN 
+            FLOOR(TIMESTAMPDIFF(MONTH, next_payment_date, CURDATE()) / 6) + 1
+          WHEN LOWER(TRIM(fee_cycle)) = 'yearly' THEN 
+            FLOOR(TIMESTAMPDIFF(MONTH, next_payment_date, CURDATE()) / 11) + 1
+          ELSE 1
+        END as cycles_missed
+      FROM students
+      WHERE next_payment_date <= CURDATE() 
+        AND status = 'active'
+        AND COALESCE(fee_structure, 0) > 0
+    `);
+
+    if (affectedStudents.length === 0) {
+      await connection.commit();
+      console.log(
+        `✅ [${new Date().toISOString()}] No students require fee updates`
+      );
+      return {
+        success: true,
+        studentsUpdated: 0,
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    const [result] = await connection.query(`
+      UPDATE students
+      SET 
+        pending_fee = COALESCE(pending_fee, 0) + (
+          COALESCE(fee_structure, 0) * (
+            CASE
+              WHEN LOWER(TRIM(fee_cycle)) = 'monthly' THEN 
+                TIMESTAMPDIFF(MONTH, next_payment_date, CURDATE()) + 1
+              WHEN LOWER(TRIM(fee_cycle)) = 'quarterly' THEN 
+                FLOOR(TIMESTAMPDIFF(MONTH, next_payment_date, CURDATE()) / 3) + 1
+              WHEN LOWER(TRIM(fee_cycle)) = 'half-yearly' THEN 
+                FLOOR(TIMESTAMPDIFF(MONTH, next_payment_date, CURDATE()) / 6) + 1
+              WHEN LOWER(TRIM(fee_cycle)) = 'yearly' THEN 
+                FLOOR(TIMESTAMPDIFF(MONTH, next_payment_date, CURDATE()) / 11) + 1
+              ELSE 1
+            END
+          )
+        ),
+        next_payment_date = CASE
+          WHEN LOWER(TRIM(fee_cycle)) = 'monthly' THEN 
+            DATE_ADD(next_payment_date, INTERVAL 
+              (TIMESTAMPDIFF(MONTH, next_payment_date, CURDATE()) + 1) MONTH)
+          WHEN LOWER(TRIM(fee_cycle)) = 'quarterly' THEN 
+            DATE_ADD(next_payment_date, INTERVAL 
+              (FLOOR(TIMESTAMPDIFF(MONTH, next_payment_date, CURDATE()) / 3) + 1) * 3 MONTH)
+          WHEN LOWER(TRIM(fee_cycle)) = 'half-yearly' THEN 
+            DATE_ADD(next_payment_date, INTERVAL 
+              (FLOOR(TIMESTAMPDIFF(MONTH, next_payment_date, CURDATE()) / 6) + 1) * 6 MONTH)
+          WHEN LOWER(TRIM(fee_cycle)) = 'yearly' THEN 
+            DATE_ADD(next_payment_date, INTERVAL 
+              (FLOOR(TIMESTAMPDIFF(MONTH, next_payment_date, CURDATE()) / 11) + 1) * 11 MONTH)
+          ELSE next_payment_date
+        END,
+        updated_at = NOW()
+      WHERE next_payment_date <= CURDATE() 
+        AND status = 'active'
+        AND COALESCE(fee_structure, 0) > 0
+    `);
+
+    if (affectedStudents.length > 0) {
+      const logValues = affectedStudents.map((student) => {
+        const feeAdded = student.fee_structure * student.cycles_missed;
+        return [
+          student.student_id,
+          student.old_pending_fee,
+          student.old_pending_fee + feeAdded,
+          feeAdded,
+          student.cycles_missed,
+          student.fee_cycle,
+          "AUTO_UPDATE_BY_CRON",
+        ];
+      });
+
+      await connection.query(
+        `INSERT INTO student_fee_auto_update_log 
+        (student_id, old_pending_fee, new_pending_fee, fee_added, cycles_missed, fee_cycle, trigger_type)
+        VALUES ?`,
+        [logValues]
+      );
+    }
+
+    await connection.commit();
+
+    const timestamp = new Date().toISOString();
+    console.log(
+      `✅ [${timestamp}] Pending fees updated for ${result.affectedRows} students`
+    );
+
+    return {
+      success: true,
+      studentsUpdated: result.affectedRows,
+      timestamp,
+    };
+  } catch (error) {
+    await connection.rollback();
+    console.error("❌ Failed to update pending fees:", error);
+    throw error;
+  }
 }

@@ -1304,7 +1304,7 @@ app.get("/vsa/student_achievements", async (req, res) => {
   }
 });
 
-app.post("/vsa/newsletter-subscribe", async (req, res) => {
+app.post("/vsa/subscribe-to-newsletter", async (req, res) => {
   try {
     const { email } = req.body;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -3167,12 +3167,19 @@ app.get(
     // Get the student with this studentId
     const [studentDetail] = await db.query(
       `
-    SELECT s.*, sa.*, sf.*
-    FROM students AS s
-    LEFT JOIN student_address AS sa ON s.student_id = sa.student_id
-    LEFT JOIN student_fee AS sf ON s.student_id = sf.student_id
-    WHERE s.student_id = ?
-    `,
+      SELECT s.*, sa.*, sf.*
+      FROM students s
+      LEFT JOIN student_address sa 
+        ON s.student_id = sa.student_id
+      LEFT JOIN student_fee sf 
+        ON sf.student_id = s.student_id
+      AND sf.id = (
+            SELECT MAX(id)
+            FROM student_fee
+            WHERE student_id = s.student_id
+      )
+      WHERE s.student_id = ?
+      `,
       [studentId]
     );
 
@@ -3190,7 +3197,7 @@ app.get(
   }
 );
 
-// Endpoint to update student data from ManageStudents.vue page NEEDS TO BE FIXED
+// Endpoint to update student data from ManageStudents.vue page
 app.put(
   "/vsa/admin/update-student",
   middlewares.verifyToken,
@@ -3289,49 +3296,12 @@ app.put(
         });
       }
 
-      // const currentStudent = existingStudent[0];
-
-      // Check if email is already used by another student (only if email is being updated)
-      // if (email && email !== currentStudent.email) {
-      //   const [emailCheck] = await connection.query(
-      //     "SELECT student_id FROM students WHERE email = ? AND student_id != ?",
-      //     [email, student_id]
-      //   );
-
-      //   if (emailCheck.length > 0) {
-      //     await connection.rollback();
-      //     return res.status(400).json({
-      //       success: false,
-      //       message: "Email is already registered with another student.",
-      //     });
-      //   }
-      // }
-
       let finalNextPaymentDate;
 
-      // 1️⃣ Explicit date from frontend → highest priority
-      if (next_payment_date !== undefined) {
-        finalNextPaymentDate = next_payment_date;
-      }
-
-      // 2️⃣ Payment cleared → move to next cycle
-      else if (pending_fee !== undefined ) {
-        amount_paid = existingStudent.pending_fee - pending_fee;
-        if(Number(pending_fee) === 0) {
-          finalNextPaymentDate = admin.calculateNextPaymentDate(
-            existingStudent.next_payment_date,
-            fee_cycle ?? existingStudent.fee_cycle
-          );
-        }
-      }
-
-      // 3️⃣ Fee cycle changed & no date exists
-      else if (
-        fee_cycle !== undefined &&
-        existingStudent.next_payment_date == null
-      ) {
+      // Fee cycle changed & no explicit date provided - calculate new date
+      if (fee_cycle !== undefined && next_payment_date === undefined) {
         finalNextPaymentDate = admin.calculateNextPaymentDate(
-          new Date(),
+          existingStudent[0].next_payment_date,
           fee_cycle
         );
       }
@@ -3344,7 +3314,7 @@ app.put(
       const addFieldUpdate = (fieldName, value, dbFieldName = fieldName) => {
         if (value !== undefined) {
           studentUpdates.push(`${dbFieldName} = ?`);
-          studentValues.push(value || null);
+          studentValues.push(value === '' ? null : value);
         }
       };
 
@@ -3363,7 +3333,14 @@ app.put(
       addFieldUpdate("skate_type", skate_type);
       addFieldUpdate("fee_structure", fee_structure);
       addFieldUpdate("fee_cycle", fee_cycle);
-      addFieldUpdate("next_payment_date", next_payment_date);
+      
+      // Handle next_payment_date: use calculated date if available, otherwise use provided date
+      if (finalNextPaymentDate !== undefined) {
+        addFieldUpdate("next_payment_date", finalNextPaymentDate);
+      } else {
+        addFieldUpdate("next_payment_date", next_payment_date);
+      }
+      
       addFieldUpdate("pending_fee", pending_fee);
       addFieldUpdate("transportation", transportation);
       addFieldUpdate("status", status);
@@ -3399,15 +3376,34 @@ app.put(
           [student_id]
         );
 
+        // Build address updates manually
         const addressUpdates = [];
         const addressValues = [];
 
-        addFieldUpdate("address_line1", address_line1);
-        addFieldUpdate("address_line2", address_line2);
-        addFieldUpdate("city", city);
-        addFieldUpdate("state", state);
-        addFieldUpdate("postal_code", postal_code);
-        addFieldUpdate("country", country);
+        if (address_line1 !== undefined) {
+          addressUpdates.push("address_line1 = ?");
+          addressValues.push(address_line1 || null);
+        }
+        if (address_line2 !== undefined) {
+          addressUpdates.push("address_line2 = ?");
+          addressValues.push(address_line2 || null);
+        }
+        if (city !== undefined) {
+          addressUpdates.push("city = ?");
+          addressValues.push(city || null);
+        }
+        if (state !== undefined) {
+          addressUpdates.push("state = ?");
+          addressValues.push(state || null);
+        }
+        if (postal_code !== undefined) {
+          addressUpdates.push("postal_code = ?");
+          addressValues.push(postal_code || null);
+        }
+        if (country !== undefined) {
+          addressUpdates.push("country = ?");
+          addressValues.push(country || null);
+        }
 
         if (addressUpdates.length > 0) {
           if (existingAddress.length > 0) {
@@ -3420,7 +3416,7 @@ app.put(
             )} WHERE student_id = ?`;
             await connection.query(addressUpdateQuery, addressValues);
           } else {
-            // Insert new address record only if we have at least address_line1, city, state, postal_code
+            // Insert new address record only if we have required fields
             const requiredAddressFields = [
               address_line1,
               city,
@@ -3433,11 +3429,9 @@ app.put(
 
             if (hasRequiredFields) {
               await connection.query(
-                `
-              INSERT INTO student_address (
-                student_id, address_line1, address_line2, city, state, postal_code, country
-              ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            `,
+                `INSERT INTO student_address (
+                  student_id, address_line1, address_line2, city, state, postal_code, country
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
                 [
                   student_id,
                   address_line1,
@@ -3466,71 +3460,38 @@ app.put(
         (value) => value !== undefined
       );
 
-      if (hasFeeData) {
-        // Get the latest fee record for this student
-        const [latestFee] = await connection.query(
-          "SELECT id FROM student_fee WHERE student_id = ? ORDER BY created_at DESC LIMIT 1",
-          [student_id]
+      if (hasFeeData && amount_paid !== undefined && amount_paid > 0) {
+        // Insert new fee record only if amount is provided and > 0
+        await connection.query(
+          `INSERT INTO student_fee (
+            student_id, transaction_id, amount_paid, remarks, payment_mode, status, payment_date
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            student_id,
+            transaction_id || null,
+            amount_paid,
+            remarks || null,
+            payment_mode || "cash",
+            payment_status || "success",
+            payment_date || new Date().toISOString().split("T")[0],
+          ]
         );
-
-        const feeUpdates = [];
-        const feeValues = [];
-
-        addFieldUpdate("transaction_id", transaction_id);
-        addFieldUpdate("amount_paid", amount_paid);
-        addFieldUpdate("remarks", remarks);
-        addFieldUpdate("payment_mode", payment_mode);
-        addFieldUpdate("status", payment_status);
-        addFieldUpdate("payment_date", payment_date);
-
-        if (feeUpdates.length > 0) {
-          if (latestFee.length > 0) {
-            // Update the latest fee record
-            feeUpdates.push("updated_at = CURRENT_TIMESTAMP");
-            feeValues.push(latestFee[0].id);
-
-            const feeUpdateQuery = `UPDATE student_fee SET ${feeUpdates.join(
-              ", "
-            )} WHERE id = ?`;
-            await connection.query(feeUpdateQuery, feeValues);
-          } else if (amount_paid !== undefined && amount_paid > 0) {
-            // Insert new fee record only if amount is provided and > 0
-            await connection.query(
-              `
-            INSERT INTO student_fee (
-              student_id, transaction_id, amount_paid, remarks, payment_mode, status, payment_date
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
-          `,
-              [
-                student_id,
-                transaction_id || null,
-                amount_paid,
-                remarks || null,
-                payment_mode || "cash",
-                payment_status || "success",
-                payment_date || new Date().toISOString().split("T")[0],
-              ]
-            );
-          }
-        }
       }
 
       await connection.commit();
 
       // Fetch updated student data to return
       const [updatedStudent] = await connection.query(
-        `
-      SELECT s.*, 
-             sa.address_line1, sa.address_line2, sa.city, sa.state, sa.postal_code, sa.country,
-             sf.transaction_id, sf.amount_paid, sf.remarks, sf.payment_mode, 
-             sf.status as payment_status, sf.payment_date
-      FROM students AS s
-      LEFT JOIN student_address AS sa ON s.student_id = sa.student_id
-      LEFT JOIN student_fee AS sf ON s.student_id = sf.student_id
-      WHERE s.student_id = ?
-      ORDER BY sf.created_at DESC
-      LIMIT 1
-    `,
+        `SELECT s.*, 
+               sa.address_line1, sa.address_line2, sa.city, sa.state, sa.postal_code, sa.country,
+               sf.transaction_id, sf.amount_paid, sf.remarks, sf.payment_mode, 
+               sf.status as payment_status, sf.payment_date
+        FROM students AS s
+        LEFT JOIN student_address AS sa ON s.student_id = sa.student_id
+        LEFT JOIN student_fee AS sf ON s.student_id = sf.student_id
+        WHERE s.student_id = ?
+        ORDER BY sf.created_at DESC
+        LIMIT 1`,
         [student_id]
       );
 
@@ -3560,6 +3521,58 @@ app.put(
     }
   }
 );
+
+// Endpoint to download student fee history in PDF format
+app.get("/vsa/admin/download-student-fee-history-pdf/:studentId", middlewares.verifyToken, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const {studentId} = req.params;
+
+    const [feeHistory] = await db.query(`SELECT * FROM student_fee WHERE student_id = ?`, [studentId]);
+
+    admin.downloadFeeHistoryInPdfFormat(feeHistory, res);
+
+  } catch (error) {
+    res.status(500).json({
+      success : false,
+      message : "Error while downloading fee history PDF",
+      error : error
+    });
+
+  }
+});
+
+// Endpoint to download student fee history in CSV format
+app.get("/vsa/admin/download-student-fee-history-csv/:studentId", middlewares.verifyToken, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const {studentId} = req.params;
+
+    const [feeHistory] = await db.query(`SELECT * FROM student_fee WHERE student_id = ?`, [studentId]);
+
+    admin.downloadFeeHistoryInCsvFormat(feeHistory, res);
+
+  } catch (error) {
+    res.status(500).json({
+      success : false,
+      message : "Error while downloading fee history CSV",
+      error : error
+    });
+
+  }
+});
 
 // In-memory lock flag
 let isRunning = false;

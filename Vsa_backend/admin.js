@@ -1201,6 +1201,249 @@ export function downloadOfflineSaleListCSV(saleData, res) {
   }
 }
 
+/**
+ * Generate and download student fee history as PDF
+ * @param {Array} feeHistory - Array of fee payment records
+ * @param {Object} res - Express response object
+ */
+export function downloadFeeHistoryInPdfFormat(feeHistory, res) {
+  try {
+    const doc = new PDFDocument({
+      margin: 40,
+      size: "A4",
+    });
+
+    // Set response headers
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=student-fee-history-${Date.now()}.pdf`
+    );
+
+    // Pipe the PDF to response
+    doc.pipe(res);
+
+    // Title
+    doc
+      .fontSize(22)
+      .font("Helvetica-Bold")
+      .text("Student Fee History Report", { align: "center" })
+      .moveDown();
+
+    // Metadata
+    const totalPaid = feeHistory.reduce(
+      (sum, fee) => sum + (parseFloat(fee.amount_paid) || 0),
+      0
+    );
+    const successfulPayments = feeHistory.filter(
+      (fee) => fee.status === "success"
+    ).length;
+
+    doc
+      .fontSize(10)
+      .font("Helvetica")
+      .text(`Generated: ${new Date().toLocaleString()}`, { align: "right" })
+      .text(`Student ID: ${feeHistory[0]?.student_id || "N/A"}`, {
+        align: "right",
+      })
+      .text(`Total Payments: ${feeHistory.length}`, { align: "right" })
+      .text(`Successful Payments: ${successfulPayments}`, { align: "right" })
+      .text(`Total Amount Paid: ₹${totalPaid.toFixed(2)}`, { align: "right" })
+      .moveDown(2);
+
+    // Process each payment record
+    feeHistory.forEach((payment, index) => {
+      // Check if we need a new page
+      const requiredSpace = 100;
+      if (doc.y + requiredSpace > 700) {
+        doc.addPage();
+      }
+
+      // Payment header background
+      const headerY = doc.y;
+      const bgColor =
+        payment.status === "success"
+          ? "#10B981"
+          : payment.status === "failed"
+          ? "#EF4444"
+          : "#F59E0B";
+      const strokeColor =
+        payment.status === "success"
+          ? "#059669"
+          : payment.status === "failed"
+          ? "#DC2626"
+          : "#D97706";
+
+      doc.rect(50, headerY, 495, 90).fillAndStroke(bgColor, strokeColor);
+
+      // Payment details
+      doc.fontSize(11).font("Helvetica-Bold").fillColor("white");
+
+      doc.text(`Payment #${index + 1}`, 60, headerY + 10);
+      doc
+        .text(
+          `Transaction ID: ${payment.transaction_id || "N/A"}`,
+          60,
+          headerY + 26
+        );
+
+      doc
+        .fontSize(9)
+        .font("Helvetica")
+        .text(`Amount: ₹${parseFloat(payment.amount_paid || 0).toFixed(2)}`, 60, headerY + 44)
+        .text(`Payment Mode: ${payment.payment_mode || "N/A"}`, 60, headerY + 58)
+        .text(
+          `Status: ${(payment.status || "N/A").toUpperCase()}`,
+          60,
+          headerY + 72
+        );
+
+      doc
+        .text(
+          `Payment Date: ${
+            payment.payment_date
+              ? new Date(payment.payment_date).toLocaleDateString()
+              : "N/A"
+          }`,
+          300,
+          headerY + 44
+        )
+        .text(
+          `Created: ${
+            payment.created_at
+              ? new Date(payment.created_at).toLocaleString()
+              : "N/A"
+          }`,
+          300,
+          headerY + 58
+        );
+
+      // Remarks section if exists
+      if (payment.remarks) {
+        doc.moveDown(0.5);
+        const remarksY = headerY + 95;
+        doc
+          .fontSize(8)
+          .font("Helvetica-Bold")
+          .fillColor("black")
+          .text("Remarks:", 60, remarksY);
+        doc
+          .fontSize(8)
+          .font("Helvetica")
+          .text(payment.remarks, 60, remarksY + 12, {
+            width: 485,
+            align: "left",
+          });
+      }
+
+      // Add spacing between payments
+      doc.moveDown(2);
+    });
+
+    // Footer with page numbers
+    const pageCount = doc.bufferedPageRange().count;
+    for (let i = 0; i < pageCount; i++) {
+      doc.switchToPage(i);
+      doc
+        .fontSize(8)
+        .fillColor("gray")
+        .text(
+          `Page ${i + 1} of ${pageCount} | Student Fee History Report`,
+          50,
+          doc.page.height - 50,
+          { align: "center", width: 495 }
+        );
+    }
+
+    // Finalize PDF
+    doc.end();
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: "Error generating PDF",
+        error: error.message,
+      });
+    }
+  }
+}
+
+/**
+ * Generate and download student fee history as CSV
+ * @param {Array} feeHistory - Array of fee payment records
+ * @param {Object} res - Express response object
+ */
+export function downloadFeeHistoryInCsvFormat(feeHistory, res) {
+  try {
+    // Define CSV fields
+    const fields = [
+      { label: "ID", value: "id" },
+      { label: "Student ID", value: "student_id" },
+      { label: "Transaction ID", value: "transaction_id" },
+      { label: "Amount Paid (₹)", value: "amount_paid" },
+      { label: "Payment Mode", value: "payment_mode" },
+      { label: "Status", value: "status" },
+      { label: "Payment Date", value: "payment_date" },
+      { label: "Remarks", value: "remarks" },
+      { label: "Created At", value: "created_at" },
+      { label: "Updated At", value: "updated_at" },
+    ];
+
+    // Transform data to format values
+    const formattedData = feeHistory.map((payment) => ({
+      id: payment.id || "",
+      student_id: payment.student_id || "N/A",
+      transaction_id: payment.transaction_id || "N/A",
+      amount_paid: payment.amount_paid
+        ? parseFloat(payment.amount_paid).toFixed(2)
+        : "0.00",
+      payment_mode: payment.payment_mode
+        ? payment.payment_mode.replace(/_/g, " ").toUpperCase()
+        : "N/A",
+      status: payment.status ? payment.status.toUpperCase() : "N/A",
+      payment_date: payment.payment_date
+        ? new Date(payment.payment_date).toLocaleDateString()
+        : "N/A",
+      remarks: payment.remarks || "",
+      created_at: payment.created_at
+        ? new Date(payment.created_at).toLocaleString()
+        : "",
+      updated_at: payment.updated_at
+        ? new Date(payment.updated_at).toLocaleString()
+        : "",
+    }));
+
+    // Configure parser
+    const json2csvParser = new Parser({
+      fields,
+      header: true,
+    });
+
+    // Convert to CSV
+    const csv = json2csvParser.parse(formattedData);
+
+    // Set response headers
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=student-fee-history-${Date.now()}.csv`
+    );
+
+    // Send CSV
+    res.status(200).send(csv);
+  } catch (error) {
+    console.error("Error generating CSV:", error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: "Error generating CSV",
+        error: error.message,
+      });
+    }
+  }
+}
+
 export async function updateAdminPermission(
   userId,
   permissionKey,
@@ -1613,7 +1856,7 @@ export async function getStudentAttendance(db, studentId, month, year) {
   }
 }
 
-export async function downloadStudentAttendance(attendanceDetails, studentId, month, year) {
+async function downloadStudentAttendance(attendanceDetails, studentId, month, year) {
   try {
     const pdf = await generateAttendancePDF(attendanceDetails, studentId, month, year);
     const csv = await generateAttendanceCSV(attendanceDetails, studentId, month, year);
@@ -2184,176 +2427,3 @@ export async function calculateAndUpdatePendingStudentsFees(connection) {
     throw error;
   }
 }
-
-// app.put(
-//   "/vsa/admin/update-student",
-//   middlewares.verifyToken,
-//   async (req, res) => {
-//     if (!req.user.isAdmin) {
-//       return res.status(403).json({
-//         success: false,
-//         message: "Access denied. Admins only.",
-//       });
-//     }
-
-//     const {
-//       student_id,
-//       // Students table fields
-//       full_name,
-//       father_name,
-//       mother_name,
-//       email,
-//       mobile_number,
-//       whatsapp_number,
-//       dob,
-//       class: studentClass,
-//       gender,
-//       school_name,
-//       hobbies,
-//       student_group,
-//       skate_type,
-//       fee_structure,
-//       fee_cycle,
-//       next_payment_date,
-//       pending_fee,
-//       transportation,
-//       status,
-//       // Student address fields
-//       address_line1,
-//       address_line2,
-//       city,
-//       state,
-//       postal_code,
-//       country,
-//       // Student fee fields
-//       transaction_id,
-//       amount_paid,
-//       remarks,
-//       payment_mode,
-//       payment_status,
-//       payment_date,
-//     } = req.body;
-
-//     // Basic validation
-//     if (!student_id) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Student ID is required.",
-//       });
-//     }
-
-//     // Email validation only if email is provided
-//     if (email) {
-//       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-//       if (!emailRegex.test(email)) {
-//         return res.status(400).json({
-//           success: false,
-//           message: "Invalid email format.",
-//         });
-//       }
-//     }
-
-//     // Mobile number validation only if mobile number is provided
-//     if (mobile_number) {
-//       const mobileRegex = /^[6-9]\d{9}$/;
-//       if (!mobileRegex.test(mobile_number.replace(/\D/g, "").slice(-10))) {
-//         return res.status(400).json({
-//           success: false,
-//           message: "Invalid mobile number format.",
-//         });
-//       }
-//     }
-
-//     const connection = await db.getConnection();
-//     try {
-//       await connection.beginTransaction();
-
-//       // Check if student exists
-//       const [existingStudent] = await connection.query(
-//         "SELECT * FROM students WHERE student_id = ?",
-//         [student_id]
-//       );
-
-//       if (existingStudent.length === 0) {
-//         await connection.rollback();
-//         return res.status(404).json({
-//           success: false,
-//           message: "Student not found.",
-//         });
-//       }
-
-//       // Calculate next_payment_date, amount_paid if needed
-//       let finalNextPaymentDate;
-//       let finalAmountPaid;
-//       if(next_payment_date !== undefined) {
-//         finalNextPaymentDate = next_payment_date;
-//       }
-
-//       // Fee cycle changed & no date exists
-//       else if (fee_cycle !== undefined) {
-//         finalNextPaymentDate = admin.calculateNextPaymentDate(
-//           existingStudent.next_payment_date,
-//           fee_cycle
-//         );
-//       }
-//       // Payment cleared → move to next cycle
-//       else if (pending_fee !== undefined && Number(pending_fee) === 0) {
-//         finalNextPaymentDate = admin.calculateNextPaymentDate(
-//           existingStudent.next_payment_date,
-//           fee_cycle ?? existingStudent.fee_cycle
-//         );
-//       }
-
-//       if(pending_fee) {
-//         finalAmountPaid = existingStudent.pending_fee - pending_fee;
-//       }
-
-//       // Build dynamic update query for students table
-//       const studentUpdates = [];
-//       const studentValues = [];
-
-//       // Helper function to add field to update if it exists in request
-//       const addFieldUpdate = (fieldName, value, dbFieldName = fieldName) => {
-//         if (value !== undefined) {
-//           studentUpdates.push(`${dbFieldName} = ?`);
-//           studentValues.push(value || null);
-//         }
-//       };
-
-//       addFieldUpdate("full_name", full_name);
-//       addFieldUpdate("father_name", father_name);
-//       addFieldUpdate("mother_name", mother_name);
-//       addFieldUpdate("email", email);
-//       addFieldUpdate("mobile_number", mobile_number);
-//       addFieldUpdate("whatsapp_number", whatsapp_number);
-//       addFieldUpdate("dob", dob);
-//       addFieldUpdate("class", studentClass);
-//       addFieldUpdate("gender", gender);
-//       addFieldUpdate("school_name", school_name);
-//       addFieldUpdate("hobbies", hobbies);
-//       addFieldUpdate("student_group", student_group);
-//       addFieldUpdate("skate_type", skate_type);
-//       addFieldUpdate("fee_structure", fee_structure);
-//       addFieldUpdate("fee_cycle", fee_cycle);
-//       addFieldUpdate("next_payment_date", next_payment_date);
-//       addFieldUpdate("pending_fee", pending_fee);
-//       addFieldUpdate("transportation", transportation);
-//       addFieldUpdate("status", status);
-
-//       if (finalNextPaymentDate) {
-//         addFieldUpdate("")
-//       }
-//       // Only update students table if there are fields to update
-//       if (studentUpdates.length > 0) {
-//         studentUpdates.push("updated_at = CURRENT_TIMESTAMP");
-//         studentValues.push(student_id);
-
-//         const updateQuery = `UPDATE students SET ${studentUpdates.join(
-//           ", "
-//         )} WHERE student_id = ?`;
-//         await connection.query(updateQuery, studentValues);
-//       }
-
-//     } catch (error) {}
-//   }
-// );

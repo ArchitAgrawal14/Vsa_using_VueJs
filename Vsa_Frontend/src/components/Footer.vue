@@ -644,12 +644,12 @@ export default {
     async subscribeNewsletter() {
       this.isLoading = true
       try {
-        const response = await axios.post(`${this.apiBaseURL}/newsletter-subscribe`, {
+        const response = await axios.post(`${this.apiBaseURL}/subscribe-to-newsletter`, {
           email: this.email,
         })
 
         if (response.data.success) {
-          this.showToastMessage('🎉 Welcome to the Skating Academy family!', 'success')
+          this.showToastMessage('🎉 Welcome to the Vaibhav Skating Academy family!', 'success')
           this.email = ''
         }
       } catch (error) {

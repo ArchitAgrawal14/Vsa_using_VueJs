@@ -22,30 +22,23 @@
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Student ID
               </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Full Name
               </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Mother Name
               </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Group
               </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Pending Fee
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Download fee history
               </th>
             </tr>
           </thead>
@@ -53,30 +46,72 @@
             <tr
               v-for="student in students"
               :key="student.student_id"
-              @click="fetchStudentDetails(student.student_id)"
-              class="hover:bg-gray-50 cursor-pointer transition-colors duration-200"
+              class="hover:bg-gray-50 transition-colors duration-200"
             >
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+              <td 
+                @click="fetchStudentDetails(student.student_id)"
+                class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 cursor-pointer"
+              >
                 {{ student.student_id }}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              <td 
+                @click="fetchStudentDetails(student.student_id)"
+                class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer"
+              >
                 {{ student.full_name }}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              <td 
+                @click="fetchStudentDetails(student.student_id)"
+                class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer"
+              >
                 {{ student.mother_name || 'N/A' }}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              <td 
+                @click="fetchStudentDetails(student.student_id)"
+                class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer"
+              >
                 <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
                   {{ student.student_group || 'N/A' }}
                 </span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              <td 
+                @click="fetchStudentDetails(student.student_id)"
+                class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer"
+              >
                 <span
                   class="font-medium"
                   :class="student.pending_fee > 0 ? 'text-red-600' : 'text-green-600'"
                 >
                   ₹{{ student.pending_fee || 0 }}
                 </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <div class="flex space-x-2">
+                  <button
+                    @click.stop="downloadFeeHistory(student.student_id, 'pdf')"
+                    :disabled="downloadingStudentId === student.student_id"
+                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                    title="Download PDF"
+                  >
+                    <svg v-if="downloadingStudentId !== student.student_id" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span v-if="downloadingStudentId === student.student_id" class="inline-block animate-spin mr-1">⏳</span>
+                    PDF
+                  </button>
+                  <button
+                    @click.stop="downloadFeeHistory(student.student_id, 'csv')"
+                    :disabled="downloadingStudentId === student.student_id"
+                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                    title="Download CSV"
+                  >
+                    <svg v-if="downloadingStudentId !== student.student_id" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span v-if="downloadingStudentId === student.student_id" class="inline-block animate-spin mr-1">⏳</span>
+                    CSV
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -444,7 +479,6 @@
                 step="0.01"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 @input="markAsChanged"
-                readonly
               />
             </div>
 
@@ -514,6 +548,7 @@ export default {
     const editableStudent = reactive({})
     const originalStudent = ref({})
     const hasChanges = ref(false)
+    const downloadingStudentId = ref(null)
 
     // Fetch all students for the table
     const fetchStudents = async () => {
@@ -588,6 +623,49 @@ export default {
         console.error('Error fetching student details:', error)
       } finally {
         loading.value = false
+      }
+    }
+
+    // Download fee history (PDF or CSV)
+    const downloadFeeHistory = async (studentId, format) => {
+      downloadingStudentId.value = studentId
+      try {
+        const endpoint = format === 'pdf' 
+          ? `http://localhost:3000/vsa/admin/download-student-fee-history-pdf/${studentId}`
+          : `http://localhost:3000/vsa/admin/download-student-fee-history-csv/${studentId}`
+
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.message || 'Download failed')
+        }
+
+        // Get the blob from response
+        const blob = await response.blob()
+        
+        // Create a download link
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `student-${studentId}-fee-history.${format}`
+        document.body.appendChild(a)
+        a.click()
+        
+        // Cleanup
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+        
+      } catch (error) {
+        console.error('Error downloading fee history:', error)
+        alert(`Failed to download ${format.toUpperCase()}: ${error.message}`)
+      } finally {
+        downloadingStudentId.value = null
       }
     }
 
@@ -696,7 +774,9 @@ export default {
       selectedStudent,
       editableStudent,
       hasChanges,
+      downloadingStudentId,
       fetchStudentDetails,
+      downloadFeeHistory,
       markAsChanged,
       saveChanges,
       resetChanges,

@@ -1740,7 +1740,7 @@ export function calculateNextPaymentDate(cycleStartDate, feeCycle) {
   return nextPaymentDate.toISOString().split("T")[0];
 }
 
-function generateStudentId(fullName, dob, motherName) {
+export function generateStudentId(fullName, dob, motherName) {
   const studentsFirstTwoLettersOfName = fullName
     ? fullName.substring(0, 2).toUpperCase()
     : "XX";

@@ -1426,6 +1426,248 @@ app.get("/vsa/my-skater-details", middlewares.verifyToken, async (req, res) => {
   }
 });
 
+// Multer config to upload image/files used in both admin and users side
+const storage = multer.diskStorage({
+  destination: path.join(__dirname, "public/images/students"),
+  filename: function (req, file, cb) {
+    const timestamp = Date.now();
+    const fileExt = path.extname(file.originalname);
+    const filename = `student-${timestamp}${fileExt}`;
+    cb(null, filename);
+  },
+});
+
+const upload = multer({ storage: storage });
+
+// Endpoint to fetch already present user details
+app.get("/vsa/join-us", middlewares.verifyToken, async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Please login to continue.",
+      });
+    }
+
+    // This detail is taken to prefill the form to improve UX
+    const [userDetail] = await db.query(`
+      SELECT u.id, ua.id, u.user_id, ua.user_id, u.mobile, u.email, 
+      ua.address_line1, ua.address_line2, ua.city, ua.state, ua.postal_code, ua.country 
+      FROM users AS u 
+      LEFT JOIN user_address AS ua 
+      ON u.id = ua.user_id
+      WHERE u.email = ?`, (req.user?.email));
+
+    if(userDetail.length === 0) {
+      res.status(200).json({
+        success : true,
+        message : "User data does not exists" 
+      });
+    }
+    
+    res.status(200).json({
+      success : true,
+      message : "User data fetched succesfully",
+      userDetail : userDetail
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success : false,
+      message : "Failed tp fetch User data to pre-fill",
+      error : error
+    }); 
+  }
+});
+
+// Endpoint to to register new student users side
+app.post("/vsa/join-us", middlewares.verifyToken, upload.single("studentImage"), async (req, res) => {
+  const connection = await db.getConnection();
+  try {
+    if (!req.user) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Please login to continue.",
+      });
+    }
+
+    let {studentData} = req.body;
+    console.log(studentData);
+    if (typeof studentData === "string") {
+      studentData = JSON.parse(studentData);
+    }
+    const validationErrors = validateStudent(studentData);
+
+    if (validationErrors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        validationErrors,
+      });
+    }
+
+    await connection.beginTransaction();
+    const [users] = await connection.query(`
+      SELECT u.id, u.user_id, ua.user_id AS user_address_id, u.mobile, u.email, 
+      ua.address_line1, ua.address_line2, ua.city, ua.state, ua.postal_code, ua.country 
+      FROM users AS u 
+      LEFT JOIN user_address AS ua 
+      ON u.id = ua.user_id
+      WHERE u.email = ?`, (req.user?.email));
+
+    const userData = users[0];
+
+    const result = await registerNewStudentUsersSide(
+        userData,
+        studentData,
+        req.file,
+        connection
+      );
+
+      if (result.success) {
+        await connection.commit();
+        res.json(result);
+      } else {
+        await connection.rollback();
+        res.status(400).json(result);
+      }
+    } catch (error) {
+      await connection.rollback();
+      console.error("Registration error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Internal server error during registration",
+      });
+    } finally {
+      if (connection) connection.release();
+    }
+  }
+);
+
+async function registerNewStudentUsersSide(userData, studentData, file, connection) {
+  try {
+
+    const [existingStudent] = await connection.query(
+      `SELECT * FROM students 
+      WHERE full_name = ? AND father_name = ? AND mother_name = ? AND email = ?`,
+      [studentData.fullName, studentData.fatherName, studentData.motherName, studentData.email]
+    );
+
+    if (existingStudent.length > 0) {
+      return {
+        success: false,
+        message: "Student already exists",
+      };
+    }
+
+    let usersUserId = userData.user_id;
+
+
+    // Handle dob for generateStudentId
+    const dobDate = studentData.dob ? new Date(studentData.dob) : new Date();
+    const studentId = admin.generateStudentId(
+      studentData.fullName?.trim(),
+      dobDate,
+      studentData.motherName?.trim()
+    );
+    const doj = studentData.dateOfJoining ? new Date(studentData.dateOfJoining) : new Date();
+
+    // cycleStart date is the date in which user's child will first start the class basically first day of the class if its not present default to current date
+    const cycleStartDate = doj;
+
+    const nextPaymentDate = admin.calculateNextPaymentDate(
+      cycleStartDate,
+      studentData.feeCycle
+    );
+    
+    let imagePath = null;
+    if (file) {
+      try {
+        const oldPath = file.path;
+        const fileExt = path.extname(file.originalname);
+        const newFilename = `${studentId}${fileExt}`;
+        const newPath = path.join(path.dirname(oldPath), newFilename);
+        // Use async version
+        await fs.promises.rename(oldPath, newPath);
+        imagePath = `/images/students/${newFilename}`;
+      } catch (fileError) {
+        throw new Error(`Failed to save student image: ${fileError.message}`);
+      }
+    }
+    
+    // Now there will be 2 options for user either to pay now or pay in cash to the admin this below code handles if user decides to pay by cash
+
+    if (!studentData.isPayingNow) {
+      // this feeStructure is the total fee as per feeCycle which can be any monthly, quarterly etc will be shown as a dropdown
+      const feeStructure = studentData.feeStructure;
+      const feeCycle = studentData.feeCycle;
+      const pendingFee = feeStructure;
+
+      // Now insert the provided details to tables
+      const [studentResult] = await connection.query(
+        `INSERT INTO students 
+        (student_id, users_user_id, img, full_name, father_name, mother_name, email, mobile_number,
+        whatsapp_number, dob, class, gender, school_name, hobbies, date_of_joining, 
+        fee_structure, fee_cycle, next_payment_date, pending_fee, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          studentId,
+          usersUserId,
+          imagePath,
+          studentData.fullName?.trim(),
+          studentData.fatherName?.trim(),
+          studentData.motherName?.trim(),
+          studentData.email,
+          studentData.mobileNumber,
+          studentData.whatsappNumber,
+          studentData.dob,
+          studentData.className,
+          studentData.gender,
+          studentData.schoolName,
+          studentData?.hobbies,
+          doj,
+          Number(feeStructure),
+          feeCycle,
+          nextPaymentDate,
+          pendingFee,
+          "active",
+        ]
+      );
+
+      // Add address record for the student
+      await connection.query(
+        `INSERT INTO student_address 
+        (student_id, address_line1, address_line2, city, state, postal_code, country) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          studentId,
+          studentData?.addressLine1 || "", // Handle null values
+          studentData?.addressLine2 || "",
+          studentData.city || "Satna",
+          studentData.state || "Madhya Pradesh",
+          studentData.postalCode || "485001",
+          studentData.country || "Bharat",
+        ]
+      );
+
+      return {
+        success: true,
+        message: "Student registered successfully. Payment pending.",
+        data: {
+          studentId,
+          nextPaymentDate,
+          pendingFee,
+        }
+      };
+
+    } else {
+      // Rest of the code id user is paying noww will be written after i receive payment gateway API key as i do not know which PG we are going to use. 
+    }      
+  } catch (error) {
+    console.error("Error in registerNewStudentUsersSide:", error);
+    throw new Error(`Failed to register student: ${error.message}`);
+  }
+}
+
 // Admin functionlaity endpoints starts here
 app.get(
   "/vsa/admin/manage-admins",
@@ -1823,7 +2065,7 @@ app.post("/vsa/admin/sell-item-offline", middlewares.verifyToken, async (req, re
   }
 });
 
-// Express endpoint for PDF generation
+// Endpoint for PDF invoice generation
 app.post("/vsa/admin/generate-invoice-pdf", middlewares.verifyToken, async (req, res) => {
   try {
     if (!req.user.isAdmin) {
@@ -2739,19 +2981,6 @@ app.get("/vsa/download-offline-sale-list-csv", middlewares.verifyToken, async (r
   }
 });
 
-// Multer config to upload image/files
-const storage = multer.diskStorage({
-  destination: path.join(__dirname, "public/images/students"),
-  filename: function (req, file, cb) {
-    const timestamp = Date.now();
-    const fileExt = path.extname(file.originalname);
-    const filename = `student-${timestamp}${fileExt}`;
-    cb(null, filename);
-  },
-});
-
-const upload = multer({ storage: storage });
-
 // Endpoint to register a new student admin side
 app.post(
   "/vsa/admin/register-new-student",
@@ -3167,18 +3396,77 @@ app.get(
     // Get the student with this studentId
     const [studentDetail] = await db.query(
       `
-      SELECT s.*, sa.*, sf.*
-      FROM students s
-      LEFT JOIN student_address sa 
-        ON s.student_id = sa.student_id
-      LEFT JOIN student_fee sf 
-        ON sf.student_id = s.student_id
-      AND sf.id = (
-            SELECT MAX(id)
-            FROM student_fee
-            WHERE student_id = s.student_id
-      )
-      WHERE s.student_id = ?
+     SELECT
+    /* =======================
+      STUDENTS TABLE
+      ======================= */
+    s.id                  AS student_pk,
+    s.student_id          AS student_id,
+    s.users_user_id       AS users_user_id,
+    s.img                 AS student_img,
+    s.full_name,
+    s.father_name,
+    s.mother_name,
+    s.email,
+    s.mobile_number,
+    s.whatsapp_number,
+    s.dob,
+    s.class               AS studentClass,
+    s.gender,
+    s.school_name,
+    s.hobbies,
+    s.date_of_joining,
+    s.student_group,
+    s.skate_type,
+    s.fee_structure,
+    s.fee_cycle,
+    s.next_payment_date,
+    s.pending_fee,
+    s.transportation,
+    s.status              AS student_status,
+    s.created_at          AS student_created_at,
+    s.updated_at          AS student_updated_at,
+
+    /* =======================
+      STUDENT ADDRESS TABLE
+      ======================= */
+    sa.id                 AS address_id,
+    sa.address_line1,
+    sa.address_line2,
+    sa.city,
+    sa.state,
+    sa.postal_code,
+    sa.country,
+    sa.created_at         AS address_created_at,
+    sa.updated_at         AS address_updated_at,
+
+    /* =======================
+      STUDENT FEE (LATEST)
+      ======================= */
+    sf.id                 AS fee_id,
+    sf.transaction_id,
+    sf.amount_paid,
+    sf.remarks,
+    sf.payment_mode,
+    sf.status             AS fee_status,
+    sf.payment_date,
+    sf.created_at         AS fee_created_at,
+    sf.updated_at         AS fee_updated_at
+
+    FROM students s
+
+    LEFT JOIN student_address sa
+      ON sa.student_id = s.student_id
+
+    LEFT JOIN student_fee sf
+      ON sf.student_id = s.student_id
+    AND sf.id = (
+          SELECT MAX(id)
+          FROM student_fee
+          WHERE student_id = s.student_id
+    )
+
+    WHERE s.student_id = ?;
       `,
       [studentId]
     );
@@ -3230,7 +3518,7 @@ app.put(
       next_payment_date,
       pending_fee,
       transportation,
-      status,
+      student_status,
       // Student address fields
       address_line1,
       address_line2,
@@ -3243,7 +3531,7 @@ app.put(
       amount_paid,
       remarks,
       payment_mode,
-      payment_status,
+      fee_status,
       payment_date,
     } = req.body;
 
@@ -3343,7 +3631,7 @@ app.put(
       
       addFieldUpdate("pending_fee", pending_fee);
       addFieldUpdate("transportation", transportation);
-      addFieldUpdate("status", status);
+      addFieldUpdate("status", student_status);
 
       // Only update students table if there are fields to update
       if (studentUpdates.length > 0) {
@@ -3458,7 +3746,7 @@ app.put(
         amount_paid,
         remarks,
         payment_mode,
-        payment_status,
+        fee_status,
         payment_date,
       };
       const hasFeeData = Object.values(feeFields).some(
@@ -3477,7 +3765,7 @@ app.put(
             amount_paid,
             remarks || null,
             payment_mode || "cash",
-            payment_status || "success",
+            fee_status || "success",
             payment_date || new Date().toISOString().split("T")[0],
           ]
         );

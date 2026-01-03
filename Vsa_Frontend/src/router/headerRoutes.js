@@ -1,4 +1,5 @@
 import ChangePassword from '@/components/header_components/ChangePassword.vue'
+import JoinUs from '@/components/header_components/JoinUs.vue'
 import MySkaterDetail from '@/components/header_components/MySkaterDetail.vue'
 import Profile from '@/components/header_components/Profile.vue'
 
@@ -17,5 +18,10 @@ export default [
     path: '/my-skater-detail',
     name: 'MySkaterDetail',
     component: MySkaterDetail
+  },
+  {
+    path: '/join-us',
+    name: 'JoinUs',
+    component: JoinUs
   },
 ]

@@ -538,7 +538,7 @@ export default {
       isUpdatingPrograms: false,
       programsMessage: null,
       programCategories: ['Roller', 'Ice', 'Roll Ball'],
-      feeCycles: ['month', 'quarter', 'year'],
+      feeCycles: ['monthly', 'quarterly', 'half-yearly','yearly'],
 
       // Coaches
       coachesData: [],

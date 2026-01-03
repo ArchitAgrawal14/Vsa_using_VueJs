@@ -3356,6 +3356,11 @@ app.put(
         await connection.query(updateQuery, studentValues);
       }
 
+      if(pending_fee !== undefined || amount_paid !== undefined) {
+        // Download for admin and send email of fee bill in pdf format to user
+        await admin.generateAdminReceiptAndNotifyUser(existingStudent[0], pending_fee, amount_paid, transporter);
+      }
+
       // Handle address updates only if address fields are provided
       const addressFields = {
         address_line1,

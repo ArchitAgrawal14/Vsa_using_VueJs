@@ -2427,3 +2427,363 @@ export async function calculateAndUpdatePendingStudentsFees(connection) {
     throw error;
   }
 }
+
+/**
+ * Generate fee receipt PDF and send email notification to student
+ * @param {Object} student - Student object from database
+ * @param {Number} pending_fee - Pending fee amount (optional)
+ * @param {Number} amount_paid - Amount paid (optional)
+ * @param {Object} transporter - Nodemailer transporter object
+ */
+export async function generateAdminReceiptAndNotifyUser(student, pending_fee, amount_paid, transporter) {
+  try {
+    // Create PDF document
+    const doc = new PDFDocument({
+      margin: 50,
+      size: "A4",
+    });
+
+    // Create a buffer to store PDF
+    const chunks = [];
+    doc.on("data", (chunk) => chunks.push(chunk));
+
+    // Generate PDF content
+    const currentDate = new Date().toLocaleDateString("en-IN", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    // Header with school/academy name
+    doc
+      .fontSize(24)
+      .font("Helvetica-Bold")
+      .fillColor("#4F46E5")
+      .text("VSA - Fee Receipt", { align: "center" })
+      .moveDown(0.5);
+
+    doc
+      .fontSize(10)
+      .font("Helvetica")
+      .fillColor("gray")
+      .text(`Date: ${currentDate}`, { align: "center" })
+      .moveDown(2);
+
+    // Student Information Section
+    const infoStartY = doc.y;
+    doc
+      .rect(50, infoStartY, 495, 40)
+      .fillAndStroke("#EEF2FF", "#C7D2FE");
+
+    doc
+      .fontSize(14)
+      .font("Helvetica-Bold")
+      .fillColor("#4F46E5")
+      .text("Student Information", 60, infoStartY + 12);
+
+    doc.moveDown(1.5);
+
+    // Student details in two columns
+    const leftColumnX = 60;
+    const rightColumnX = 320;
+    let currentY = doc.y;
+
+    doc
+      .fontSize(11)
+      .font("Helvetica-Bold")
+      .fillColor("black")
+      .text("Student ID:", leftColumnX, currentY);
+    doc
+      .font("Helvetica")
+      .text(student.student_id || "N/A", leftColumnX + 90, currentY);
+
+    doc
+      .font("Helvetica-Bold")
+      .text("Mobile:", rightColumnX, currentY);
+    doc
+      .font("Helvetica")
+      .text(student.mobile_number || "N/A", rightColumnX + 90, currentY);
+
+    currentY += 20;
+    doc
+      .font("Helvetica-Bold")
+      .text("Name:", leftColumnX, currentY);
+    doc
+      .font("Helvetica")
+      .text(student.full_name || "N/A", leftColumnX + 90, currentY, {
+        width: 200,
+      });
+
+    doc
+      .font("Helvetica-Bold")
+      .text("Email:", rightColumnX, currentY);
+    doc
+      .font("Helvetica")
+      .text(student.email || "N/A", rightColumnX + 90, currentY, {
+        width: 200,
+      });
+
+    currentY += 20;
+    doc
+      .font("Helvetica-Bold")
+      .text("Father's Name:", leftColumnX, currentY);
+    doc
+      .font("Helvetica")
+      .text(student.father_name || "N/A", leftColumnX + 90, currentY, {
+        width: 200,
+      });
+
+    doc
+      .font("Helvetica-Bold")
+      .text("Class:", rightColumnX, currentY);
+    doc
+      .font("Helvetica")
+      .text(student.class || "N/A", rightColumnX + 90, currentY);
+
+    currentY += 20;
+    doc
+      .font("Helvetica-Bold")
+      .text("Mother's Name:", leftColumnX, currentY);
+    doc
+      .font("Helvetica")
+      .text(student.mother_name || "N/A", leftColumnX + 90, currentY, {
+        width: 200,
+      });
+
+    doc.moveDown(3);
+
+    // Fee Details Section
+    const feeStartY = doc.y;
+    doc
+      .rect(50, feeStartY, 495, 40)
+      .fillAndStroke("#FEF3C7", "#FDE68A");
+
+    doc
+      .fontSize(14)
+      .font("Helvetica-Bold")
+      .fillColor("#92400E")
+      .text("Fee Details", 60, feeStartY + 12);
+
+    doc.moveDown(1.5);
+
+    // Fee information table
+    const tableTop = doc.y;
+    const itemHeight = 35;
+    let rowY = tableTop;
+
+    // Table header
+    doc
+      .rect(50, rowY, 495, 30)
+      .fillAndStroke("#4F46E5", "#4338CA");
+
+    doc
+      .fontSize(11)
+      .font("Helvetica-Bold")
+      .fillColor("white")
+      .text("Description", 70, rowY + 8, { width: 250 })
+      .text("Amount (₹)", 400, rowY + 8, { width: 120, align: "right" });
+
+    rowY += 30;
+
+    // Display amount paid if provided
+    if (amount_paid !== undefined && amount_paid !== null) {
+      doc
+        .rect(50, rowY, 495, itemHeight)
+        .fillAndStroke("#F0FDF4", "#BBF7D0");
+
+      doc
+        .fontSize(10)
+        .font("Helvetica")
+        .fillColor("black")
+        .text("Amount Paid", 70, rowY + 10, { width: 250 })
+        .font("Helvetica-Bold")
+        .fillColor("#16A34A")
+        .text(`₹ ${parseFloat(amount_paid).toFixed(2)}`, 400, rowY + 10, {
+          width: 120,
+          align: "right",
+        });
+
+      rowY += itemHeight;
+    }
+
+    // Display pending fee if provided
+    if (pending_fee !== undefined && pending_fee !== null) {
+      doc
+        .rect(50, rowY, 495, itemHeight)
+        .fillAndStroke("#FEF2F2", "#FECACA");
+
+      doc
+        .fontSize(10)
+        .font("Helvetica")
+        .fillColor("black")
+        .text("Pending Fee", 70, rowY + 10, { width: 250 })
+        .font("Helvetica-Bold")
+        .fillColor("#DC2626")
+        .text(`₹ ${parseFloat(pending_fee).toFixed(2)}`, 400, rowY + 10, {
+          width: 120,
+          align: "right",
+        });
+
+      rowY += itemHeight;
+    }
+
+    // Add total if both values are present
+    if (
+      amount_paid !== undefined &&
+      amount_paid !== null &&
+      pending_fee !== undefined &&
+      pending_fee !== null
+    ) {
+      const total = parseFloat(amount_paid) + parseFloat(pending_fee);
+
+      doc
+        .rect(50, rowY, 495, itemHeight)
+        .fillAndStroke("#EEF2FF", "#C7D2FE");
+
+      doc
+        .fontSize(11)
+        .font("Helvetica-Bold")
+        .fillColor("black")
+        .text("Total Fee", 70, rowY + 10, { width: 250 })
+        .fillColor("#4F46E5")
+        .text(`₹ ${total.toFixed(2)}`, 400, rowY + 10, {
+          width: 120,
+          align: "right",
+        });
+    }
+
+    doc.moveDown(4);
+
+    // Footer note
+    doc
+      .fontSize(9)
+      .font("Helvetica-Oblique")
+      .fillColor("gray")
+      .text(
+        "This is a computer-generated receipt. For any queries, please contact the administration.",
+        50,
+        doc.page.height - 100,
+        { align: "center", width: 495 }
+      );
+
+    doc
+      .fontSize(8)
+      .text(
+        `Generated on: ${new Date().toLocaleString("en-IN")}`,
+        50,
+        doc.page.height - 70,
+        { align: "center", width: 495 }
+      );
+
+    // Finalize PDF
+    doc.end();
+
+    // Wait for PDF to be fully generated
+    await new Promise((resolve, reject) => {
+      doc.on("end", resolve);
+      doc.on("error", reject);
+    });
+
+    const pdfBuffer = Buffer.concat(chunks);
+
+    // Prepare email content
+    let emailBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+        <div style="background-color: #4F46E5; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+          <h1 style="color: white; margin: 0;">VSA - Fee Receipt</h1>
+        </div>
+        
+        <div style="background-color: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <p style="color: #374151; font-size: 16px;">Dear ${
+            student.full_name
+          },</p>
+          
+          <p style="color: #374151; font-size: 14px; line-height: 1.6;">
+            This is to acknowledge the fee transaction for <strong>Student ID: ${
+              student.student_id
+            }</strong>.
+          </p>
+          
+          <div style="background-color: #EEF2FF; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #4F46E5; margin-top: 0;">Fee Summary:</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+    `;
+
+    if (amount_paid !== undefined && amount_paid !== null) {
+      emailBody += `
+              <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd; color: #374151;">Amount Paid:</td>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right; color: #16A34A; font-weight: bold;">₹ ${parseFloat(
+                  amount_paid
+                ).toFixed(2)}</td>
+              </tr>
+      `;
+    }
+
+    if (pending_fee !== undefined && pending_fee !== null) {
+      emailBody += `
+              <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd; color: #374151;">Pending Fee:</td>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right; color: #DC2626; font-weight: bold;">₹ ${parseFloat(
+                  pending_fee
+                ).toFixed(2)}</td>
+              </tr>
+      `;
+    }
+
+    emailBody += `
+            </table>
+          </div>
+          
+          <p style="color: #374151; font-size: 14px; line-height: 1.6;">
+            Please find the detailed fee receipt attached with this email.
+          </p>
+          
+          <p style="color: #6B7280; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #E5E7EB;">
+            If you have any questions regarding this receipt, please contact our administration office.
+          </p>
+          
+          <p style="color: #6B7280; font-size: 12px;">
+            Best regards,<br>
+            <strong>VSA Administration</strong>
+          </p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px; color: #9CA3AF; font-size: 12px;">
+          <p>This is an automated email. Please do not reply to this message.</p>
+        </div>
+      </div>
+    `;
+
+    // Email options
+    const mailOptions = {
+      from: process.env.NODE_MAILER_EMAIL_VALIDATOR_EMAIL,
+      to: student.email,
+      subject: `VSA - Fee Receipt for ${student.full_name} (${student.student_id})`,
+      html: emailBody,
+      attachments: [
+        {
+          filename: `fee-receipt-${student.student_id}-${Date.now()}.pdf`,
+          content: pdfBuffer,
+          contentType: "application/pdf",
+        },
+      ],
+    };
+
+    // Send email
+    const info = await transporter.sendMail(mailOptions);
+
+    console.log("Fee receipt email sent successfully:", info.messageId);
+
+    return {
+      success: true,
+      message: "Fee receipt generated and email sent successfully",
+      messageId: info.messageId,
+    };
+  } catch (error) {
+    console.error("Error generating receipt and sending email:", error);
+    throw new Error(
+      `Failed to generate receipt and send email: ${error.message}`
+    );
+  }
+}

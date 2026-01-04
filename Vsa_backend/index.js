@@ -3330,7 +3330,7 @@ function validateStudent(data) {
   // feeCycle (optional but must be valid if given)
   if (
     data.feeCycle &&
-    !["Monthly", "Quarterly", "Half-Yearly", "Yearly"].includes(data.feeCycle)
+    !["Monthly", "Quarterly", "Half-Yearly", "Yearly", "monthly", "quarterly", "half-yearly", "yearly"].includes(data.feeCycle)
   ) {
     errors.push("Fee cycle must be Monthly, Quarterly, or Yearly");
   }
@@ -4261,7 +4261,9 @@ app.get(
     // Get the student with this studentId
     const [studentAchievementsDetail] = await db.query(
       `
-    SELECT s.*, sa.*
+    SELECT 
+    s.student_id AS studentId, 
+    s.*, sa.*
     FROM students AS s
     LEFT JOIN student_achievements AS sa ON s.student_id = sa.student_id
     WHERE s.student_id = ?

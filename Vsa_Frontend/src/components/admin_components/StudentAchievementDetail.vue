@@ -360,7 +360,7 @@ export default {
           const data = response.data.studentAchievementsDetail;
           
           this.studentInfo = {
-            student_id: data[0].student_id,
+            student_id: data[0].studentId,
             full_name: data[0].full_name,
             mother_name: data[0].mother_name,
             student_group: data[0].student_group

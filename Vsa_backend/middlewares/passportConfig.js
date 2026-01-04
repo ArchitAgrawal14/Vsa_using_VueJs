@@ -31,11 +31,9 @@ passport.use("google", new GoogleStrategy({
       await db.query('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
     } else {
       // New user - create account
-      const userId = uuidv4();
       const [newUserResult] = await db.query(
-        "INSERT INTO users (user_id, full_name, email, password, is_verified, created_by) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO users (full_name, email, password, is_verified, created_by) VALUES (?, ?, ?, ?, ?)",
         [
-          userId,
           profile.displayName,
           profile.emails[0].value,
           "google_oauth", // Password placeholder for Google users

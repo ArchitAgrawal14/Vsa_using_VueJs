@@ -18,9 +18,9 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <h3 class="text-lg font-semibold text-red-800 mb-2">{{ error }}</h3>
-        <button @click="navigateTo('/login')" class="mt-4 px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition">
+        <!-- <button @click="navigateTo('/login')" class="mt-4 px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition">
           Login
-        </button>
+        </button> -->
       </div>
 
       <!-- Skaters List -->

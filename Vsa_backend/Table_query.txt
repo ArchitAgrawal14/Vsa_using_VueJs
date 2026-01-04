@@ -430,6 +430,13 @@ CREATE TABLE dashboard_programs_data (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+INSERT INTO dashboard_programs_data (title, category, description, price, fee_cycle, image, display_order) 
+VALUES ("Beginner Program", "Beginner", "Something", 2000, "monthly",  "/images/VSA_logo.png", 1),
+("Medium Program", "Medium", "Something", 5500, "quarterly",  "/images/VSA_logo.png", 2),
+("Intermediate Program", "Intermediate", "Something", 16000, "half-yearly", "/images/VSA_logo.png", 3),
+("Professional Program", "Professional", "Something", 29000, "yearly",  "/images/VSA_logo.png", 4);
+
+
 CREATE TABLE dashboard_coaches_data (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(50),

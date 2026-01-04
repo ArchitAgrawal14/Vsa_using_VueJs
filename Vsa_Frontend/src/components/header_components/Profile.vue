@@ -67,7 +67,7 @@
                 <div>
                   <label class="block text-sm font-semibold text-gray-700 mb-2">User ID</label>
                   <input
-                    v-model="profile.user_id"
+                    v-model="profile.id"
                     type="text"
                     disabled
                     class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
@@ -353,7 +353,6 @@ export default {
       savingAddress: false,
       profile: {
         id: null,
-        user_id: '',
         full_name: '',
         mobile: '',
         email: '',

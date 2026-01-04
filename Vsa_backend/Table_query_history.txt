@@ -1,0 +1,1058 @@
+CREATE TABLE users_history (
+  history_id INT AUTO_INCREMENT PRIMARY KEY,
+
+  user_id INT,
+  action_type ENUM('INSERT', 'UPDATE', 'DELETE') NOT NULL,
+
+  full_name VARCHAR(255),
+  mobile VARCHAR(15),
+  email VARCHAR(255),
+  password VARCHAR(255),
+  is_admin BOOLEAN,
+  is_verified BOOLEAN,
+  verification_token TEXT,
+  reset_otp VARCHAR(10),
+  otp_expiry TIMESTAMP NULL,
+  last_login TIMESTAMP NULL,
+  login_attempts INT,
+  locked_until TIMESTAMP NULL,
+  created_by VARCHAR(50),
+
+  action_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+DELIMITER $$
+
+CREATE TRIGGER users_after_insert
+AFTER INSERT ON users
+FOR EACH ROW
+BEGIN
+  INSERT INTO users_history (
+    user_id,
+    action_type,
+    full_name,
+    mobile,
+    email,
+    password,
+    is_admin,
+    is_verified,
+    verification_token,
+    reset_otp,
+    otp_expiry,
+    last_login,
+    login_attempts,
+    locked_until,
+    created_by
+  )
+  VALUES (
+    NEW.id,
+    'INSERT',
+    NEW.full_name,
+    NEW.mobile,
+    NEW.email,
+    NEW.password,
+    NEW.is_admin,
+    NEW.is_verified,
+    NEW.verification_token,
+    NEW.reset_otp,
+    NEW.otp_expiry,
+    NEW.last_login,
+    NEW.login_attempts,
+    NEW.locked_until,
+    NEW.created_by
+  );
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER users_after_update
+AFTER UPDATE ON users
+FOR EACH ROW
+BEGIN
+  INSERT INTO users_history (
+    user_id,
+    action_type,
+    full_name,
+    mobile,
+    email,
+    password,
+    is_admin,
+    is_verified,
+    verification_token,
+    reset_otp,
+    otp_expiry,
+    last_login,
+    login_attempts,
+    locked_until,
+    created_by
+  )
+  VALUES (
+    NEW.id,
+    'UPDATE',
+    NEW.full_name,
+    NEW.mobile,
+    NEW.email,
+    NEW.password,
+    NEW.is_admin,
+    NEW.is_verified,
+    NEW.verification_token,
+    NEW.reset_otp,
+    NEW.otp_expiry,
+    NEW.last_login,
+    NEW.login_attempts,
+    NEW.locked_until,
+    NEW.created_by
+  );
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER users_after_delete
+AFTER DELETE ON users
+FOR EACH ROW
+BEGIN
+  INSERT INTO users_history (
+    user_id,
+    action_type,
+    full_name,
+    mobile,
+    email,
+    password,
+    is_admin,
+    is_verified,
+    verification_token,
+    reset_otp,
+    otp_expiry,
+    last_login,
+    login_attempts,
+    locked_until,
+    created_by
+  )
+  VALUES (
+    OLD.id,
+    'DELETE',
+    OLD.full_name,
+    OLD.mobile,
+    OLD.email,
+    OLD.password,
+    OLD.is_admin,
+    OLD.is_verified,
+    OLD.verification_token,
+    OLD.reset_otp,
+    OLD.otp_expiry,
+    OLD.last_login,
+    OLD.login_attempts,
+    OLD.locked_until,
+    OLD.created_by
+  );
+END$$
+
+DELIMITER ;
+
+CREATE TABLE user_address_history (
+  history_id INT AUTO_INCREMENT PRIMARY KEY,
+
+  address_id INT,
+  user_id INT,
+  action_type ENUM('INSERT', 'UPDATE', 'DELETE') NOT NULL,
+
+  address_line1 VARCHAR(255),
+  address_line2 VARCHAR(255),
+  city VARCHAR(100),
+  state VARCHAR(100),
+  postal_code VARCHAR(20),
+  country VARCHAR(100),
+
+  full_name VARCHAR(255),
+  mobile VARCHAR(15),
+
+  is_default BOOLEAN,
+  is_gift BOOLEAN,
+
+  action_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+DELIMITER $$
+
+CREATE TRIGGER user_address_after_insert
+AFTER INSERT ON user_address
+FOR EACH ROW
+BEGIN
+  INSERT INTO user_address_history (
+    address_id,
+    user_id,
+    action_type,
+    address_line1,
+    address_line2,
+    city,
+    state,
+    postal_code,
+    country,
+    full_name,
+    mobile,
+    is_default,
+    is_gift
+  )
+  VALUES (
+    NEW.id,
+    NEW.user_id,
+    'INSERT',
+    NEW.address_line1,
+    NEW.address_line2,
+    NEW.city,
+    NEW.state,
+    NEW.postal_code,
+    NEW.country,
+    NEW.full_name,
+    NEW.mobile,
+    NEW.is_default,
+    NEW.is_gift
+  );
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER user_address_after_update
+AFTER UPDATE ON user_address
+FOR EACH ROW
+BEGIN
+  INSERT INTO user_address_history (
+    address_id,
+    user_id,
+    action_type,
+    address_line1,
+    address_line2,
+    city,
+    state,
+    postal_code,
+    country,
+    full_name,
+    mobile,
+    is_default,
+    is_gift
+  )
+  VALUES (
+    NEW.id,
+    NEW.user_id,
+    'UPDATE',
+    NEW.address_line1,
+    NEW.address_line2,
+    NEW.city,
+    NEW.state,
+    NEW.postal_code,
+    NEW.country,
+    NEW.full_name,
+    NEW.mobile,
+    NEW.is_default,
+    NEW.is_gift
+  );
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER user_address_after_delete
+AFTER DELETE ON user_address
+FOR EACH ROW
+BEGIN
+  INSERT INTO user_address_history (
+    address_id,
+    user_id,
+    action_type,
+    address_line1,
+    address_line2,
+    city,
+    state,
+    postal_code,
+    country,
+    full_name,
+    mobile,
+    is_default,
+    is_gift
+  )
+  VALUES (
+    OLD.id,
+    OLD.user_id,
+    'DELETE',
+    OLD.address_line1,
+    OLD.address_line2,
+    OLD.city,
+    OLD.state,
+    OLD.postal_code,
+    OLD.country,
+    OLD.full_name,
+    OLD.mobile,
+    OLD.is_default,
+    OLD.is_gift
+  );
+END$$
+
+DELIMITER ;
+
+CREATE TABLE admin_access_history (
+  history_id INT AUTO_INCREMENT PRIMARY KEY,
+
+  admin_access_id INT,
+  user_id INT,
+  action_type ENUM('INSERT', 'UPDATE', 'DELETE') NOT NULL,
+
+  show_order_status BOOLEAN,
+  show_edit_shop BOOLEAN,
+  show_edit_achievements BOOLEAN,
+  show_invoice_generation BOOLEAN,
+  show_online_sales BOOLEAN,
+  show_offline_customers BOOLEAN,
+  show_online_users BOOLEAN,
+  show_available_stocks BOOLEAN,
+  show_offline_sales BOOLEAN,
+  show_send_mails BOOLEAN,
+  show_new_student BOOLEAN,
+  show_attendance BOOLEAN,
+  show_manage_students BOOLEAN,
+  show_students_achievements BOOLEAN,
+  show_attendance_records BOOLEAN,
+  show_news_letter BOOLEAN,
+  show_manage_admins BOOLEAN,
+  show_manage_dashboard BOOLEAN,
+  show_manage_policy BOOLEAN,
+  show_manage_disciplines BOOLEAN,
+
+  action_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+DELIMITER $$
+
+CREATE TRIGGER admin_access_after_insert
+AFTER INSERT ON admin_access
+FOR EACH ROW
+BEGIN
+  INSERT INTO admin_access_history (
+    admin_access_id,
+    user_id,
+    action_type,
+    show_order_status,
+    show_edit_shop,
+    show_edit_achievements,
+    show_invoice_generation,
+    show_online_sales,
+    show_offline_customers,
+    show_online_users,
+    show_available_stocks,
+    show_offline_sales,
+    show_send_mails,
+    show_new_student,
+    show_attendance,
+    show_manage_students,
+    show_students_achievements,
+    show_attendance_records,
+    show_news_letter,
+    show_manage_admins,
+    show_manage_dashboard,
+    show_manage_policy,
+    show_manage_disciplines
+  )
+  VALUES (
+    NEW.id,
+    NEW.user_id,
+    'INSERT',
+    NEW.show_order_status,
+    NEW.show_edit_shop,
+    NEW.show_edit_achievements,
+    NEW.show_invoice_generation,
+    NEW.show_online_sales,
+    NEW.show_offline_customers,
+    NEW.show_online_users,
+    NEW.show_available_stocks,
+    NEW.show_offline_sales,
+    NEW.show_send_mails,
+    NEW.show_new_student,
+    NEW.show_attendance,
+    NEW.show_manage_students,
+    NEW.show_students_achievements,
+    NEW.show_attendance_records,
+    NEW.show_news_letter,
+    NEW.show_manage_admins,
+    NEW.show_manage_dashboard,
+    NEW.show_manage_policy,
+    NEW.show_manage_disciplines
+  );
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER admin_access_after_update
+AFTER UPDATE ON admin_access
+FOR EACH ROW
+BEGIN
+  INSERT INTO admin_access_history (
+    admin_access_id,
+    user_id,
+    action_type,
+    show_order_status,
+    show_edit_shop,
+    show_edit_achievements,
+    show_invoice_generation,
+    show_online_sales,
+    show_offline_customers,
+    show_online_users,
+    show_available_stocks,
+    show_offline_sales,
+    show_send_mails,
+    show_new_student,
+    show_attendance,
+    show_manage_students,
+    show_students_achievements,
+    show_attendance_records,
+    show_news_letter,
+    show_manage_admins,
+    show_manage_dashboard,
+    show_manage_policy,
+    show_manage_disciplines
+  )
+  VALUES (
+    NEW.id,
+    NEW.user_id,
+    'UPDATE',
+    NEW.show_order_status,
+    NEW.show_edit_shop,
+    NEW.show_edit_achievements,
+    NEW.show_invoice_generation,
+    NEW.show_online_sales,
+    NEW.show_offline_customers,
+    NEW.show_online_users,
+    NEW.show_available_stocks,
+    NEW.show_offline_sales,
+    NEW.show_send_mails,
+    NEW.show_new_student,
+    NEW.show_attendance,
+    NEW.show_manage_students,
+    NEW.show_students_achievements,
+    NEW.show_attendance_records,
+    NEW.show_news_letter,
+    NEW.show_manage_admins,
+    NEW.show_manage_dashboard,
+    NEW.show_manage_policy,
+    NEW.show_manage_disciplines
+  );
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER admin_access_after_delete
+AFTER DELETE ON admin_access
+FOR EACH ROW
+BEGIN
+  INSERT INTO admin_access_history (
+    admin_access_id,
+    user_id,
+    action_type,
+    show_order_status,
+    show_edit_shop,
+    show_edit_achievements,
+    show_invoice_generation,
+    show_online_sales,
+    show_offline_customers,
+    show_online_users,
+    show_available_stocks,
+    show_offline_sales,
+    show_send_mails,
+    show_new_student,
+    show_attendance,
+    show_manage_students,
+    show_students_achievements,
+    show_attendance_records,
+    show_news_letter,
+    show_manage_admins,
+    show_manage_dashboard,
+    show_manage_policy,
+    show_manage_disciplines
+  )
+  VALUES (
+    OLD.id,
+    OLD.user_id,
+    'DELETE',
+    OLD.show_order_status,
+    OLD.show_edit_shop,
+    OLD.show_edit_achievements,
+    OLD.show_invoice_generation,
+    OLD.show_online_sales,
+    OLD.show_offline_customers,
+    OLD.show_online_users,
+    OLD.show_available_stocks,
+    OLD.show_offline_sales,
+    OLD.show_send_mails,
+    OLD.show_new_student,
+    OLD.show_attendance,
+    OLD.show_manage_students,
+    OLD.show_students_achievements,
+    OLD.show_attendance_records,
+    OLD.show_news_letter,
+    OLD.show_manage_admins,
+    OLD.show_manage_dashboard,
+    OLD.show_manage_policy,
+    OLD.show_manage_disciplines
+  );
+END$$
+
+DELIMITER ;
+
+CREATE TABLE students_history (
+  history_id INT AUTO_INCREMENT PRIMARY KEY,
+
+  student_pk_id INT,
+  student_id VARCHAR(30),
+  users_user_id INT,
+
+  action_type ENUM('INSERT', 'UPDATE', 'DELETE') NOT NULL,
+
+  img VARCHAR(255),
+  full_name VARCHAR(255),
+  father_name VARCHAR(255),
+  mother_name VARCHAR(255),
+  email VARCHAR(255),
+  mobile_number VARCHAR(13),
+  whatsapp_number VARCHAR(13),
+  dob DATE,
+  class VARCHAR(10),
+  gender VARCHAR(10),
+  school_name VARCHAR(200),
+  hobbies VARCHAR(100),
+  date_of_joining TIMESTAMP,
+  student_group VARCHAR(20),
+  skate_type VARCHAR(20),
+  fee_structure INT,
+  fee_cycle ENUM('monthly', 'quarterly', 'half-yearly', 'yearly'),
+  next_payment_date DATE,
+  pending_fee INT,
+  transportation BOOLEAN,
+  status ENUM('active', 'passive'),
+
+  action_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+DELIMITER $$
+
+CREATE TRIGGER students_after_insert
+AFTER INSERT ON students
+FOR EACH ROW
+BEGIN
+  INSERT INTO students_history (
+    student_pk_id,
+    student_id,
+    users_user_id,
+    action_type,
+    img,
+    full_name,
+    father_name,
+    mother_name,
+    email,
+    mobile_number,
+    whatsapp_number,
+    dob,
+    class,
+    gender,
+    school_name,
+    hobbies,
+    date_of_joining,
+    student_group,
+    skate_type,
+    fee_structure,
+    fee_cycle,
+    next_payment_date,
+    pending_fee,
+    transportation,
+    status
+  )
+  VALUES (
+    NEW.id,
+    NEW.student_id,
+    NEW.users_user_id,
+    'INSERT',
+    NEW.img,
+    NEW.full_name,
+    NEW.father_name,
+    NEW.mother_name,
+    NEW.email,
+    NEW.mobile_number,
+    NEW.whatsapp_number,
+    NEW.dob,
+    NEW.class,
+    NEW.gender,
+    NEW.school_name,
+    NEW.hobbies,
+    NEW.date_of_joining,
+    NEW.student_group,
+    NEW.skate_type,
+    NEW.fee_structure,
+    NEW.fee_cycle,
+    NEW.next_payment_date,
+    NEW.pending_fee,
+    NEW.transportation,
+    NEW.status
+  );
+END$$
+
+DELIMITER ;
+
+
+DELIMITER $$
+
+CREATE TRIGGER students_after_update
+AFTER UPDATE ON students
+FOR EACH ROW
+BEGIN
+  INSERT INTO students_history (
+    student_pk_id,
+    student_id,
+    users_user_id,
+    action_type,
+    img,
+    full_name,
+    father_name,
+    mother_name,
+    email,
+    mobile_number,
+    whatsapp_number,
+    dob,
+    class,
+    gender,
+    school_name,
+    hobbies,
+    date_of_joining,
+    student_group,
+    skate_type,
+    fee_structure,
+    fee_cycle,
+    next_payment_date,
+    pending_fee,
+    transportation,
+    status
+  )
+  VALUES (
+    NEW.id,
+    NEW.student_id,
+    NEW.users_user_id,
+    'UPDATE',
+    NEW.img,
+    NEW.full_name,
+    NEW.father_name,
+    NEW.mother_name,
+    NEW.email,
+    NEW.mobile_number,
+    NEW.whatsapp_number,
+    NEW.dob,
+    NEW.class,
+    NEW.gender,
+    NEW.school_name,
+    NEW.hobbies,
+    NEW.date_of_joining,
+    NEW.student_group,
+    NEW.skate_type,
+    NEW.fee_structure,
+    NEW.fee_cycle,
+    NEW.next_payment_date,
+    NEW.pending_fee,
+    NEW.transportation,
+    NEW.status
+  );
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER students_after_delete
+AFTER DELETE ON students
+FOR EACH ROW
+BEGIN
+  INSERT INTO students_history (
+    student_pk_id,
+    student_id,
+    users_user_id,
+    action_type,
+    img,
+    full_name,
+    father_name,
+    mother_name,
+    email,
+    mobile_number,
+    whatsapp_number,
+    dob,
+    class,
+    gender,
+    school_name,
+    hobbies,
+    date_of_joining,
+    student_group,
+    skate_type,
+    fee_structure,
+    fee_cycle,
+    next_payment_date,
+    pending_fee,
+    transportation,
+    status
+  )
+  VALUES (
+    OLD.id,
+    OLD.student_id,
+    OLD.users_user_id,
+    'DELETE',
+    OLD.img,
+    OLD.full_name,
+    OLD.father_name,
+    OLD.mother_name,
+    OLD.email,
+    OLD.mobile_number,
+    OLD.whatsapp_number,
+    OLD.dob,
+    OLD.class,
+    OLD.gender,
+    OLD.school_name,
+    OLD.hobbies,
+    OLD.date_of_joining,
+    OLD.student_group,
+    OLD.skate_type,
+    OLD.fee_structure,
+    OLD.fee_cycle,
+    OLD.next_payment_date,
+    OLD.pending_fee,
+    OLD.transportation,
+    OLD.status
+  );
+END$$
+
+DELIMITER ;
+
+CREATE TABLE student_address_history (
+  history_id INT AUTO_INCREMENT PRIMARY KEY,
+
+  address_id INT,
+  student_id VARCHAR(30),
+  action_type ENUM('INSERT', 'UPDATE', 'DELETE') NOT NULL,
+
+  address_line1 VARCHAR(255),
+  address_line2 VARCHAR(255),
+  city VARCHAR(100),
+  state VARCHAR(100),
+  postal_code VARCHAR(20),
+  country VARCHAR(100),
+
+  action_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+DELIMITER $$
+
+CREATE TRIGGER student_address_after_insert
+AFTER INSERT ON student_address
+FOR EACH ROW
+BEGIN
+  INSERT INTO student_address_history (
+    address_id,
+    student_id,
+    action_type,
+    address_line1,
+    address_line2,
+    city,
+    state,
+    postal_code,
+    country
+  )
+  VALUES (
+    NEW.id,
+    NEW.student_id,
+    'INSERT',
+    NEW.address_line1,
+    NEW.address_line2,
+    NEW.city,
+    NEW.state,
+    NEW.postal_code,
+    NEW.country
+  );
+END$$
+
+DELIMITER ;
+
+
+DELIMITER $$
+
+CREATE TRIGGER student_address_after_delete
+AFTER DELETE ON student_address
+FOR EACH ROW
+BEGIN
+  INSERT INTO student_address_history (
+    address_id,
+    student_id,
+    action_type,
+    address_line1,
+    address_line2,
+    city,
+    state,
+    postal_code,
+    country
+  )
+  VALUES (
+    OLD.id,
+    OLD.student_id,
+    'DELETE',
+    OLD.address_line1,
+    OLD.address_line2,
+    OLD.city,
+    OLD.state,
+    OLD.postal_code,
+    OLD.country
+  );
+END$$
+
+DELIMITER ;
+
+
+DELIMITER $$
+
+CREATE TRIGGER student_address_after_update
+AFTER UPDATE ON student_address
+FOR EACH ROW
+BEGIN
+  INSERT INTO student_address_history (
+    address_id,
+    student_id,
+    action_type,
+    address_line1,
+    address_line2,
+    city,
+    state,
+    postal_code,
+    country
+  )
+  VALUES (
+    NEW.id,
+    NEW.student_id,
+    'UPDATE',
+    NEW.address_line1,
+    NEW.address_line2,
+    NEW.city,
+    NEW.state,
+    NEW.postal_code,
+    NEW.country
+  );
+END$$
+
+DELIMITER ;
+
+
+CREATE TABLE student_fee_history (
+  history_id INT AUTO_INCREMENT PRIMARY KEY,
+
+  fee_id INT,
+  student_id VARCHAR(30),
+  action_type ENUM('INSERT', 'UPDATE', 'DELETE') NOT NULL,
+
+  transaction_id VARCHAR(100),
+  amount_paid DECIMAL(10,2),
+  remarks TEXT,
+  payment_mode ENUM('admin_manual','cash','upi','card','bank'),
+  status ENUM('success','failed','pending'),
+  payment_date DATE,
+
+  action_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+DELIMITER $$
+
+CREATE TRIGGER student_fee_after_insert
+AFTER INSERT ON student_fee
+FOR EACH ROW
+BEGIN
+  INSERT INTO student_fee_history (
+    fee_id,
+    student_id,
+    action_type,
+    transaction_id,
+    amount_paid,
+    remarks,
+    payment_mode,
+    status,
+    payment_date
+  )
+  VALUES (
+    NEW.id,
+    NEW.student_id,
+    'INSERT',
+    NEW.transaction_id,
+    NEW.amount_paid,
+    NEW.remarks,
+    NEW.payment_mode,
+    NEW.status,
+    NEW.payment_date
+  );
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER student_fee_after_update
+AFTER UPDATE ON student_fee
+FOR EACH ROW
+BEGIN
+  INSERT INTO student_fee_history (
+    fee_id,
+    student_id,
+    action_type,
+    transaction_id,
+    amount_paid,
+    remarks,
+    payment_mode,
+    status,
+    payment_date
+  )
+  VALUES (
+    NEW.id,
+    NEW.student_id,
+    'UPDATE',
+    NEW.transaction_id,
+    NEW.amount_paid,
+    NEW.remarks,
+    NEW.payment_mode,
+    NEW.status,
+    NEW.payment_date
+  );
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER student_fee_after_delete
+AFTER DELETE ON student_fee
+FOR EACH ROW
+BEGIN
+  INSERT INTO student_fee_history (
+    fee_id,
+    student_id,
+    action_type,
+    transaction_id,
+    amount_paid,
+    remarks,
+    payment_mode,
+    status,
+    payment_date
+  )
+  VALUES (
+    OLD.id,
+    OLD.student_id,
+    'DELETE',
+    OLD.transaction_id,
+    OLD.amount_paid,
+    OLD.remarks,
+    OLD.payment_mode,
+    OLD.status,
+    OLD.payment_date
+  );
+END$$
+
+DELIMITER ;
+
+CREATE TABLE students_attendance_history (
+  history_id INT AUTO_INCREMENT PRIMARY KEY,
+
+  attendance_id INT,
+  student_id VARCHAR(30),
+  action_type ENUM('INSERT', 'UPDATE', 'DELETE') NOT NULL,
+
+  status ENUM('Present', 'Absent', 'Sick'),
+  attendance_date DATE,
+  marked_by VARCHAR(70),
+
+  action_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+DELIMITER $$
+
+CREATE TRIGGER students_attendance_after_insert
+AFTER INSERT ON students_attendance
+FOR EACH ROW
+BEGIN
+  INSERT INTO students_attendance_history (
+    attendance_id,
+    student_id,
+    action_type,
+    status,
+    attendance_date,
+    marked_by
+  )
+  VALUES (
+    NEW.id,
+    NEW.student_id,
+    'INSERT',
+    NEW.status,
+    NEW.attendance_date,
+    NEW.marked_by
+  );
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER students_attendance_after_update
+AFTER UPDATE ON students_attendance
+FOR EACH ROW
+BEGIN
+  INSERT INTO students_attendance_history (
+    attendance_id,
+    student_id,
+    action_type,
+    status,
+    attendance_date,
+    marked_by
+  )
+  VALUES (
+    NEW.id,
+    NEW.student_id,
+    'UPDATE',
+    NEW.status,
+    NEW.attendance_date,
+    NEW.marked_by
+  );
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER students_attendance_after_delete
+AFTER DELETE ON students_attendance
+FOR EACH ROW
+BEGIN
+  INSERT INTO students_attendance_history (
+    attendance_id,
+    student_id,
+    action_type,
+    status,
+    attendance_date,
+    marked_by
+  )
+  VALUES (
+    OLD.id,
+    OLD.student_id,
+    'DELETE',
+    OLD.status,
+    OLD.attendance_date,
+    OLD.marked_by
+  );
+END$$
+
+DELIMITER ;
+

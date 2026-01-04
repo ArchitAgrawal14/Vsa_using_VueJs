@@ -1488,7 +1488,6 @@ app.post("/vsa/join-us", middlewares.verifyToken, upload.single("studentImage"),
     }
 
     let {studentData} = req.body;
-    console.log(studentData);
     if (typeof studentData === "string") {
       studentData = JSON.parse(studentData);
     }

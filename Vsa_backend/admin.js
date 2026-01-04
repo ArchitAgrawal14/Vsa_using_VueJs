@@ -521,7 +521,7 @@ export function downloadOnlineUsersDataPDF(userData, res) {
 
       // Row data
       doc
-        .text(user.user_id || "N/A", startX + 5, currentY, {
+        .text(user.id || "N/A", startX + 5, currentY, {
           width: colWidths.userId - 10,
         })
         .text(
@@ -581,7 +581,7 @@ export function downloadOnlineUsersDataCSV(userData, res) {
   try {
     // Define CSV fields
     const fields = [
-      { label: "User ID", value: "user_id" },
+      { label: "User ID", value: "id" },
       { label: "Full Name", value: "full_name" },
       { label: "Mobile", value: "mobile" },
       { label: "Email", value: "email" },
@@ -1444,12 +1444,7 @@ export function downloadFeeHistoryInCsvFormat(feeHistory, res) {
   }
 }
 
-export async function updateAdminPermission(
-  userId,
-  permissionKey,
-  value,
-  connection
-) {
+export async function updateAdminPermission(userId, permissionKey, value, connection) {
   try {
     // Input validation
     if (!userId || !permissionKey || (value !== 0 && value !== 1)) {
@@ -1487,7 +1482,7 @@ export async function updateAdminPermission(
 
     // Check if user exists
     const [user] = await connection.query(
-      "SELECT is_admin FROM users WHERE user_id = ?",
+      "SELECT is_admin FROM users WHERE id = ?",
       [userId]
     );
     if (user.length === 0) {
@@ -1516,12 +1511,12 @@ export async function updateAdminPermission(
     // Update admin status if needed
     if (totalPermissions === 0 && currentAdminStatus === 1) {
       await connection.query(
-        "UPDATE users SET is_admin = 0 WHERE user_id = ?",
+        "UPDATE users SET is_admin = 0 WHERE id = ?",
         [userId]
       );
     } else if (totalPermissions > 0 && currentAdminStatus === 0) {
       await connection.query(
-        "UPDATE users SET is_admin = 1 WHERE user_id = ?",
+        "UPDATE users SET is_admin = 1 WHERE id = ?",
         [userId]
       );
     }
@@ -1543,14 +1538,14 @@ export async function updateAdminPermission(
 }
 
 export async function registerNewStudent(body, file, connection) {
-  const [existingUsersChild] = await connection.query(
-    "SELECT * FROM users WHERE email = ?",
+  const [rows] = await connection.query(
+    "SELECT id FROM users WHERE email = ?",
     [body.email]
   );
   let usersUserId = null;
 
-  if (existingUsersChild.length > 0) {
-    usersUserId = existingUsersChild[0].user_id;
+  if (rows.length > 0) {
+    usersUserId = rows[0].id;
   }
 
   const [existingStudent] = await connection.query(

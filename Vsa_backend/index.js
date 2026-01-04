@@ -108,6 +108,7 @@ app.post(
         "SELECT * FROM users WHERE email = ?",
         [email]
       );
+
       if (userDuplicacyCheck.length > 0) {
         const user = userDuplicacyCheck[0];
         console.log(
@@ -117,6 +118,7 @@ app.post(
           user.full_name,
           user.mobile
         );
+
         return res.status(400).json({
           success: false,
           message: "User already exists with this email, login to continue",
@@ -124,15 +126,15 @@ app.post(
       }
 
       const saltRounds = 12;
-      const userId = uuidv4();
       const salt = await bcrypt.genSalt(saltRounds);
       const hashedPassword = await bcrypt.hash(password, salt);
-      const firstName = fullName.split(" ")[0];
 
-      await db.query(
-        "INSERT INTO users (user_id, full_name, mobile, email, password) VALUES (?, ?, ?, ?, ?)",
-        [userId, fullName, mobile, email, hashedPassword]
+      const [result] = await db.query(
+        "INSERT INTO users (full_name, mobile, email, password) VALUES (?, ?, ?, ?)",
+        [fullName, mobile, email, hashedPassword]
       );
+
+      const userId = result.insertId;
 
       verifyUserEmail(email);
       // Update the students table if the user has already registered student in offline mode
@@ -222,11 +224,11 @@ app.post(
 
         if (user.is_admin === 1) {
           // Update the students table if an existing user has already registered student
-          await updateUsersUserIdForStudents(email, user.user_id);
+          await updateUsersUserIdForStudents(email, user.id);
           return await isUserAdmin(password, user, true, res);
         } else {
           // Update the students table if an existing user has already registered student
-          await updateUsersUserIdForStudents(email, user.user_id);
+          await updateUsersUserIdForStudents(email, user.id);
           return await isUserAdmin(password, user, false, res);
         }
       } else {
@@ -258,7 +260,7 @@ app.post(
 async function verifyUserEmail(email) {
   const verificationToken = crypto.randomBytes(32).toString("hex");
 
-  const [userCheck] = await db.query("SELECT * FROM users WHERE email=?", [
+  const [userCheck] = await db.query("SELECT email, full_name FROM users WHERE email = ?", [
     email,
   ]);
 
@@ -314,7 +316,7 @@ async function isUserAdmin(password, user, isAdmin, res) {
   if (isAdmin) {
     const [permissionResults] = await db.query(
       "SELECT * FROM admin_access where user_id = ?",
-      [user.user_id]
+      [user.id]
     );
     if (permissionResults.length > 0) {
       adminPermissions = permissionResults[0];
@@ -330,7 +332,7 @@ async function isUserAdmin(password, user, isAdmin, res) {
               show_manage_admins, show_manage_dashboard, show_manage_policy, show_manage_disciplines
             ) VALUES (?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
           `,
-        [user.user_id]
+        [user.id]
       );
       adminPermissions = {
         show_order_status: false,
@@ -355,7 +357,7 @@ async function isUserAdmin(password, user, isAdmin, res) {
       };
     }
   }
-  console.log("JWT in isUserAdmin " + JWT_SECRET);
+  // console.log("JWT in isUserAdmin " + JWT_SECRET);
   const token = jwt.sign(
     {
       userId: user.id,
@@ -558,7 +560,7 @@ app.get(
           token,
           refreshToken,
           user: {
-            id: user.id,
+            userId: user.id,
             fullName: user.full_name,
             email: user.email,
             isAdmin: user.is_admin === 0,
@@ -748,7 +750,7 @@ app.get("/vsa/profile", middlewares.verifyToken, async (req, res) => {
     const userId = req.user.userId;
 
     const [userData] = await db.query(
-      `SELECT id, user_id, full_name, mobile, email, is_admin, is_verified, created_at 
+      `SELECT id, full_name, mobile, email, is_admin, is_verified, created_at 
        FROM users
        WHERE id = ?`,
       [userId]
@@ -1033,9 +1035,9 @@ app.post("/vsa/password-change/request", middlewares.verifyToken, async (req, re
 app.post("/vsa/password-change/verify", middlewares.verifyToken, async (req, res) => {
   try {
     const { otp, newPassword, confirmPassword } = req.body;
-    const  email  = req.user.email;
+    const userId  = req.user.userId;
 
-    if (!email || !otp || !newPassword || !confirmPassword) {
+    if (!otp || !newPassword || !confirmPassword) {
       return res.status(400).json({
         success: false,
         message: "Email, OTP, newPassword & confirmPassword are required",
@@ -1063,8 +1065,8 @@ app.post("/vsa/password-change/verify", middlewares.verifyToken, async (req, res
 
     // Fetch user
     const [userData] = await db.query(
-      "SELECT * FROM users WHERE email=?",
-      [email]
+      "SELECT reset_otp, otp_expiry FROM users WHERE id = ?",
+      [userId]
     );
 
     if (userData.length === 0) {
@@ -1098,8 +1100,8 @@ app.post("/vsa/password-change/verify", middlewares.verifyToken, async (req, res
 
     // Update DB
     await db.query(
-      "UPDATE users SET password=?, reset_otp=NULL, otp_expiry=NULL WHERE email=?",
-      [hashedPassword, email]
+      "UPDATE users SET password = ?, reset_otp = NULL, otp_expiry = NULL WHERE id = ?",
+      [hashedPassword, userId]
     );
 
     return res.status(200).json({
@@ -1355,20 +1357,8 @@ app.get("/vsa/my-skater-details", middlewares.verifyToken, async (req, res) => {
       });
     }
 
-    const id = req.user?.userId;
-    const email = req.user?.email;
+    const usersUserId = req.user?.userId;
 
-    // Get user's user_id as it the key used as foriegn key in students table 
-    const [userRows] = await db.query(`SELECT user_id FROM users WHERE email = ? AND id = ?`, [email, id]);
-
-    if(userRows.length === 0) {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied. Please Try again later.",
-      });
-    }
-
-    const usersUserId = userRows[0].user_id;
     // Get the students + address associated to this user
     const [students] = await db.query(
       `SELECT 
@@ -1451,12 +1441,15 @@ app.get("/vsa/join-us", middlewares.verifyToken, async (req, res) => {
 
     // This detail is taken to prefill the form to improve UX
     const [userDetail] = await db.query(`
-      SELECT u.id, ua.id, u.user_id, ua.user_id, u.mobile, u.email, 
+      SELECT 
+      u.id AS user_id, 
+      ua.id AS address_id, 
+      ua.user_id, u.mobile, u.email, 
       ua.address_line1, ua.address_line2, ua.city, ua.state, ua.postal_code, ua.country 
       FROM users AS u 
       LEFT JOIN user_address AS ua 
       ON u.id = ua.user_id
-      WHERE u.email = ?`, (req.user?.email));
+      WHERE u.id = ?`, (req.user?.userId));
 
     if(userDetail.length === 0) {
       res.status(200).json({
@@ -1465,10 +1458,13 @@ app.get("/vsa/join-us", middlewares.verifyToken, async (req, res) => {
       });
     }
     
+    const [programsData] = await db.query(`SELECT id, price, fee_cycle FROM dashboard_programs_data`);
+    
     res.status(200).json({
       success : true,
       message : "User data fetched succesfully",
-      userDetail : userDetail
+      userDetail : userDetail,
+      programsData : programsData
     });
 
   } catch (error) {
@@ -1507,12 +1503,15 @@ app.post("/vsa/join-us", middlewares.verifyToken, upload.single("studentImage"),
 
     await connection.beginTransaction();
     const [users] = await connection.query(`
-      SELECT u.id, u.user_id, ua.user_id AS user_address_id, u.mobile, u.email, 
+      SELECT 
+      u.id AS user_id,
+      ua.user_id AS users_address_id, 
+      u.mobile, u.email, 
       ua.address_line1, ua.address_line2, ua.city, ua.state, ua.postal_code, ua.country 
       FROM users AS u 
       LEFT JOIN user_address AS ua 
       ON u.id = ua.user_id
-      WHERE u.email = ?`, (req.user?.email));
+      WHERE u.id = ?`, (req.user?.userId));
 
     const userData = users[0];
 
@@ -1559,6 +1558,7 @@ async function registerNewStudentUsersSide(userData, studentData, file, connecti
       };
     }
 
+    // Here the userData sent as a param contains id from users table AS user_id because of alias
     let usersUserId = userData.user_id;
 
 
@@ -1668,7 +1668,8 @@ async function registerNewStudentUsersSide(userData, studentData, file, connecti
   }
 }
 
-// Admin functionlaity endpoints starts here
+// Admin functionality endpoints starts here
+// Endpoint to check if user has permission to manage admins
 app.get(
   "/vsa/admin/manage-admins",
   middlewares.verifyToken,
@@ -1689,11 +1690,20 @@ app.get(
         });
       }
 
+      const [rows] = await db.query(`SELECT show_manage_admins FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+      // Check if user has permission in current time to manage admins
+      if (rows.length === 0 || rows[0].show_manage_admins === false || rows[0].show_manage_admins === 0) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+        });
+      }
+
       // Fetch all users + their permissions
       const [allUsers] = await db.query(`
       SELECT 
         u.id,
-        u.user_id,
         u.full_name,
         u.email,
         u.is_admin,
@@ -1718,7 +1728,7 @@ app.get(
         a.show_manage_policy,
         a.show_manage_disciplines
       FROM users u
-      LEFT JOIN admin_access a ON u.user_id = a.user_id
+      LEFT JOIN admin_access a ON u.id = a.user_id
       ORDER BY u.created_at DESC
     `);
 
@@ -1814,6 +1824,24 @@ app.get("/vsa/invoice", middlewares.verifyToken, async (req, res) => {
       });
     }
     
+    // Check if user has permission to generate invoice
+    if (!req.user.permissions || !req.user.permissions.show_invoice_generation) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_invoice_generation FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time to generate invoice
+    if (rows.length === 0 || rows[0].show_invoice_generation === false || rows[0].show_invoice_generation === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+      });
+    }
+
     const [results] = await db.query(`
       SELECT 
         'skates_and_boots' as category,
@@ -2491,6 +2519,24 @@ app.get(
         });
       }
 
+      // Check if user has permission to download online sales
+      if (!req.user.permissions || !req.user.permissions.show_online_sales) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. You do not have access to this section.",
+        });
+      }
+
+      const [rows] = await db.query(`SELECT show_online_sales FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+      // Check if user has permission in current time to download online sales
+      if (rows.length === 0 || rows[0].show_online_sales === false || rows[0].show_online_sales === 0) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+        });
+      }
+
       // Getting the data from DB for all the completed sales
       const [saleData] = await db.query(
         "SELECT * FROM orders WHERE status = ? ORDER BY created_at DESC",
@@ -2532,6 +2578,25 @@ app.get("/vsa/download-offline-user-data", middlewares.verifyToken, async (req, 
         message: "Access denied. Admins only.",
       });
     }
+
+      // Check if user has permission to download offline customers
+      if (!req.user.permissions || !req.user.permissions.show_offline_customers) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. You do not have access to this section.",
+        });
+      }
+
+      const [rows] = await db.query(`SELECT show_offline_customers FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+      // Check if user has permission in current time to download offline customers list
+      if (rows.length === 0 || rows[0].show_offline_customers === false || rows[0].show_offline_customers === 0) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+        });
+      }
+      
     const [userData] = await db.query('SELECT full_name, mobile, whatsapp_number, email FROM item_sold_offline');
 
     if (!userData || userData.length === 0) {
@@ -2567,6 +2632,25 @@ app.get("/vsa/download-offline-user-data-csv", middlewares.verifyToken, async (r
         message: "Access denied. Admins only.",
       });
     }
+
+    // Check if user has permission to download offline customers
+    if (!req.user.permissions || !req.user.permissions.show_offline_customers) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_offline_customers FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time to download offline customers list
+    if (rows.length === 0 || rows[0].show_offline_customers === false || rows[0].show_offline_customers === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+      });
+    }
+      
     const [userData] = await db.query('SELECT full_name, mobile, whatsapp_number, email FROM item_sold_offline');
 
     if (!userData || userData.length === 0) {
@@ -2600,8 +2684,26 @@ app.get("/vsa/download-online-user-data", middlewares.verifyToken, async (req, r
           message: "Access denied. Admins only.",
       });
     }
+    
+    // Check if user has permission to download online users data
+    if (!req.user.permissions || !req.user.permissions.show_online_users) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
 
-    const [userData] = await db.query('SELECT user_id, full_name, mobile, email FROM users');
+    const [rows] = await db.query(`SELECT show_online_users FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time to download online users data
+    if (rows.length === 0 || rows[0].show_online_users === false || rows[0].show_online_users === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+      });
+    }
+
+    const [userData] = await db.query('SELECT id, full_name, mobile, email FROM users');
      if (!userData || userData.length === 0) {
       return res.status(404).json({
         success: false,
@@ -2633,7 +2735,25 @@ app.get("/vsa/download-online-user-data-csv", middlewares.verifyToken, async (re
       });
     }
 
-    const [userData] = await db.query('SELECT user_id, full_name, mobile, email FROM users');
+    // Check if user has permission to download online users data
+    if (!req.user.permissions || !req.user.permissions.show_online_users) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_online_users FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time to download online users data
+    if (rows.length === 0 || rows[0].show_online_users === false || rows[0].show_online_users === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+      });
+    }
+
+    const [userData] = await db.query('SELECT id, full_name, mobile, email FROM users');
      if (!userData || userData.length === 0) {
       return res.status(404).json({
         success: false,
@@ -2662,6 +2782,24 @@ app.get("/vsa/download-available-stock", middlewares.verifyToken, async (req, re
       return res.status(403).json({
         success: false,
         message: "Access denied. Admins only.",
+      });
+    }
+
+    // Check if user has permission to download available stock
+    if (!req.user.permissions || !req.user.permissions.show_available_stocks) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_available_stocks FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time to available stock
+    if (rows.length === 0 || rows[0].show_available_stocks === false || rows[0].show_available_stocks === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
       });
     }
 
@@ -2764,6 +2902,24 @@ app.get("/vsa/download-available-stock-csv", middlewares.verifyToken, async (req
       return res.status(403).json({
         success: false,
         message: "Access denied. Admins only.",
+      });
+    }
+
+    // Check if user has permission to download available stock
+    if (!req.user.permissions || !req.user.permissions.show_available_stocks) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_available_stocks FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time to available stock
+    if (rows.length === 0 || rows[0].show_available_stocks === false || rows[0].show_available_stocks === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
       });
     }
 
@@ -2871,6 +3027,24 @@ app.get("/vsa/download-offline-sale-list", middlewares.verifyToken, async (req, 
       });
     }
 
+    // Check if user has permission to download offline sale list
+    if (!req.user.permissions || !req.user.permissions.show_offline_sales) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_offline_sales FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time to download offline sale list
+    if (rows.length === 0 || rows[0].show_offline_sales === false || rows[0].show_offline_sales === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+      });
+    }
+
     const [saleData] = await db.query(`
       SELECT
         iso.invoice_number,
@@ -2929,6 +3103,24 @@ app.get("/vsa/download-offline-sale-list-csv", middlewares.verifyToken, async (r
       return res.status(403).json({
         success: false,
         message: "Access denied. Admins only.",
+      });
+    }
+    
+    // Check if user has permission to download offline sale list
+    if (!req.user.permissions || !req.user.permissions.show_offline_sales) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_offline_sales FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time to download offline sale list
+    if (rows.length === 0 || rows[0].show_offline_sales === false || rows[0].show_offline_sales === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
       });
     }
 
@@ -2999,6 +3191,24 @@ app.post(
         });
       }
 
+      // Check if user has permission to register new student
+      if (!req.user.permissions || !req.user.permissions.show_new_student) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. You do not have access to this section.",
+        });
+      }
+
+      const [rows] = await db.query(`SELECT show_new_student FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+      // Check if user has permission in current time to register new student
+      if (rows.length === 0 || rows[0].show_new_student === false || rows[0].show_new_student === 0) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+        });
+      }
+
       const validationErrors = validateStudent(req.body);
       if (validationErrors.length > 0) {
         if (connection) connection.release();
@@ -3007,6 +3217,7 @@ app.post(
           validationErrors,
         });
       }
+
       await connection.beginTransaction();
       const result = await admin.registerNewStudent(
         req.body,
@@ -3174,6 +3385,24 @@ app.get(
           message: "Access denied. Admins only.",
         });
       }
+ 
+      // Check if user has permission to see student attendance page
+      if (!req.user.permissions || !req.user.permissions.show_attendance) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. You do not have access to this section.",
+        });
+      }
+
+      const [rows] = await db.query(`SELECT show_attendance FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+      // Check if user has permission in current time to see student attendance page
+      if (rows.length === 0 || rows[0].show_attendance === false || rows[0].show_attendance === 0) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+        });
+      }
 
       let choosenDate = req.query.date || new Date().toISOString().slice(0, 10);
       // Get attendance details as per the date
@@ -3214,6 +3443,24 @@ app.post(
         return res.status(403).json({
           success: false,
           message: "Access denied. Admins only.",
+        });
+      }
+
+      // Check if user has permission for student attendance page
+      if (!req.user.permissions || !req.user.permissions.show_attendance) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. You do not have access to this section.",
+        });
+      }
+
+      const [rows] = await db.query(`SELECT show_attendance FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+      // Check if user has permission in current time for student attendance page
+      if (rows.length === 0 || rows[0].show_attendance === false || rows[0].show_attendance === 0) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
         });
       }
 
@@ -3360,6 +3607,24 @@ app.get(
         message: "Access denied. Admins only.",
       });
     }
+    
+    // Check if user has permission for manage student page
+    if (!req.user.permissions || !req.user.permissions.show_manage_students) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_manage_students FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time for manage student page
+    if (rows.length === 0 || rows[0].show_manage_students === false || rows[0].show_manage_students === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+      });
+    }
 
     const [studentDetails] = await db.query(
       `SELECT s.student_id, s.full_name, s.mother_name, s.student_group, s.pending_fee 
@@ -3389,6 +3654,24 @@ app.get(
       return res.status(403).json({
         success: false,
         message: "Access denied. Admins only.",
+      });
+    }
+        
+    // Check if user has permission for manage student page
+    if (!req.user.permissions || !req.user.permissions.show_manage_students) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_manage_students FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time for manage student page
+    if (rows.length === 0 || rows[0].show_manage_students === false || rows[0].show_manage_students === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
       });
     }
 
@@ -3906,6 +4189,24 @@ app.get(
         message: "Access denied. Admins only.",
       });
     }
+  
+    // Check if user has permission for manage student achievements page
+    if (!req.user.permissions || !req.user.permissions.show_students_achievements) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_students_achievements FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time for manage student achievements page
+    if (rows.length === 0 || rows[0].show_students_achievements === false || rows[0].show_students_achievements === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+      });
+    }
 
     const [studentDetails] = await db.query(
       `SELECT s.student_id, s.full_name, s.mother_name, s.student_group
@@ -3935,6 +4236,24 @@ app.get(
       return res.status(403).json({
         success: false,
         message: "Access denied. Admins only.",
+      });
+    }
+
+    // Check if user has permission for manage student achievements page
+    if (!req.user.permissions || !req.user.permissions.show_students_achievements) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_students_achievements FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time for manage student achievements page
+    if (rows.length === 0 || rows[0].show_students_achievements === false || rows[0].show_students_achievements === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
       });
     }
 
@@ -3973,6 +4292,24 @@ app.post("/vsa/admin/add-new-achievement", middlewares.verifyToken, async (req, 
       message: "Access denied. Admins only.",
     });
   }
+  
+  // Check if user has permission for manage student achievements page
+  if (!req.user.permissions || !req.user.permissions.show_students_achievements) {
+    return res.status(403).json({
+      success: false,
+      message: "Access denied. You do not have access to this section.",
+    });
+  }
+
+  const [rows] = await db.query(`SELECT show_students_achievements FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+  // Check if user has permission in current time for manage student achievements page
+  if (rows.length === 0 || rows[0].show_students_achievements === false || rows[0].show_students_achievements === 0) {
+    return res.status(403).json({
+      success: false,
+      message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+    });
+  }
 
   const {
     studentId,
@@ -3984,7 +4321,7 @@ app.post("/vsa/admin/add-new-achievement", middlewares.verifyToken, async (req, 
     link,
     dateOfAchievement,
   } = req.body;
-  console.log(dateOfAchievement);
+
   if (!studentId || !achievementTitle) {
     return res.status(400).json({
       success: false,
@@ -4109,6 +4446,24 @@ app.get(
       });
     }
 
+    // Check if user has permission for manage student attendance page
+    if (!req.user.permissions || !req.user.permissions.show_attendance_records) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_attendance_records FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time for manage student attendance page
+    if (rows.length === 0 || rows[0].show_attendance_records === false || rows[0].show_attendance_records === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+      });
+    }
+
     const result = await admin.getStudentsForAttendanceRecords(db);
     return res.status(result.statusCode).json(result);
   }
@@ -4123,6 +4478,24 @@ app.get(
       return res.status(403).json({
         success: false,
         message: "Access denied. Admins only.",
+      });
+    }
+
+    // Check if user has permission for manage student attendance page
+    if (!req.user.permissions || !req.user.permissions.show_attendance_records) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_attendance_records FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time for manage student attendance page
+    if (rows.length === 0 || rows[0].show_attendance_records === false || rows[0].show_attendance_records === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
       });
     }
 
@@ -4152,6 +4525,24 @@ app.put("/vsa/admin/edit-image-assets", middlewares.verifyToken
       return res.status(403).json({
         success: false,
         message: "Access denied. Admins only.",
+      });
+    }
+    
+    // Check if user has permission for dashboard page
+    if (!req.user.permissions || !req.user.permissions.show_manage_dashboard) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_manage_dashboard FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time for dashboard page
+    if (rows.length === 0 || rows[0].show_manage_dashboard === false || rows[0].show_manage_dashboard === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
       });
     }
 
@@ -4202,6 +4593,24 @@ app.put("/vsa/admin/edit-stats", middlewares.verifyToken
         message: "Access denied. Admins only.",
       });
     }
+    
+    // Check if user has permission for dashboard page
+    if (!req.user.permissions || !req.user.permissions.show_manage_dashboard) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_manage_dashboard FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time for dashboard page
+    if (rows.length === 0 || rows[0].show_manage_dashboard === false || rows[0].show_manage_dashboard === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+      });
+    }
 
     connection = await db.getConnection();
     await connection.beginTransaction();
@@ -4238,6 +4647,23 @@ app.post("/vsa/admin/add-new-record", middlewares.verifyToken, async (req, res) 
       });
     }
 
+    // Check if user has permission for dashboard page
+    if (!req.user.permissions || !req.user.permissions.show_manage_dashboard) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_manage_dashboard FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time for dashboard page
+    if (rows.length === 0 || rows[0].show_manage_dashboard === false || rows[0].show_manage_dashboard === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+      });
+    }
     const validDisciplines = ['Roller Skating', 'Ice Skating', 'Roll Ball'];
     const {records} = req.body;
  
@@ -4286,6 +4712,24 @@ app.put("/vsa/admin/update-schedule", middlewares.verifyToken, async (req, res) 
       return res.status(403).json({
         success: false,
         message: "Access denied. Admins only.",
+      });
+    }
+
+    // Check if user has permission for manage dashboard page
+    if (!req.user.permissions || !req.user.permissions.show_manage_dashboard) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_manage_dashboard FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time for manage dashboard page
+    if (rows.length === 0 || rows[0].show_manage_dashboard === false || rows[0].show_manage_dashboard === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
       });
     }
 
@@ -4342,6 +4786,24 @@ app.put("/vsa/admin/update-programs", middlewares.verifyToken, async (req, res) 
       });
     }
 
+    // Check if user has permission for manage dashboard page
+    if (!req.user.permissions || !req.user.permissions.show_manage_dashboard) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_manage_dashboard FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time for manage dashboard page
+    if (rows.length === 0 || rows[0].show_manage_dashboard === false || rows[0].show_manage_dashboard === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+      });
+    }
+
     const {updatedProgramsData} = req.body;
     
     if (!updatedProgramsData || updatedProgramsData.length === 0) {
@@ -4395,6 +4857,23 @@ app.put("/vsa/admin/update-coaches", middlewares.verifyToken, async (req, res) =
       });
     }
 
+    // Check if user has permission for manage dashboard page
+    if (!req.user.permissions || !req.user.permissions.show_manage_dashboard) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_manage_dashboard FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time for manage dashboard page
+    if (rows.length === 0 || rows[0].show_manage_dashboard === false || rows[0].show_manage_dashboard === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+      });
+    }
     const {updatedCoachesData} = req.body;
     
     if (!updatedCoachesData || updatedCoachesData.length === 0) {
@@ -4513,6 +4992,24 @@ app.post("/vsa/admin/add-new-item",
         return res.status(403).json({
           success: false,
           message: "Access denied. Admins only.",
+        });
+      }
+      
+      // Check if user has permission for add new item page
+      if (!req.user.permissions || !req.user.permissions.show_edit_shop) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. You do not have access to this section.",
+        });
+      }
+
+      const [rows] = await db.query(`SELECT show_edit_shop FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+      // Check if user has permission in current time for add new item page
+      if (rows.length === 0 || rows[0].show_edit_shop === false || rows[0].show_edit_shop === 0) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
         });
       }
 
@@ -4681,6 +5178,24 @@ app.post("/vsa/admin/add-new-bearing",
         return res.status(403).json({
           success: false,
           message: "Access denied. Admins only.",
+        });
+      }
+      
+      // Check if user has permission to add new bearing
+      if (!req.user.permissions || !req.user.permissions.show_edit_shop) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. You do not have access to this section.",
+        });
+      }
+
+      const [rows] = await db.query(`SELECT show_edit_shop FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+      // Check if user has permission in current time to add new bearing
+      if (rows.length === 0 || rows[0].show_edit_shop === false || rows[0].show_edit_shop === 0) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
         });
       }
 
@@ -4880,6 +5395,24 @@ app.get("/vsa/admin/edit-shop-items", middlewares.verifyToken, async (req, res) 
       });
     }
     
+    // Check if user has permission to edit shop items
+    if (!req.user.permissions || !req.user.permissions.show_edit_shop) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_edit_shop FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time to edit shop items
+    if (rows.length === 0 || rows[0].show_edit_shop === false || rows[0].show_edit_shop === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+      });
+    }
+
     const [
       [skatesAndBootsData],
       [wheelsData],
@@ -4922,6 +5455,24 @@ app.get("/vsa/admin/get-single-item", middlewares.verifyToken, async (req, res) 
       return res.status(403).json({
         success: false,
         message: "Access denied. Admins only.",
+      });
+    }
+
+    // Check if user has permission for single item page
+    if (!req.user.permissions || !req.user.permissions.show_edit_shop) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_edit_shop FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time for single item page
+    if (rows.length === 0 || rows[0].show_edit_shop === false || rows[0].show_edit_shop === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
       });
     }
 
@@ -4989,6 +5540,24 @@ app.put("/vsa/admin/edit-item", middlewares.verifyToken,
       return res.status(403).json({
         success: false,
         message: "Access denied. Admins only.",
+      });
+    }
+    
+    // Check if user has permission for edit single item page
+    if (!req.user.permissions || !req.user.permissions.show_edit_shop) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_edit_shop FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time for edit single item page
+    if (rows.length === 0 || rows[0].show_edit_shop === false || rows[0].show_edit_shop === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
       });
     }
 
@@ -5213,6 +5782,24 @@ app.put("/vsa/admin/edit-bearing",
         return res.status(403).json({
           success: false,
           message: "Access denied. Admins only.",
+        });
+      }
+        
+      // Check if user has permission for single item page
+      if (!req.user.permissions || !req.user.permissions.show_edit_shop) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. You do not have access to this section.",
+        });
+      }
+
+      const [rows] = await db.query(`SELECT show_edit_shop FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+      // Check if user has permission in current time for single item page
+      if (rows.length === 0 || rows[0].show_edit_shop === false || rows[0].show_edit_shop === 0) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
         });
       }
 
@@ -5481,6 +6068,24 @@ app.delete("/vsa/admin/delete-item",
           message: "Access denied. Admins only.",
         });
       }
+      
+      // Check if user has permission for single item page
+      if (!req.user.permissions || !req.user.permissions.show_edit_shop) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. You do not have access to this section.",
+        });
+      }
+
+      const [rows] = await db.query(`SELECT show_edit_shop FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+      // Check if user has permission in current time for single item page
+      if (rows.length === 0 || rows[0].show_edit_shop === false || rows[0].show_edit_shop === 0) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+        });
+      }
 
       let { itemId, itemType } = req.body;
 
@@ -5582,6 +6187,24 @@ app.delete("/vsa/admin/delete-bearing",
           message: "Access denied. Admins only.",
         });
       }
+      
+      // Check if user has permission for single item page
+      if (!req.user.permissions || !req.user.permissions.show_edit_shop) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. You do not have access to this section.",
+        });
+      }
+
+      const [rows] = await db.query(`SELECT show_edit_shop FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+      // Check if user has permission in current time for single item page
+      if (rows.length === 0 || rows[0].show_edit_shop === false || rows[0].show_edit_shop === 0) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+        });
+      }
 
       const { itemId } = req.body;
 
@@ -5665,6 +6288,25 @@ app.get("/vsa/admin/academy-achievements", middlewares.verifyToken, async (req, 
         message: "Access denied. Admins only.",
       });
     }
+    
+    // Check if user has permission for academy achievement page
+    if (!req.user.permissions || !req.user.permissions.show_edit_achievements) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_edit_achievements FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time for academy achievement page
+    if (rows.length === 0 || rows[0].show_edit_achievements === false || rows[0].show_edit_achievements === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+      });
+    }
+
     const [academyAchievementsData] = await db.query(
       `SELECT * FROM academy_achievements ORDER BY id DESC`);
 
@@ -5719,6 +6361,24 @@ app.post("/vsa/admin/add-new-academy-achievement",
         return res.status(403).json({
           success: false,
           message: "Access denied. Admins only.",
+        });
+      }
+      
+      // Check if user has permission for academy achievement page
+      if (!req.user.permissions || !req.user.permissions.show_edit_achievements) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. You do not have access to this section.",
+        });
+      }
+
+      const [rows] = await db.query(`SELECT show_edit_achievements FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+      // Check if user has permission in current time for academy achievement page
+      if (rows.length === 0 || rows[0].show_edit_achievements === false || rows[0].show_edit_achievements === 0) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
         });
       }
 
@@ -5919,6 +6579,24 @@ app.put("/vsa/admin/update-academy-achievement/:id",
         return res.status(403).json({
           success: false,
           message: "Access denied. Admins only.",
+        });
+      }
+
+      // Check if user has permission for academy achievement page
+      if (!req.user.permissions || !req.user.permissions.show_edit_achievements) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. You do not have access to this section.",
+        });
+      }
+
+      const [rows] = await db.query(`SELECT show_edit_achievements FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+      // Check if user has permission in current time for academy achievement page
+      if (rows.length === 0 || rows[0].show_edit_achievements === false || rows[0].show_edit_achievements === 0) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
         });
       }
 
@@ -6246,6 +6924,24 @@ app.delete("/vsa/admin/delete-academy-achievement/:id",
         });
       }
 
+      // Check if user has permission for academy achievement page
+      if (!req.user.permissions || !req.user.permissions.show_edit_achievements) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. You do not have access to this section.",
+        });
+      }
+
+      const [rows] = await db.query(`SELECT show_edit_achievements FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+      // Check if user has permission in current time for academy achievement page
+      if (rows.length === 0 || rows[0].show_edit_achievements === false || rows[0].show_edit_achievements === 0) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+        });
+      }
+
       const achievementId = parseInt(req.params.id);
 
       // Validate achievement ID
@@ -6461,6 +7157,24 @@ app.get(
           message: "Access denied. Admins only.",
         });
       }
+      
+      // Check if user has permission for policy page
+      if (!req.user.permissions || !req.user.permissions.show_manage_policy) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. You do not have access to this section.",
+        });
+      }
+
+      const [rows] = await db.query(`SELECT show_manage_policy FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+      // Check if user has permission in current time for policy page
+      if (rows.length === 0 || rows[0].show_manage_policy === false || rows[0].show_manage_policy === 0) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+        });
+      }
 
       // Fetch all policies in parallel
       const [
@@ -6515,6 +7229,24 @@ app.put(
         });
       }
 
+      // Check if user has permission for policy page
+      if (!req.user.permissions || !req.user.permissions.show_manage_policy) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. You do not have access to this section.",
+        });
+      }
+
+      const [rows] = await db.query(`SELECT show_manage_policy FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+      // Check if user has permission in current time for policy page
+      if (rows.length === 0 || rows[0].show_manage_policy === false || rows[0].show_manage_policy === 0) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+        });
+      }
+      
       const {
         policyType,
         id,
@@ -6706,6 +7438,25 @@ app.post("/vsa/admin/add-skating-events-and-tours", middlewares.verifyToken, asy
         message: "Access denied. Admins only.",
       });
     }
+
+    // Check if user has permission for manage discipline page
+    if (!req.user.permissions || !req.user.permissions.show_manage_disciplines) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_manage_disciplines FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time for discipline page
+    if (rows.length === 0 || rows[0].show_manage_disciplines === false || rows[0].show_manage_disciplines === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+      });
+    }
+      
   // skating_events_and_tours table name
 
   const {insertedData} = req.body;
@@ -6833,6 +7584,25 @@ app.put("/vsa/admin/update-skating-event/:id", middlewares.verifyToken, async(re
       });
     }
 
+    
+    // Check if user has permission for manage discipline page
+    if (!req.user.permissions || !req.user.permissions.show_manage_disciplines) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_manage_disciplines FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time for discipline page
+    if (rows.length === 0 || rows[0].show_manage_disciplines === false || rows[0].show_manage_disciplines === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
+      });
+    }
+
     const eventId = req.params.id;
     const {
       title,
@@ -6948,6 +7718,24 @@ app.delete("/vsa/admin/delete-skating-event/:id", middlewares.verifyToken, async
       return res.status(403).json({
         success: false,
         message: "Access denied. Admins only.",
+      });
+    }
+
+    // Check if user has permission for manage discipline page
+    if (!req.user.permissions || !req.user.permissions.show_manage_disciplines) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You do not have access to this section.",
+      });
+    }
+
+    const [rows] = await db.query(`SELECT show_manage_disciplines FROM admin_access WHERE user_id = ?`, req.user.userId);
+
+    // Check if user has permission in current time for discipline page
+    if (rows.length === 0 || rows[0].show_manage_disciplines === false || rows[0].show_manage_disciplines === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Your permission was revoked, Please re-login to get latest permissions.",
       });
     }
 

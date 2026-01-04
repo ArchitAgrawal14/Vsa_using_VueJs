@@ -308,21 +308,23 @@
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all"
               />
             </div>
+            <!-- Fee Cycle Dropdown -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Fee Cycle *</label>
               <select
-                v-model="formData.feeCycle"
+                v-model="formData.selectedProgramId"
                 @change="updateFeeStructure"
                 required
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all"
               >
                 <option value="">Select Fee Cycle</option>
-                <option value="Monthly" data-amount="2000">Monthly - ₹2000</option>
-                <option value="Quarterly" data-amount="5500">Quarterly - ₹5500</option>
-                <option value="Half-Yearly" data-amount="16000">Half-Yearly - ₹16000</option>
-                <option value="Yearly" data-amount="24000">Yearly - ₹29000</option>
+                <option v-for="program in programsData" :key="program.id" :value="program.id">
+                  {{ formatFeeCycle(program.fee_cycle) }} - ₹{{ program.price }}
+                </option>
               </select>
             </div>
+
+            <!-- Fee Amount -->
             <div class="md:col-span-2">
               <label class="block text-sm font-medium text-gray-700 mb-2">Fee Amount (₹) *</label>
               <input
@@ -437,7 +439,9 @@ export default {
         feeStructure: '',
         feeCycle: 'monthly',
         isPayingNow: false,
+        selectedProgramId: '',
       },
+      programsData: [],
     }
   },
   mounted() {
@@ -468,6 +472,35 @@ export default {
           this.formData.state = user.state || this.formData.state
           this.formData.postalCode = user.postal_code || this.formData.postalCode
           this.formData.country = user.country || this.formData.country
+        }
+        // Store programs data
+        if (data.programsData && data.programsData.length > 0) {
+          this.programsData = data.programsData
+          
+          // Check if there's a programId in the URL query parameters
+          const queryProgramId = this.$route.query.programId
+          
+          if (queryProgramId) {
+            // Convert to number for comparison
+            const programId = parseInt(queryProgramId)
+            
+            // Find the program in the list
+            const selectedProgram = this.programsData.find(p => p.id === programId)
+            
+            if (selectedProgram) {
+              // Auto-select the program
+              this.formData.selectedProgramId = selectedProgram.id
+              this.formData.feeCycle = selectedProgram.fee_cycle
+              this.formData.feeStructure = selectedProgram.price
+              
+              console.log('Auto-selected program:', selectedProgram)
+            }
+          } else if (data.userDetail && data.userDetail.length > 0 && data.userDetail[0].program_id) {
+            // Fallback: If there's existing program data for the user, prefill it
+            this.formData.selectedProgramId = data.userDetail[0].program_id
+            this.formData.feeCycle = data.userDetail[0].fee_cycle
+            this.formData.feeStructure = data.userDetail[0].price
+          }
         }
       } catch (error) {
         console.error('Error fetching user details:', error)
@@ -617,6 +650,7 @@ export default {
         country: 'Bharat',
         feeStructure: '',
         feeCycle: 'monthly',
+        selectedProgramId: '',
         isPayingNow: false,
       }
       this.imagePreview = null
@@ -631,16 +665,28 @@ export default {
     },
 
     updateFeeStructure(event) {
-    const feeMap = {
-      'Monthly': 2000,
-      'Quarterly': 5500,
-      'Half-Yearly': 16000,
-      'Yearly': 24000
-    };
-    
-    this.formData.feeStructure = feeMap[this.formData.feeCycle] || 0;
-  },
+      const selectedProgramId = parseInt(event.target.value)
+      
+      if (selectedProgramId) {
+        const selectedProgram = this.programsData.find(p => p.id === selectedProgramId)
+        
+        if (selectedProgram) {
+          this.formData.feeCycle = selectedProgram.fee_cycle
+          this.formData.feeStructure = selectedProgram.price
+        }
+      } else {
+        this.formData.feeCycle = ''
+        this.formData.feeStructure = 0
+      }
+    },
 
+    formatFeeCycle(cycle) {
+      // Capitalize first letter of each word
+      return cycle
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+    },
   },
 }
 </script>

@@ -110,14 +110,12 @@
               class="inline-block bg-gray-800 rounded-lg px-6 py-3 min-w-[260px] shadow-md">
               <div class="flex items-center space-x-4">
                 <img :src="record.discipline === 'Roller Skating'
-                  ? 'http://localhost:3000/images/students/student-1763453026841.png'
-                  : 'http://localhost:3000/images/students/student-1763453026862.png'
+                    ? 'http://localhost:3000/images/students/student-1763453026841.png'
+                    : 'http://localhost:3000/images/students/student-1763453026862.png'
                   " alt="Discipline" class="w-8 h-8" />
                 <div>
                   <div class="font-semibold">{{ record.studentName }}</div>
-                  <div class="text-sm text-gray-300">
-                    {{ record.event }} - {{ record.time }}
-                  </div>
+                  <div class="text-sm text-gray-300">{{ record.event }} - {{ record.time }}</div>
                 </div>
               </div>
             </div>
@@ -192,12 +190,10 @@
           </p>
         </div>
         <!-- Horizontal scroll ONLY on large screens -->
-        <div class="
-        grid md:grid-cols-2 lg:grid-cols-3 gap-8
-        lg:flex lg:gap-6 lg:overflow-x-auto lg:snap-x lg:snap-mandatory lg:py-4 custom-scroll-programs
-      ">
-          <div v-for="program in programs" :key="program.title" class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300
-               lg:min-w-[360px] lg:snap-center">
+        <div
+          class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 lg:flex lg:gap-6 lg:overflow-x-auto lg:snap-x lg:snap-mandatory lg:py-4 custom-scroll-programs">
+          <div v-for="program in programs" :key="program.id"
+            class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300 lg:min-w-[360px] lg:snap-center">
             <div class="relative">
               <img :src="program.image" :alt="program.title" class="w-full h-48 object-cover" />
               <div class="absolute top-4 right-4 bg-white px-3 py-1 rounded-full text-sm font-semibold text-gray-700">
@@ -209,7 +205,7 @@
               <p class="text-gray-600 mb-4">{{ program.description }}</p>
               <div class="flex justify-between items-center">
                 <span class="text-2xl font-bold text-gray-900">{{ program.price }}</span>
-                <button
+                <button @click="enrollNow(program.id, program.fee_cycle)"
                   class="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors duration-200">
                   Enroll Now
                 </button>
@@ -485,7 +481,7 @@ export default {
       rollerIcon: '',
       iceIcon: '',
       showVideo: false,
-      videoUrl: "https://www.youtube.com/embed/5BGYz-VFRnY?autoplay=1",
+      videoUrl: 'https://www.youtube.com/embed/5BGYz-VFRnY?autoplay=1',
     }
   },
   mounted() {
@@ -502,21 +498,21 @@ export default {
 
           // Update stats
           if (data.stats) {
-            this.stats = data.stats.map(stat => ({
+            this.stats = data.stats.map((stat) => ({
               label: stat.label,
               value: stat.value,
-              icon: 'http://localhost:3000' + stat.image
+              icon: 'http://localhost:3000' + stat.image,
             }))
           }
 
           // Update programs
           if (data.programs) {
-            this.programs = data.programs.map(program => ({
+            this.programs = data.programs.map((program) => ({
               title: program.title,
               category: program.category,
               description: program.description,
               price: `${program.price}/${program.fee_cycle}`,
-              image: 'http://localhost:3000' + program.image
+              image: 'http://localhost:3000' + program.image,
             }))
           }
 
@@ -527,10 +523,10 @@ export default {
 
           // Update achievements
           if (data.achievements) {
-            this.achievements = data.achievements.map(achievement => ({
+            this.achievements = data.achievements.map((achievement) => ({
               title: achievement.title,
               description: achievement.description,
-              icon: 'http://localhost:3000' + achievement.images
+              icon: 'http://localhost:3000' + achievement.images,
             }))
           }
 
@@ -552,17 +548,32 @@ export default {
           // Update images
           if (data.images) {
             this.images = data.images
-            this.logoImage = 'http://localhost:3000' + data.images.logo_image || '/mages/VSA_logo.png'
-            this.heroImage = 'http://localhost:3000' + data.images.hero_image || '/images/hero-speed-skating.jpg'
-            this.skateIcon = 'http://localhost:3000' + data.images.skate_icon || '/images/skate-icon.png'
-            this.checkIcon = 'http://localhost:3000' + data.images.check_icon || '/images/check-icon.png'
-            this.rollerSkateImage = 'http://localhost:3000' + data.images.roller_skate_image || '/images/roller-skates-showcase.jpg'
-            this.iceSkateImage = 'http://localhost:3000' + data.images.ice_skate_image || '/images/ice-skates-showcase.jpg'
-            this.skatingBanner = 'http://localhost:3000' + data.images.skating_banner || '/images/join-us-banner.jpg'
-            this.rollerSpeedImage = 'http://localhost:3000' + data.images.roller_speed_image || '/images/roller-speed-training.jpg'
-            this.iceSpeedImage = 'http://localhost:3000' + data.images.ice_speed_image || '/images/ice-skates-showcase.jpg'
-            this.rollerIcon = 'http://localhost:3000' + data.images.roller_icon || '/images/roller-skate-icon.png'
-            this.iceIcon = 'http://localhost:3000' + data.images.ice_icon || '/images/ice-skate-icon.png'
+            this.logoImage =
+              'http://localhost:3000' + data.images.logo_image || '/mages/VSA_logo.png'
+            this.heroImage =
+              'http://localhost:3000' + data.images.hero_image || '/images/hero-speed-skating.jpg'
+            this.skateIcon =
+              'http://localhost:3000' + data.images.skate_icon || '/images/skate-icon.png'
+            this.checkIcon =
+              'http://localhost:3000' + data.images.check_icon || '/images/check-icon.png'
+            this.rollerSkateImage =
+              'http://localhost:3000' + data.images.roller_skate_image ||
+              '/images/roller-skates-showcase.jpg'
+            this.iceSkateImage =
+              'http://localhost:3000' + data.images.ice_skate_image ||
+              '/images/ice-skates-showcase.jpg'
+            this.skatingBanner =
+              'http://localhost:3000' + data.images.skating_banner || '/images/join-us-banner.jpg'
+            this.rollerSpeedImage =
+              'http://localhost:3000' + data.images.roller_speed_image ||
+              '/images/roller-speed-training.jpg'
+            this.iceSpeedImage =
+              'http://localhost:3000' + data.images.ice_speed_image ||
+              '/images/ice-skates-showcase.jpg'
+            this.rollerIcon =
+              'http://localhost:3000' + data.images.roller_icon || '/images/roller-skate-icon.png'
+            this.iceIcon =
+              'http://localhost:3000' + data.images.ice_icon || '/images/ice-skate-icon.png'
           }
 
           this.dashboardData = response.data
@@ -582,18 +593,18 @@ export default {
 
     getRecordsByDiscipline(discipline) {
       const disciplineMap = {
-        'roller': this.rollerRecords,
-        'ice': this.iceRecords,
-        'rollball': this.rollBallRecords
+        roller: this.rollerRecords,
+        ice: this.iceRecords,
+        rollball: this.rollBallRecords,
       }
       return disciplineMap[discipline.toLowerCase()] || []
     },
 
     getScheduleByDiscipline(discipline) {
       const disciplineMap = {
-        'roller': this.rollerSchedule,
-        'ice': this.iceSchedule,
-        'rollball': this.rollBallSchedule
+        roller: this.rollerSchedule,
+        ice: this.iceSchedule,
+        rollball: this.rollBallSchedule,
       }
       return disciplineMap[discipline.toLowerCase()] || []
     },
@@ -649,16 +660,27 @@ export default {
       return discipline === 'Roller Skating' ? this.rollerRecords : this.iceRecords
     },
     closeVideo() {
-      this.showVideo = false;
+      this.showVideo = false
       // stop the video when closed
-      this.videoUrl = this.videoUrl.split("?")[0];
+      this.videoUrl = this.videoUrl.split('?')[0]
       setTimeout(() => {
-        this.videoUrl = "https://www.youtube.com/embed/5BGYz-VFRnY?autoplay=1";
-      }, 300);
+        this.videoUrl = 'https://www.youtube.com/embed/5BGYz-VFRnY?autoplay=1'
+      }, 300)
     },
     navigateTo(path) {
-      this.$router.push(path);
-      this.isUserDropdownOpen = false;
+      this.$router.push(path)
+      this.isUserDropdownOpen = false
+    },
+
+    enrollNow(programId, feeCycle) {
+      // Navigate to /join-us with query parameters
+      this.$router.push({
+        path: '/join-us',
+        query: {
+          programId: programId,
+          feeCycle: feeCycle
+        }
+      })
     },
   },
 }

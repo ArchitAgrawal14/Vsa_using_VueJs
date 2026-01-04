@@ -336,7 +336,7 @@ export default {
         const response = await axios.post(
           `${this.apiBaseURL}/vsa/admin/update-permission`,
           {
-            userId: user.user_id,
+            userId: user.id,
             permissionKey: permissionKey,
             value: value ? 1 : 0,
           },

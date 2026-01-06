@@ -5371,7 +5371,7 @@ function getItemId(type, name) {
   }
 
   itemId += name.substring(0, 3).toUpperCase();
-  itemId += Math.floor(Math.random() * 100).toString().padStart(2, '0');
+  itemId += Math.floor(Math.random() * 1000).toString().padStart(2, '0');
 
   return itemId.toUpperCase();
 }

@@ -1056,3 +1056,259 @@ END$$
 
 DELIMITER ;
 
+-- History tables related to shop
+CREATE TABLE orders_history (
+    history_id INT PRIMARY KEY AUTO_INCREMENT,
+
+    order_pk INT NOT NULL, -- orders.id
+    order_id VARCHAR(40),
+
+    user_id INT,
+    users_address_id INT,
+
+    order_status ENUM(
+        'pending','payment_pending','paid','confirmed',
+        'shipped','delivered','cancelled','refunded'
+    ),
+
+    payment_status ENUM(
+        'created','authorized','captured','failed','refunded'
+    ),
+
+    payment_method VARCHAR(50),
+    currency CHAR(3),
+
+    total_amount DECIMAL(10,2),
+    subtotal DECIMAL(10,2),
+    discount DECIMAL(10,2),
+    coupon_applied VARCHAR(50),
+    shipping_charges DECIMAL(10,2),
+
+    paid_on TIMESTAMP NULL,
+    delivered_on TIMESTAMP NULL,
+    cancelled_on TIMESTAMP NULL,
+
+    order_source ENUM('web','mobile','admin'),
+    notes VARCHAR(255),
+
+    action_type ENUM('INSERT','UPDATE','DELETE') NOT NULL,
+    action_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+DELIMITER $$
+
+CREATE TRIGGER orders_ai
+AFTER INSERT ON orders
+FOR EACH ROW
+BEGIN
+    INSERT INTO orders_history (
+        order_pk, order_id, user_id, users_address_id,
+        order_status, payment_status, payment_method, currency,
+        total_amount, subtotal, discount, coupon_applied,
+        shipping_charges, paid_on, delivered_on, cancelled_on,
+        order_source, notes, action_type
+    ) VALUES (
+        NEW.id, NEW.order_id, NEW.user_id, NEW.users_address_id,
+        NEW.order_status, NEW.payment_status, NEW.payment_method, NEW.currency,
+        NEW.total_amount, NEW.subtotal, NEW.discount, NEW.coupon_applied,
+        NEW.shipping_charges, NEW.paid_on, NEW.delivered_on, NEW.cancelled_on,
+        NEW.order_source, NEW.notes, 'INSERT'
+    );
+END$$
+
+CREATE TRIGGER orders_au
+AFTER UPDATE ON orders
+FOR EACH ROW
+BEGIN
+    INSERT INTO orders_history (
+        order_pk, order_id, user_id, users_address_id,
+        order_status, payment_status, payment_method, currency,
+        total_amount, subtotal, discount, coupon_applied,
+        shipping_charges, paid_on, delivered_on, cancelled_on,
+        order_source, notes, action_type
+    ) VALUES (
+        NEW.id, NEW.order_id, NEW.user_id, NEW.users_address_id,
+        NEW.order_status, NEW.payment_status, NEW.payment_method, NEW.currency,
+        NEW.total_amount, NEW.subtotal, NEW.discount, NEW.coupon_applied,
+        NEW.shipping_charges, NEW.paid_on, NEW.delivered_on, NEW.cancelled_on,
+        NEW.order_source, NEW.notes, 'UPDATE'
+    );
+END$$
+
+CREATE TRIGGER orders_ad
+AFTER DELETE ON orders
+FOR EACH ROW
+BEGIN
+    INSERT INTO orders_history (
+        order_pk, order_id, user_id, users_address_id,
+        order_status, payment_status, payment_method, currency,
+        total_amount, subtotal, discount, coupon_applied,
+        shipping_charges, paid_on, delivered_on, cancelled_on,
+        order_source, notes, action_type
+    ) VALUES (
+        OLD.id, OLD.order_id, OLD.user_id, OLD.users_address_id,
+        OLD.order_status, OLD.payment_status, OLD.payment_method, OLD.currency,
+        OLD.total_amount, OLD.subtotal, OLD.discount, OLD.coupon_applied,
+        OLD.shipping_charges, OLD.paid_on, OLD.delivered_on, OLD.cancelled_on,
+        OLD.order_source, OLD.notes, 'DELETE'
+    );
+END$$
+
+DELIMITER ;
+
+
+CREATE TABLE order_item_history (
+    history_id INT PRIMARY KEY AUTO_INCREMENT,
+
+    order_item_pk INT NOT NULL,
+    order_id_fk INT,
+
+    item_id VARCHAR(20),
+    item_variation_id VARCHAR(70),
+    item_type ENUM(
+        'skates_and_boots','wheels','helmets','bearings','accessories'
+    ),
+
+    item_name VARCHAR(100),
+    item_image VARCHAR(255),
+
+    quantity INT,
+    selling_price DECIMAL(10,2),
+    total_price DECIMAL(10,2),
+    is_custom BOOLEAN,
+
+    action_type ENUM('INSERT','UPDATE','DELETE') NOT NULL,
+    action_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+DELIMITER $$
+
+CREATE TRIGGER order_item_ai
+AFTER INSERT ON order_item
+FOR EACH ROW
+BEGIN
+    INSERT INTO order_item_history (
+        order_item_pk, order_id_fk, item_id, item_variation_id,
+        item_type, item_name, item_image,
+        quantity, selling_price, total_price, is_custom,
+        action_type
+    ) VALUES (
+        NEW.order_item_id, NEW.order_id_fk, NEW.item_id, NEW.item_variation_id,
+        NEW.item_type, NEW.item_name, NEW.item_image,
+        NEW.quantity, NEW.selling_price, NEW.total_price, NEW.is_custom,
+        'INSERT'
+    );
+END$$
+
+CREATE TRIGGER order_item_au
+AFTER UPDATE ON order_item
+FOR EACH ROW
+BEGIN
+    INSERT INTO order_item_history (
+        order_item_pk, order_id_fk, item_id, item_variation_id,
+        item_type, item_name, item_image,
+        quantity, selling_price, total_price, is_custom,
+        action_type
+    ) VALUES (
+        NEW.order_item_id, NEW.order_id_fk, NEW.item_id, NEW.item_variation_id,
+        NEW.item_type, NEW.item_name, NEW.item_image,
+        NEW.quantity, NEW.selling_price, NEW.total_price, NEW.is_custom,
+        'UPDATE'
+    );
+END$$
+
+CREATE TRIGGER order_item_ad
+AFTER DELETE ON order_item
+FOR EACH ROW
+BEGIN
+    INSERT INTO order_item_history (
+        order_item_pk, order_id_fk, item_id, item_variation_id,
+        item_type, item_name, item_image,
+        quantity, selling_price, total_price, is_custom,
+        action_type
+    ) VALUES (
+        OLD.order_item_id, OLD.order_id_fk, OLD.item_id, OLD.item_variation_id,
+        OLD.item_type, OLD.item_name, OLD.item_image,
+        OLD.quantity, OLD.selling_price, OLD.total_price, OLD.is_custom,
+        'DELETE'
+    );
+END$$
+
+DELIMITER ;
+
+
+CREATE TABLE order_item_customization_history (
+    history_id INT PRIMARY KEY AUTO_INCREMENT,
+
+    customization_pk INT NOT NULL,
+    order_item_id_fk INT,
+
+    customization_type ENUM(
+        'name_print','color_strip','text','number','custom_color'
+    ),
+
+    customization_value VARCHAR(255),
+    is_custom_value BOOLEAN,
+    extra_price DECIMAL(10,2),
+
+    action_type ENUM('INSERT','UPDATE','DELETE') NOT NULL,
+    action_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+DELIMITER $$
+
+CREATE TRIGGER order_item_customization_ai
+AFTER INSERT ON order_item_customization
+FOR EACH ROW
+BEGIN
+    INSERT INTO order_item_customization_history (
+        customization_pk, order_item_id_fk,
+        customization_type, customization_value,
+        is_custom_value, extra_price,
+        action_type
+    ) VALUES (
+        NEW.order_item_customization_id, NEW.order_item_id_fk,
+        NEW.customization_type, NEW.customization_value,
+        NEW.is_custom_value, NEW.extra_price,
+        'INSERT'
+    );
+END$$
+
+CREATE TRIGGER order_item_customization_au
+AFTER UPDATE ON order_item_customization
+FOR EACH ROW
+BEGIN
+    INSERT INTO order_item_customization_history (
+        customization_pk, order_item_id_fk,
+        customization_type, customization_value,
+        is_custom_value, extra_price,
+        action_type
+    ) VALUES (
+        NEW.order_item_customization_id, NEW.order_item_id_fk,
+        NEW.customization_type, NEW.customization_value,
+        NEW.is_custom_value, NEW.extra_price,
+        'UPDATE'
+    );
+END$$
+
+CREATE TRIGGER order_item_customization_ad
+AFTER DELETE ON order_item_customization
+FOR EACH ROW
+BEGIN
+    INSERT INTO order_item_customization_history (
+        customization_pk, order_item_id_fk,
+        customization_type, customization_value,
+        is_custom_value, extra_price,
+        action_type
+    ) VALUES (
+        OLD.order_item_customization_id, OLD.order_item_id_fk,
+        OLD.customization_type, OLD.customization_value,
+        OLD.is_custom_value, OLD.extra_price,
+        'DELETE'
+    );
+END$$
+
+DELIMITER ;

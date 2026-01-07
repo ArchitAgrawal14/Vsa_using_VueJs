@@ -397,7 +397,6 @@ CREATE TABLE cart (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE KEY uniq_user_item (user_id, item_id, item_variation_id),
     INDEX idx_user_cart (user_id),
     INDEX idx_cart_user_lookup (user_id, item_type)
 );

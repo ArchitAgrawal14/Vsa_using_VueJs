@@ -8,7 +8,6 @@ import crypto from "crypto";
 import nodemailer from "nodemailer";
 import * as middlewares from "./middlewares/middleware.js";
 import "./middlewares/passportConfig.js";
-import { v4 as uuidv4 } from "uuid";
 import passport from "passport";
 import * as admin from "./admin.js";
 import { dirname } from "path";
@@ -19,6 +18,7 @@ import PDFDocument from  "pdfkit";
 import fs from "fs";
 import axios from "axios";
 import cron from "node-cron";
+import router from "./shop.js";
 
 dotenv.config();
 
@@ -28,6 +28,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 app.use(cors());
 app.use(express.json());
 app.use("/images", express.static(path.join(__dirname, "public/images")));
+
+app.use("/vsa/shop", router); // Routes the request to shop.js used for shop related work
 
 const JWT_SECRET = process.env.JWT_SECRET;
 

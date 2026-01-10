@@ -3,6 +3,7 @@ import Helmets from '@/components/shop_components/Helmets.vue'
 import Bearings from '@/components/shop_components/Bearings.vue'
 import Wheels from '@/components/shop_components/Wheels.vue'
 import Accessories from '@/components/shop_components/Accessories.vue'
+import ProductDetail from '@/components/shop_components/ProductDetail.vue'
 
 export default [
   {
@@ -29,5 +30,10 @@ export default [
     path: '/accessories',
     name: 'Accessories',
     component: Accessories
+  },
+  {
+    path: '/product-detail/:itemVariationId/:itemType',
+    name: 'ProductDetail',
+    component: ProductDetail
   },
 ]

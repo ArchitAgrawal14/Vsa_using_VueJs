@@ -274,7 +274,7 @@ export default {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: 60;
   background: var(--background-light);
   backdrop-filter: blur(10px);
   box-shadow: var(--shadow-md);
@@ -427,7 +427,7 @@ export default {
   visibility: hidden;
   transform: translateY(-10px);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 1001;
+  z-index: 61;
   color: var(--text-primary) !important;
 }
 

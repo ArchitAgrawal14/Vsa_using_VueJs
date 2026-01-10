@@ -1,14 +1,7 @@
 import express from "express";
-import dotenv from "dotenv";
-import cors from "cors";
 import db from "./db.js";
-import nodemailer from "nodemailer";
 import * as middlewares from "./middlewares/middleware.js";
 import "./middlewares/passportConfig.js";
-import { dirname } from "path";
-import path from "path";
-import { fileURLToPath } from "url";
-import axios from "axios";
 
 const router = express.Router();
 
@@ -552,7 +545,7 @@ function validateQuantityUpdate(data) {
     };
   }
 
-  const itemTypeValidation = validateItemType(item.itemType);
+  const itemTypeValidation = validateItemType(data.itemType);
   if(!itemTypeValidation.success) {
     return itemTypeValidation;
   }
@@ -582,6 +575,182 @@ function validateQuantityUpdate(data) {
   };
 }
 
+// Endpoint to fetch details of a particular item for product detail page
+router.get("/product-detail/:itemVariationId/:itemType", async (req, res) => {
+  try {
+    const {itemVariationId, itemType} = req.params;
+    const validation = validateItemType(itemType);
+    if(!validation.success) {
+      return res.json(validation);
+    }
+
+    const itemDetail = await getProductsDetail(itemType, itemVariationId);
+    
+    if(!itemDetail) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found"
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Product found",
+      data: itemDetail,
+      itemType : itemType
+    });
+
+  } catch (error) {
+    console.error("Error fetching product detail:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch product details"
+    });
+  }
+});
+
+async function getItemIdFromVariation(itemType, itemVariationId) {
+  const [rows] = await db.query(
+    `SELECT item_id 
+     FROM ${itemType}_variation 
+     WHERE item_variation_id = ?`,
+    [itemVariationId]
+  );
+
+  return rows.length ? rows[0].item_id : null;
+}
+
+async function getProductsDetail(itemType, itemVariationId) {
+  const itemId = await getItemIdFromVariation(itemType, itemVariationId);
+  if (!itemId) return null;
+
+  // variation-specific columns
+  const variationColumns =
+    itemType === 'bearings'
+      ? `iv.abec_rating, iv.material, iv.size, iv.pack_size, iv.bearing_type`
+      : `iv.color, iv.size`;
+
+  const [rawData] = await db.query(
+    `
+    SELECT 
+      i.id AS itemIdPk,
+      i.item_id AS itemId,
+      i.name,
+      i.short_description,
+      i.detailed_description,
+      i.why_to_choose,
+      i.main_image_path,
+      i.features,
+      i.average_rating,
+
+      iv.id AS itemVariationIdPk,
+      iv.item_variation_id,
+      ${variationColumns},
+      iv.quantity AS availableQuantity,
+      iv.old_price,
+      iv.current_price,
+      iv.discount,
+      iv.base_image_path,
+
+      ivimg.id AS itemVariationImageIdPk,
+      ivimg.image_path,
+
+      icr.id AS itemCustomerRatingIdPk,
+      icr.customer_name,
+      icr.comment,
+      icr.rating,
+      icr.created_at AS ratingDate
+
+    FROM ${itemType} i
+    LEFT JOIN ${itemType}_variation iv ON i.item_id = iv.item_id
+    LEFT JOIN ${itemType}_variation_image ivimg ON iv.item_variation_id = ivimg.item_variation_id
+    LEFT JOIN ${itemType}_customer_ratings icr ON i.item_id = icr.item_id
+    WHERE i.item_id = ?
+    `,
+    [itemId]
+  );
+
+  if (!rawData.length) return null;
+
+  const itemDetail = {
+    itemIdPk: rawData[0].itemIdPk,
+    itemId: rawData[0].itemId,
+    name: rawData[0].name,
+    shortDescription: rawData[0].short_description,
+    detailedDescription: rawData[0].detailed_description,
+    whyToChoose: rawData[0].why_to_choose,
+    mainImagePath: rawData[0].main_image_path,
+    features: rawData[0].features,
+    averageRating: rawData[0].average_rating,
+
+    selectedVariationId: itemVariationId,
+    variations: [],
+    ratings: []
+  };
+
+  const variationMap = new Map();
+
+  rawData.forEach(row => {
+    if (!variationMap.has(row.item_variation_id)) {
+      variationMap.set(row.item_variation_id, {
+        itemVariationIdPk: row.itemVariationIdPk,
+        itemVariationId: row.item_variation_id,
+        ...(itemType === 'bearings'
+          ? {
+              abecRating: row.abec_rating,
+              material: row.material,
+              size: row.size,
+              packSize: row.pack_size,
+              bearingType: row.bearing_type
+            }
+          : {
+              color: row.color,
+              size: row.size
+            }),
+        availableQuantity: row.availableQuantity,
+        oldPrice: row.old_price,
+        currentPrice: row.current_price,
+        discount: row.discount,
+        baseImagePath: row.base_image_path,
+        images: [],
+        imageIds: new Set() 
+      });
+    }
+
+    // Add variation images (avoid duplicates)
+    const variation = variationMap.get(row.item_variation_id);
+    if (row.itemVariationImageIdPk && !variation.imageIds.has(row.itemVariationImageIdPk)) {
+      variation.imageIds.add(row.itemVariationImageIdPk);
+      variation.images.push({
+        id: row.itemVariationImageIdPk,
+        imagePath: row.image_path
+      });
+    }
+  });
+
+  // Convert to array and remove the tracking Set
+  itemDetail.variations = Array.from(variationMap.values()).map(variation => {
+    const { imageIds, ...rest } = variation;
+    return rest;
+  });
+
+  // 6. ratings
+  const ratingIds = new Set();
+  rawData.forEach(row => {
+    if (row.itemCustomerRatingIdPk && !ratingIds.has(row.itemCustomerRatingIdPk)) {
+      ratingIds.add(row.itemCustomerRatingIdPk);
+      itemDetail.ratings.push({
+        id: row.itemCustomerRatingIdPk,
+        customerName: row.customer_name,
+        comment: row.comment,
+        rating: row.rating,
+        ratingDate: row.ratingDate
+      });
+    }
+  });
+
+  return itemDetail;
+}
 
 
 // Add more shop-specific routes here

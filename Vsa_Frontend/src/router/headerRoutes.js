@@ -1,3 +1,4 @@
+import Cart from '@/components/Cart.vue'
 import ChangePassword from '@/components/header_components/ChangePassword.vue'
 import JoinUs from '@/components/header_components/JoinUs.vue'
 import MySkaterDetail from '@/components/header_components/MySkaterDetail.vue'
@@ -29,5 +30,10 @@ export default [
     path: '/shop',
     name: 'Shop',
     component: Shop
+  },
+  {
+    path: '/cart',
+    name: 'Cart',
+    component: Cart
   },
 ]

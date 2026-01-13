@@ -179,7 +179,7 @@ export default {
       username: '', 
       cartCount: 0, 
       logoIconPath: '/images/VSA_logo.png',
-      logoTextPath: '/images/vsa logo name.png'
+      logoTextPath: '/images/vsa_logo_name.png'
     }
   },
   methods: {
@@ -306,7 +306,7 @@ export default {
 
 .logo-icon {
   height: 45px;
-  width: auto;
+  width: 35px;
   border-radius: 8px;
   box-shadow: var(--shadow-sm);
 }
@@ -633,11 +633,12 @@ export default {
   
   .header-container {
     padding: 0 1rem;
-    height: 60px;
+    height: 65px;
   }
   
   .logo-icon {
     height: 35px;
+    width: 25px;
   }
   
   .logo-text {

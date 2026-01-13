@@ -275,11 +275,11 @@
                 d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
               />
             </svg>
-            <h3 class="text-xl font-bold text-gray-900">Skating Gear</h3>
+            <h3 class="text-xl font-bold text-gray-900">Others</h3>
           </div>
           <nav class="space-y-3">
             <a
-              href="/skates-and-boots"
+              @click="navigateTo('/')"
               class="flex items-center text-gray-700 hover:text-green-600 transition-all duration-300 group"
             >
               <svg
@@ -295,10 +295,10 @@
                   d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
                 />
               </svg>
-              Skates and boots
+              Home
             </a>
             <a
-              href="/helmets"
+              @click="navigateTo('/my-skater-detail')"
               class="flex items-center text-gray-700 hover:text-green-600 transition-all duration-300 group"
             >
               <svg
@@ -314,10 +314,10 @@
                   d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                 />
               </svg>
-              Helmets
+              My Skater
             </a>
             <a
-              href="/bearing"
+              @click="navigateTo('/shop')"
               class="flex items-center text-gray-700 hover:text-green-600 transition-all duration-300 group"
             >
               <svg
@@ -335,10 +335,10 @@
                   d="M12 2v4m0 12v4m10-10h-4M6 12H2"
                 />
               </svg>
-              Bearing
+              Shop
             </a>
             <a
-              href="/wheels"
+              @click="navigateTo('/cart')"
               class="flex items-center text-gray-700 hover:text-green-600 transition-all duration-300 group"
             >
               <svg
@@ -351,10 +351,10 @@
                 <circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2" />
                 <circle cx="12" cy="12" r="2" stroke="currentColor" stroke-width="2" />
               </svg>
-              Wheels
+              Cart
             </a>
             <a
-              href="/accessories"
+              @click="navigateTo('/join-us')"
               class="flex items-center text-gray-700 hover:text-green-600 transition-all duration-300 group"
             >
               <svg
@@ -370,7 +370,7 @@
                   d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
                 />
               </svg>
-              Accessories
+              Join us
             </a>
           </nav>
         </div>

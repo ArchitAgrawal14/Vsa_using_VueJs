@@ -306,7 +306,7 @@ export default {
 
 .logo-icon {
   height: 45px;
-  width: 35px;
+  width: 65px;
   border-radius: 8px;
   box-shadow: var(--shadow-sm);
 }
@@ -638,7 +638,7 @@ export default {
   
   .logo-icon {
     height: 35px;
-    width: 25px;
+    width: 20px;
   }
   
   .logo-text {

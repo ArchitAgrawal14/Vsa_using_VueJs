@@ -16,82 +16,82 @@ import RegisterNewStudent from "@/components/admin_components/RegisterNewStudent
 import StudentAchievementDetail from "@/components/admin_components/StudentAchievementDetail.vue"
 export default [
   {
-    path: '/vsa/invoice',
+    path: '/invoice',
     name: 'CreateInvoice',
     component: CreateInvoice,
   },
   {
-    path: '/vsa/manage-admins',
+    path: '/manage-admins',
     name: 'ManageAdmins',
     component: ManageAdmins,
   },
   {
-    path: '/vsa/admin/register-new-student',
+    path: '/admin/register-new-student',
     name: 'RegisterNewStudent',
     component: RegisterNewStudent,
   },
   {
-    path: '/vsa/admin/mark-attendance',
+    path: '/admin/mark-attendance',
     name: 'AttendancePage',
     component: AttendancePage,
   },
   {
-    path: '/vsa/admin/manage-students',
+    path: '/admin/manage-students',
     name: 'ManageStudents',
     component: ManageStudents,
   },
   {
-    path: '/vsa/admin/manage-achievements',
+    path: '/admin/manage-achievements',
     name: 'ManageAchievements',
     component: ManageAchievements,
   },
   {
-    path: '/vsa/admin/student/:studentId/achievements',
+    path: '/admin/student/:studentId/achievements',
     name: 'StudentAchievementDetail',
     component: StudentAchievementDetail,
   },
   {
-    path: '/vsa/admin/monthly-attendance',
+    path: '/admin/monthly-attendance',
     name: 'AttendanceRecords',
     component: AttendanceRecords,
   },
   {
-    path: '/vsa/admin/manage-dashboard',
+    path: '/admin/manage-dashboard',
     name: 'ManageDashboard',
     component: ManageDashboard,
   },
   {
-    path: '/vsa/admin/manage-shop',
+    path: '/admin/manage-shop',
     name: 'ManageShop',
     component: ManageShop,
   },
   {
-    path: '/vsa/admin/edit-shop',
+    path: '/admin/edit-shop',
     name: 'EditShop',
     component: EditShop,
   },
   {
-    path: '/vsa/admin/edit-item',
+    path: '/admin/edit-item',
     name: 'EditItem',
     component: EditItem,
   },
   {
-    path: '/vsa/admin/add-new-item',
+    path: '/admin/add-new-item',
     name: 'AddNewItem',
     component: AddNewItemPage,
   },
   {
-    path: '/vsa/admin/edit/academy-achievements',
+    path: '/admin/edit/academy-achievements',
     name: 'ManageAcademyAchievements',
     component: ManageAcademyAchievements,
   },
   {
-    path: '/vsa/admin/update-existing-policy',
+    path: '/admin/update-existing-policy',
     name: 'ManageExistingPolicies',
     component: ManageExistingPolicies,
   },
   {
-    path: '/vsa/admin/manage-skating-disciplines',
+    path: '/admin/manage-skating-disciplines',
     name: 'ManageSkatingDisciplines',
     component: ManageSkatingDisciplines,
   }

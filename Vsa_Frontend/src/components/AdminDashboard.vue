@@ -28,7 +28,7 @@
               </svg>
               <span class="font-medium">Orders Status</span>
             </a>
-            <a v-if="hasPermission('show_manage_admins')" href="/vsa/manage-admins"
+            <a v-if="hasPermission('show_manage_admins')" href="/manage-admins"
               class="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors duration-200 hover:bg-white/10 px-4 py-2 rounded-lg">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -37,7 +37,7 @@
               <span class="font-medium">Manage admins</span>
             </a>
 
-            <a v-if="hasPermission('show_edit_shop')" href="/vsa/admin/manage-shop" target="_blank"
+            <a v-if="hasPermission('show_edit_shop')" href="/admin/manage-shop" target="_blank"
               class="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors duration-200 hover:bg-white/10 px-4 py-2 rounded-lg">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -46,7 +46,7 @@
               <span class="font-medium">Edit Shop</span>
             </a>
 
-            <a v-if="hasPermission('show_edit_achievements')" href="/vsa/admin/edit/academy-achievements"
+            <a v-if="hasPermission('show_edit_achievements')" href="/admin/edit/academy-achievements"
               class="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors duration-200 hover:bg-white/10 px-4 py-2 rounded-lg">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -90,7 +90,7 @@
               </svg>
               Orders Status
             </a>
-            <a v-if="hasPermission('show_edit_shop')" href="/vsa/admin/manage-shop"
+            <a v-if="hasPermission('show_edit_shop')" href="/admin/manage-shop"
               class="flex items-center space-x-3 text-gray-300 hover:text-white px-4 py-3 rounded-lg hover:bg-white/10 transition-colors duration-200">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -98,7 +98,7 @@
               </svg>
               Edit Shop
             </a>
-            <a v-if="hasPermission('show_edit_achievements')" href="/vsa/admin/edit/academy-achievements"
+            <a v-if="hasPermission('show_edit_achievements')" href="/admin/edit/academy-achievements"
               class="flex items-center space-x-3 text-gray-300 hover:text-white px-4 py-3 rounded-lg hover:bg-white/10 transition-colors duration-200">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -398,7 +398,7 @@ export default {
           headerIcon: 'fas fa-file-invoice',
           icon: 'fas fa-file-invoice',
           description: 'Generate invoices for customers and transactions.',
-          link: '/vsa/invoice',
+          link: '/invoice',
           buttonIcon: 'fas fa-plus-circle',
           buttonText: 'Create Invoice',
           permission: 'show_invoice_generation'
@@ -506,7 +506,7 @@ export default {
           headerIcon: 'fas fa-file-invoice',
           icon: 'fas fa-file-invoice',
           description: 'Manage Dashboard Content',
-          link: '/vsa/admin/manage-dashboard',
+          link: '/admin/manage-dashboard',
           buttonIcon: 'fas fa-plus-circle',
           buttonText: 'Update',
           permission: 'show_manage_dashboard'
@@ -517,7 +517,7 @@ export default {
           headerIcon: 'fas fa-boxes',
           icon: 'fas fa-clipboard-list',
           description: 'Manage and edit policies',
-          link: '/vsa/admin/update-existing-policy',
+          link: '/admin/update-existing-policy',
           buttonIcon: 'fas fa-plus-circle',
           buttonText: 'Update',
           permission: 'show_manage_policy'
@@ -528,7 +528,7 @@ export default {
           headerIcon: 'fas fa-boxes',
           icon: 'fas fa-clipboard-list',
           description: 'Manage and edit skating events and tours',
-          link: '/vsa/admin/manage-skating-disciplines',
+          link: '/admin/manage-skating-disciplines',
           buttonIcon: 'fas fa-plus-circle',
           buttonText: 'Manage',
           permission: 'show_manage_disciplines'
@@ -541,7 +541,7 @@ export default {
           headerIcon: 'fas fa-user-plus',
           icon: 'fas fa-user-graduate',
           description: 'Register a new student who wants to join the academy.',
-          link: '/vsa/admin/register-new-student',
+          link: '/admin/register-new-student',
           buttonIcon: 'fas fa-plus-circle',
           buttonText: 'Register Student',
           permission: 'show_new_student'
@@ -552,7 +552,7 @@ export default {
           headerIcon: 'fas fa-clipboard-check',
           icon: 'fas fa-calendar-check',
           description: 'Mark and manage daily attendance for students.',
-          link: '/vsa/admin/mark-attendance',
+          link: '/admin/mark-attendance',
           buttonIcon: 'fas fa-check-circle',
           buttonText: 'Mark Attendance',
           permission: 'show_attendance'
@@ -563,7 +563,7 @@ export default {
           headerIcon: 'fas fa-user-cog',
           icon: 'fas fa-users-cog',
           description: 'Manage student groups, fees, and other details.',
-          link: '/vsa/admin/manage-students',
+          link: '/admin/manage-students',
           buttonIcon: 'fas fa-cogs',
           buttonText: 'Manage',
           permission: 'show_manage_students'
@@ -574,7 +574,7 @@ export default {
           headerIcon: 'fas fa-medal',
           icon: 'fas fa-trophy',
           description: 'Add and manage student achievements and recognitions.',
-          link: '/vsa/admin/manage-achievements',
+          link: '/admin/manage-achievements',
           buttonIcon: 'fas fa-plus-circle',
           buttonText: 'Add Achievement',
           permission: 'show_students_achievements'
@@ -585,7 +585,7 @@ export default {
           headerIcon: 'fas fa-search',
           icon: 'fas fa-history',
           description: 'Search and view students\' monthly attendance records.',
-          link: '/vsa/admin/monthly-attendance',
+          link: '/admin/monthly-attendance',
           buttonIcon: 'fas fa-search',
           buttonText: 'Search Records',
           permission: 'show_attendance_records'
@@ -699,7 +699,7 @@ export default {
     async downloadFile(operationId, endpoint, fileType) {
       const loadingKey = `${operationId}_${fileType}`;
       try {
-        const baseURL = 'http://localhost:3000';
+        const baseURL = 'https://vaibhavskatingacademy.com';
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
         const response = await fetch(baseURL + endpoint, {

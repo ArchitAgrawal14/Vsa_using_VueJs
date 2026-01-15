@@ -319,6 +319,109 @@ function validateItem(item) {
         };
       }
 
+      // Validate customization values to not include god's name
+      const notAcceptedCustomizationValues = [
+        "Ram",
+        "Shri Ram",
+        "Shree Ram",
+        "ShriRam",
+        "Rama",
+        "Raghav",
+        "Raghunath",
+        "Sita",
+        "Siya",
+        "Janaki",
+        "Lakshman",
+        "Bharat",
+        "Shatrughna",
+        "Hanuman",
+        "Bajrang",
+        "Bajrangbali",
+        "Anjaneya",
+        "Maruti",
+        "Krishna",
+        "Krishn",
+        "Shri Krishna",
+        "ShriKrishna",
+        "Kanha",
+        "Kanhaiya",
+        "Govind",
+        "Gopal",
+        "Madhav",
+        "Keshav",
+        "Hari",
+        "Murari",
+        "Vasudev",
+        "Yadav",
+        "Radha",
+        "Radhika",
+        "Rukmini",
+        "Meera",
+        "Shiv",
+        "Shiva",
+        "Shankar",
+        "Mahadev",
+        "Bholenath",
+        "Neelkanth",
+        "Nataraj",
+        "Rudra",
+        "Parvati",
+        "Gauri",
+        "Uma",
+        "Shakti",
+        "Ganesh",
+        "Ganesha",
+        "Ganapati",
+        "Vinayak",
+        "Kartikeya",
+        "Kartik",
+        "Skanda",
+        "Murugan",
+        "Subramanya",
+        "Vishnu",
+        "Narayan",
+        "Hari",
+        "Varaha",
+        "Narasimha",
+        "Vamana",
+        "Durga",
+        "Amba",
+        "Bhavani",
+        "Lakshmi",
+        "Laxmi",
+        "Mahalakshmi",
+        "Saraswati",
+        "Sarस्वती",
+        "Kali",
+        "Kalika",
+        "Indra",
+        "Varun",
+        "Agni",
+        "Vayu",
+        "Surya",
+        "Chandra",
+        "Bhagwan",
+        "Bhagavan",
+        "Ishwar",
+        "Ishvara",
+        "Dev",
+        "Devi",
+        "Paramatma",
+        "Parmeshwar",
+      ];
+
+      const normalizedValue = customization.value.trim().toLowerCase();
+
+      const isInvalid = notAcceptedCustomizationValues.some(
+        name => normalizedValue.includes(name.toLowerCase())
+      );
+
+      if (isInvalid) {
+        return {
+          success: false,
+          message: "To maintain respect and dignity, religious or deity names are not permitted on customization. Please choose a different text."
+        };
+      }
       // Check value length (VARCHAR(255) in DB)
       if (customization.value.length > 255) {
         return {
@@ -432,7 +535,7 @@ router.put(
 
         if (isIncrement) {
           newQuantity = currentAppliedQuantity + 1;
-          
+
           if (newQuantity <= availableStock) {
             canUpdate = true;
             message = "Increment allowed";
@@ -443,7 +546,7 @@ router.put(
         } else {
           // Decrement
           newQuantity = currentAppliedQuantity - 1;
-          
+
           if (newQuantity >= 1) {
             canUpdate = true;
             message = "Decrement allowed";
@@ -459,11 +562,9 @@ router.put(
           newQuantity: canUpdate ? newQuantity : currentAppliedQuantity,
           availableStock: availableStock,
         });
-
       } finally {
         connection.release();
       }
-
     } catch (error) {
       console.error("Error updating quantity:", error);
       return res.status(500).json({
@@ -476,7 +577,11 @@ router.put(
 
 function validateQuantityUpdate(data) {
   // Validate itemId
-  if (!data.itemId || typeof data.itemId !== 'string' || data.itemId.trim() === '') {
+  if (
+    !data.itemId ||
+    typeof data.itemId !== "string" ||
+    data.itemId.trim() === ""
+  ) {
     return {
       success: false,
       message: "Missing or invalid item ID",
@@ -484,7 +589,11 @@ function validateQuantityUpdate(data) {
   }
 
   // Validate itemVariationId
-  if (!data.itemVariationId || typeof data.itemVariationId !== 'string' || data.itemVariationId.trim() === '') {
+  if (
+    !data.itemVariationId ||
+    typeof data.itemVariationId !== "string" ||
+    data.itemVariationId.trim() === ""
+  ) {
     return {
       success: false,
       message: "Missing or invalid item variation ID",
@@ -492,12 +601,12 @@ function validateQuantityUpdate(data) {
   }
 
   const itemTypeValidation = validateItemType(data.itemType);
-  if(!itemTypeValidation.success) {
+  if (!itemTypeValidation.success) {
     return itemTypeValidation;
   }
 
   // Validate isIncrement
-  if (typeof data.isIncrement !== 'boolean') {
+  if (typeof data.isIncrement !== "boolean") {
     return {
       success: false,
       message: "isIncrement must be a boolean",
@@ -506,7 +615,7 @@ function validateQuantityUpdate(data) {
 
   // Validate currentAppliedQuantity
   if (
-    typeof data.currentAppliedQuantity !== 'number' ||
+    typeof data.currentAppliedQuantity !== "number" ||
     !Number.isInteger(data.currentAppliedQuantity) ||
     data.currentAppliedQuantity < 1
   ) {
@@ -524,18 +633,18 @@ function validateQuantityUpdate(data) {
 // Endpoint to fetch details of a particular item for product detail page
 router.get("/product-detail/:itemVariationId/:itemType", async (req, res) => {
   try {
-    const {itemVariationId, itemType} = req.params;
+    const { itemVariationId, itemType } = req.params;
     const validation = validateItemType(itemType);
-    if(!validation.success) {
+    if (!validation.success) {
       return res.json(validation);
     }
 
     const itemDetail = await getProductsDetail(itemType, itemVariationId);
-    
-    if(!itemDetail) {
+
+    if (!itemDetail) {
       return res.status(404).json({
         success: false,
-        message: "Product not found"
+        message: "Product not found",
       });
     }
 
@@ -543,14 +652,13 @@ router.get("/product-detail/:itemVariationId/:itemType", async (req, res) => {
       success: true,
       message: "Product found",
       data: itemDetail,
-      itemType : itemType
+      itemType: itemType,
     });
-
   } catch (error) {
     console.error("Error fetching product detail:", error);
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch product details"
+      message: "Failed to fetch product details",
     });
   }
 });
@@ -572,7 +680,7 @@ async function getProductsDetail(itemType, itemVariationId) {
 
   // variation-specific columns
   const variationColumns =
-    itemType === 'bearings'
+    itemType === "bearings"
       ? `iv.abec_rating, iv.material, iv.size, iv.pack_size, iv.bearing_type`
       : `iv.color, iv.size`;
 
@@ -631,27 +739,27 @@ async function getProductsDetail(itemType, itemVariationId) {
 
     selectedVariationId: itemVariationId,
     variations: [],
-    ratings: []
+    ratings: [],
   };
 
   const variationMap = new Map();
 
-  rawData.forEach(row => {
+  rawData.forEach((row) => {
     if (!variationMap.has(row.item_variation_id)) {
       variationMap.set(row.item_variation_id, {
         itemVariationIdPk: row.itemVariationIdPk,
         itemVariationId: row.item_variation_id,
-        ...(itemType === 'bearings'
+        ...(itemType === "bearings"
           ? {
               abecRating: row.abec_rating,
               material: row.material,
               size: row.size,
               packSize: row.pack_size,
-              bearingType: row.bearing_type
+              bearingType: row.bearing_type,
             }
           : {
               color: row.color,
-              size: row.size
+              size: row.size,
             }),
         availableQuantity: row.availableQuantity,
         oldPrice: row.old_price,
@@ -659,38 +767,44 @@ async function getProductsDetail(itemType, itemVariationId) {
         discount: row.discount,
         baseImagePath: row.base_image_path,
         images: [],
-        imageIds: new Set() 
+        imageIds: new Set(),
       });
     }
 
     // Add variation images (avoid duplicates)
     const variation = variationMap.get(row.item_variation_id);
-    if (row.itemVariationImageIdPk && !variation.imageIds.has(row.itemVariationImageIdPk)) {
+    if (
+      row.itemVariationImageIdPk &&
+      !variation.imageIds.has(row.itemVariationImageIdPk)
+    ) {
       variation.imageIds.add(row.itemVariationImageIdPk);
       variation.images.push({
         id: row.itemVariationImageIdPk,
-        imagePath: row.image_path
+        imagePath: row.image_path,
       });
     }
   });
 
   // Convert to array and remove the tracking Set
-  itemDetail.variations = Array.from(variationMap.values()).map(variation => {
+  itemDetail.variations = Array.from(variationMap.values()).map((variation) => {
     const { imageIds, ...rest } = variation;
     return rest;
   });
 
   // 6. ratings
   const ratingIds = new Set();
-  rawData.forEach(row => {
-    if (row.itemCustomerRatingIdPk && !ratingIds.has(row.itemCustomerRatingIdPk)) {
+  rawData.forEach((row) => {
+    if (
+      row.itemCustomerRatingIdPk &&
+      !ratingIds.has(row.itemCustomerRatingIdPk)
+    ) {
       ratingIds.add(row.itemCustomerRatingIdPk);
       itemDetail.ratings.push({
         id: row.itemCustomerRatingIdPk,
         customerName: row.customer_name,
         comment: row.comment,
         rating: row.rating,
-        ratingDate: row.ratingDate
+        ratingDate: row.ratingDate,
       });
     }
   });
@@ -745,9 +859,15 @@ router.get("/cart", middlewares.verifyToken, async (req, res) => {
     }
 
     console.log("itemType " + cartItems);
-    const ALLOWED_ITEM_TYPES = ["skates_and_boots", "helmets", "bearings", "wheels", "accessories"];
+    const ALLOWED_ITEM_TYPES = [
+      "skates_and_boots",
+      "helmets",
+      "bearings",
+      "wheels",
+      "accessories",
+    ];
     const itemsByType = {};
-    for (const item of cartItems) {      
+    for (const item of cartItems) {
       if (!ALLOWED_ITEM_TYPES.includes(item.item_type)) continue;
       if (!itemsByType[item.item_type]) {
         itemsByType[item.item_type] = [];
@@ -758,8 +878,10 @@ router.get("/cart", middlewares.verifyToken, async (req, res) => {
     const detailedItems = [];
 
     for (const itemType of Object.keys(itemsByType)) {
-      const itemIds = itemsByType[itemType].map(i => i.item_id);
-      const variationIds = itemsByType[itemType].map(i => i.item_variation_id);
+      const itemIds = itemsByType[itemType].map((i) => i.item_id);
+      const variationIds = itemsByType[itemType].map(
+        (i) => i.item_variation_id
+      );
 
       const [itemDetails] = await connection.query(
         `SELECT 
@@ -791,7 +913,6 @@ router.get("/cart", middlewares.verifyToken, async (req, res) => {
       cartItems,
       itemDetails: detailedItems,
     });
-
   } catch (error) {
     if (connection) await connection.rollback();
     console.error("Cart fetch error:", error);
@@ -800,212 +921,212 @@ router.get("/cart", middlewares.verifyToken, async (req, res) => {
       success: false,
       message: "Failed to fetch cart",
     });
-
   } finally {
     if (connection) connection.release();
   }
 });
 
 // Endpoint to remove item from cart
-router.delete("/delete-cart-item/:cartId", middlewares.verifyToken, async (req, res) => {
-  let connection;
+router.delete(
+  "/delete-cart-item/:cartId",
+  middlewares.verifyToken,
+  async (req, res) => {
+    let connection;
 
-  try {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: "Login required",
-        isLoggedIn: false,
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message: "Login required",
+          isLoggedIn: false,
+        });
+      }
+
+      const { cartId } = req.params;
+
+      if (!cartId) {
+        return res.status(400).json({
+          success: false,
+          message: "cartId is required",
+        });
+      }
+
+      const userId = req.user.userId;
+      connection = await db.getConnection();
+      await connection.beginTransaction();
+
+      const [[cartItem]] = await connection.query(
+        `SELECT id FROM cart WHERE id = ? AND user_id = ?`,
+        [cartId, userId]
+      );
+
+      if (!cartItem) {
+        await connection.rollback();
+        return res.status(403).json({
+          success: false,
+          message: "Unauthorized or cart item not found",
+        });
+      }
+
+      await connection.query(`DELETE FROM cart WHERE id = ?`, [cartId]);
+
+      await connection.commit();
+
+      return res.status(200).json({
+        success: true,
+        message: "Removed successfully",
       });
-    }
+    } catch (error) {
+      if (connection) await connection.rollback();
+      console.error("Delete cart item error:", error);
 
-    const { cartId } = req.params;
-
-    if (!cartId) {
-      return res.status(400).json({
+      return res.status(500).json({
         success: false,
-        message: "cartId is required",
+        message: "Failed to remove cart item",
       });
+    } finally {
+      if (connection) connection.release();
     }
-
-    const userId = req.user.userId;
-    connection = await db.getConnection();
-    await connection.beginTransaction();
-
-    const [[cartItem]] = await connection.query(
-      `SELECT id FROM cart WHERE id = ? AND user_id = ?`,
-      [cartId, userId]
-    );
-
-    if (!cartItem) {
-      await connection.rollback();
-      return res.status(403).json({
-        success: false,
-        message: "Unauthorized or cart item not found",
-      });
-    }
-
-    await connection.query(
-      `DELETE FROM cart WHERE id = ?`,
-      [cartId]
-    );
-
-    await connection.commit();
-
-    return res.status(200).json({
-      success: true,
-      message: "Removed successfully",
-    });
-
-  } catch (error) {
-    if (connection) await connection.rollback();
-    console.error("Delete cart item error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to remove cart item",
-    });
-
-  } finally {
-    if (connection) connection.release();
   }
-});
+);
 
-// Endpoint to update quantity for a item in cart 
-router.put("/update-cart-item-quantity", middlewares.verifyToken, async (req, res) => {
-  let connection;
+// Endpoint to update quantity for a item in cart
+router.put(
+  "/update-cart-item-quantity",
+  middlewares.verifyToken,
+  async (req, res) => {
+    let connection;
 
-  try {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: "Login required",
-        isLoggedIn: false,
-      });
-    }
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message: "Login required",
+          isLoggedIn: false,
+        });
+      }
 
-    const {
-      cartId,
-      itemId,
-      itemVariationId,
-      itemType,
-      isIncrement,
-      currentAppliedQuantity,
-    } = req.body;
+      const {
+        cartId,
+        itemId,
+        itemVariationId,
+        itemType,
+        isIncrement,
+        currentAppliedQuantity,
+      } = req.body;
 
-    if (!cartId || !itemId || !itemVariationId || !itemType) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required fields",
-      });
-    }
+      if (!cartId || !itemId || !itemVariationId || !itemType) {
+        return res.status(400).json({
+          success: false,
+          message: "Missing required fields",
+        });
+      }
 
-    const ALLOWED_ITEM_TYPES = [
-      "skates_and_boots",
-      "wheels",
-      "helmets",
-      "bearings",
-      "accessories",
-    ];
+      const ALLOWED_ITEM_TYPES = [
+        "skates_and_boots",
+        "wheels",
+        "helmets",
+        "bearings",
+        "accessories",
+      ];
 
-    if (!ALLOWED_ITEM_TYPES.includes(itemType)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid item type",
-      });
-    }
+      if (!ALLOWED_ITEM_TYPES.includes(itemType)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid item type",
+        });
+      }
 
-    const userId = req.user.userId;
-    connection = await db.getConnection();
-    await connection.beginTransaction();
+      const userId = req.user.userId;
+      connection = await db.getConnection();
+      await connection.beginTransaction();
 
-    const [[cartItem]] = await connection.query(
-      `SELECT quantity FROM cart WHERE id = ? AND user_id = ?`,
-      [cartId, userId]
-    );
+      const [[cartItem]] = await connection.query(
+        `SELECT quantity FROM cart WHERE id = ? AND user_id = ?`,
+        [cartId, userId]
+      );
 
-    if (!cartItem) {
-      await connection.rollback();
-      return res.status(403).json({
-        success: false,
-        message: "Unauthorized or cart item not found",
-      });
-    }
+      if (!cartItem) {
+        await connection.rollback();
+        return res.status(403).json({
+          success: false,
+          message: "Unauthorized or cart item not found",
+        });
+      }
 
-    const [[stockRow]] = await connection.query(
-      `SELECT quantity 
+      const [[stockRow]] = await connection.query(
+        `SELECT quantity 
        FROM ${itemType}_variation
        WHERE item_id = ? AND item_variation_id = ?`,
-      [itemId, itemVariationId]
-    );
+        [itemId, itemVariationId]
+      );
 
-    if (!stockRow) {
-      await connection.rollback();
-      return res.status(404).json({
-        success: false,
-        message: "Item variation not found",
-      });
-    }
-
-    const availableStock = stockRow.quantity;
-    let newQuantity = currentAppliedQuantity;
-    let message = "";
-
-    if (isIncrement) {
-      if (currentAppliedQuantity + 1 > availableStock) {
+      if (!stockRow) {
         await connection.rollback();
-        return res.status(200).json({
+        return res.status(404).json({
           success: false,
-          message: `Only ${availableStock} items available`,
-          newQuantity: currentAppliedQuantity,
-          availableStock,
+          message: "Item variation not found",
         });
       }
-      newQuantity += 1;
-      message = "Quantity increased";
-    } else {
-      if (currentAppliedQuantity - 1 < 1) {
-        await connection.rollback();
-        return res.status(200).json({
-          success: false,
-          message: "Quantity cannot be less than 1",
-          newQuantity: currentAppliedQuantity,
-          availableStock,
-        });
-      }
-      newQuantity -= 1;
-      message = "Quantity decreased";
-    }
 
-    await connection.query(
-      `UPDATE cart 
+      const availableStock = stockRow.quantity;
+      let newQuantity = currentAppliedQuantity;
+      let message = "";
+
+      if (isIncrement) {
+        if (currentAppliedQuantity + 1 > availableStock) {
+          await connection.rollback();
+          return res.status(200).json({
+            success: false,
+            message: `Only ${availableStock} items available`,
+            newQuantity: currentAppliedQuantity,
+            availableStock,
+          });
+        }
+        newQuantity += 1;
+        message = "Quantity increased";
+      } else {
+        if (currentAppliedQuantity - 1 < 1) {
+          await connection.rollback();
+          return res.status(200).json({
+            success: false,
+            message: "Quantity cannot be less than 1",
+            newQuantity: currentAppliedQuantity,
+            availableStock,
+          });
+        }
+        newQuantity -= 1;
+        message = "Quantity decreased";
+      }
+
+      await connection.query(
+        `UPDATE cart 
        SET quantity = ?, last_activity_at = NOW()
        WHERE id = ?`,
-      [newQuantity, cartId]
-    );
+        [newQuantity, cartId]
+      );
 
-    await connection.commit();
+      await connection.commit();
 
-    return res.status(200).json({
-      success: true,
-      message,
-      newQuantity,
-      availableStock,
-    });
+      return res.status(200).json({
+        success: true,
+        message,
+        newQuantity,
+        availableStock,
+      });
+    } catch (error) {
+      if (connection) await connection.rollback();
+      console.error("Error updating cart quantity:", error);
 
-  } catch (error) {
-    if (connection) await connection.rollback();
-    console.error("Error updating cart quantity:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error while updating quantity",
-    });
-
-  } finally {
-    if (connection) connection.release();
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error while updating quantity",
+      });
+    } finally {
+      if (connection) connection.release();
+    }
   }
-});
+);
 
 // Endpoint to render the items as per itemType, starts with /vsa/shop keeping this at the end as it causes a problem to other routes
 router.get("/:itemType", async (req, res) => {

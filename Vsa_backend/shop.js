@@ -320,6 +320,7 @@ function validateItem(item) {
       }
 
       // Validate customization values to not include god's name
+      // Validate customization values to not include god's name
       const notAcceptedCustomizationValues = [
         "Ram",
         "Shri Ram",
@@ -412,14 +413,21 @@ function validateItem(item) {
 
       const normalizedValue = customization.value.trim().toLowerCase();
 
-      const isInvalid = notAcceptedCustomizationValues.some(
-        name => normalizedValue.includes(name.toLowerCase())
-      );
+      const isInvalid = notAcceptedCustomizationValues.some((name) => {
+        const pattern = name.toLowerCase();
+
+        // Use word boundary regex to match "ram" as a standalone word
+        // This will match "ram" but not "vikram", "sriram" becomes two words due to space
+        const regex = new RegExp(`\\b${pattern}\\b`, "i");
+
+        return regex.test(normalizedValue);
+      });
 
       if (isInvalid) {
         return {
           success: false,
-          message: "To maintain respect and dignity, religious or deity names are not permitted on customization. Please choose a different text."
+          message:
+            "To maintain respect and dignity, religious or deity names are not permitted on customization. Please choose a different text.",
         };
       }
       // Check value length (VARCHAR(255) in DB)

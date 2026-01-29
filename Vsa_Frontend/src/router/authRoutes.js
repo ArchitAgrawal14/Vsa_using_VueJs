@@ -7,9 +7,8 @@ export default [
     component: Login
   },
   {
-  path: '/auth/google/success',
-  name: 'GoogleAuthSuccess',
-  component: () => GoogleAuthSuccess,
-  meta: { requiresAuth: false }
+    path: '/auth/google/success',
+    name: 'GoogleAuthSuccess',
+    component: GoogleAuthSuccess,  
   },
 ]

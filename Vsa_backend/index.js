@@ -546,7 +546,7 @@ app.get(
 
 // Google OAuth callback route
 app.get(
-  "/auth/google/callback",
+  "/vsa/auth/google/callback",
   passport.authenticate("google", {
     failureRedirect: "/login?error=google_auth_failed",
     session: false,
@@ -573,10 +573,25 @@ app.get(
         { expiresIn: "5m" }
       ); // Short-lived token for data transfer
 
+      // ✅ SOLUTION: Send HTML with meta refresh instead of redirect
+      const redirectUrl = `http://localhost:5173/auth/google/success?token=${tempToken}`;
+      
       // Redirect to Vue.js frontend with the temporary token
-      res.redirect(
-        `http://localhost:8080/auth/google/success?token=${tempToken}`
-      );
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta http-equiv="refresh" content="0;url=${redirectUrl}">
+            <title>Redirecting...</title>
+          </head>
+          <body>
+            <p>Completing sign-in...</p>
+            <script>
+              window.location.href = "${redirectUrl}";
+            </script>
+          </body>
+        </html>
+      `);
     } catch (error) {
       console.error("Callback error:", error);
       res.redirect("/login?error=callback_failed");

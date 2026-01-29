@@ -32,9 +32,10 @@ passport.use("google", new GoogleStrategy({
     } else {
       // New user - create account
       const [newUserResult] = await db.query(
-        "INSERT INTO users (full_name, email, password, is_verified, created_by) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO users (full_name, mobile, email, password, is_verified, created_by) VALUES (?, ?, ?, ?, ?, ?)",
         [
           profile.displayName,
+          "99999999999999",
           profile.emails[0].value,
           "google_oauth", // Password placeholder for Google users
           true, // Auto-verify Google users

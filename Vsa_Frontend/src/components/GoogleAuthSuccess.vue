@@ -28,35 +28,35 @@ export default {
     }
   },
   created() {
-    console.log('=== GoogleAuthSuccess Component Created ===')
-    console.log('Full URL:', window.location.href)
-    console.log('Search params:', window.location.search)
-    console.log('Route path:', this.$route.path)
-    console.log('Route query:', this.$route.query)
+    // console.log('=== GoogleAuthSuccess Component Created ===')
+    // console.log('Full URL:', window.location.href)
+    // console.log('Search params:', window.location.search)
+    // console.log('Route path:', this.$route.path)
+    // console.log('Route query:', this.$route.query)
   },
   mounted() {
-    console.log('=== GoogleAuthSuccess Component Mounted ===')
+    // console.log('=== GoogleAuthSuccess Component Mounted ===')
     this.handleGoogleCallback()
   },
   methods: {
     async handleGoogleCallback() {
-      console.log('handleGoogleCallback called')
+      // console.log('handleGoogleCallback called')
 
       // Try BOTH methods to get the token
       const urlParams = new URLSearchParams(window.location.search)
       const tempToken = urlParams.get('token') || this.$route.query.token
       const errorParam = urlParams.get('error') || this.$route.query.error
 
-      console.log('Token from URLSearchParams:', urlParams.get('token'))
-      console.log('Token from $route.query:', this.$route.query.token)
-      console.log('Final tempToken:', tempToken)
-      console.log('Error param:', errorParam)
+      // console.log('Token from URLSearchParams:', urlParams.get('token'))
+      // console.log('Token from $route.query:', this.$route.query.token)
+      // console.log('Final tempToken:', tempToken)
+      // console.log('Error param:', errorParam)
 
       this.debugInfo = `Token: ${tempToken ? 'Found' : 'Missing'}`
 
       // Handle error cases first
       if (errorParam) {
-        console.log('Error parameter found:', errorParam)
+        // console.log('Error parameter found:', errorParam)
         this.isLoading = false
         this.error = true
 
@@ -76,13 +76,13 @@ export default {
 
       // Handle successful authentication
       if (tempToken) {
-        console.log('Token found, exchanging...')
+        // console.log('Token found, exchanging...')
         try {
           const response = await axios.post(`${this.apiBaseURL}/google-auth-exchange`, {
             tempToken,
           })
 
-          console.log('Exchange response:', response.data)
+          // console.log('Exchange response:', response.data)
 
           if (response.data.success) {
             // Store auth data
@@ -90,12 +90,11 @@ export default {
             localStorage.setItem('refreshToken', response.data.data.refreshToken)
             localStorage.setItem('user', JSON.stringify(response.data.data.user))
 
-            console.log('Auth data stored, redirecting to home')
+            // console.log('Auth data stored, redirecting to home')
 
-            // Redirect to home
-            this.$router.push('/')
+            window.location.href = '/';
           } else {
-            console.log('Exchange failed:', response.data.message)
+            // console.log('Exchange failed:', response.data.message)
             this.isLoading = false
             this.error = true
             this.errorMessage = response.data.message
@@ -116,7 +115,7 @@ export default {
         }
       } else {
         // No token found
-        console.log('No token found in URL')
+        // console.log('No token found in URL')
         this.isLoading = false
         this.error = true
         this.errorMessage = 'No authentication token found.'

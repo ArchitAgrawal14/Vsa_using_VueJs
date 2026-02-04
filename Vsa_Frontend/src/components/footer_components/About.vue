@@ -107,17 +107,17 @@ export default {
        { 
           name: 'Visheshta Singh', 
           role: 'Lead Coach',
-          image: '/images/VisheshtaPic.jpg'
+          image: '/images/Under_const.png'
         },
         { 
           name: 'Harsh Kasaudhan', 
           role: 'Coach',
-          image: '/images/HarshPic.jpg'
+          image: '/images/Under_const.png'
         },
         { 
           name: 'Our Team', 
           role: 'The Backbone of Excellence',
-          image: '/images/national_players.jpg'
+          image: '/images/Under_const.png'
         }
       ],
       observer: null

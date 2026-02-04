@@ -260,46 +260,62 @@ app.post(
 );
 
 async function verifyUserEmail(email) {
-  const verificationToken = crypto.randomBytes(32).toString("hex");
-
-  const [userCheck] = await db.query("SELECT email, full_name FROM users WHERE email = ?", [
-    email,
-  ]);
-
-  if (userCheck.length > 0) {
-    const user = userCheck[0];
-    await db.query("UPDATE users SET verification_token = ? WHERE email = ?", [
-      verificationToken,
-      user.email,
+  try {
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+  
+    const [userCheck] = await db.query("SELECT email, full_name FROM users WHERE email = ?", [
+      email,
     ]);
+  
+    if (userCheck.length > 0) {
+      const user = userCheck[0];
+      await db.query("UPDATE users SET verification_token = ? WHERE email = ?", [
+        verificationToken,
+        user.email,
+      ]);
+    }
+  
+    const verificationLink = `http://localhost:3000/vsa/verify-email?token=${verificationToken}`;
+    // const verificationLink = `https://vaibhavskatingacademy.com/vsa/verify-email?token=${verificationToken}`;
+  
+    const firstName = userCheck[0].full_name.split(" ")[0];
+    const mailOptions = {
+      from: process.env.NODE_MAILER_EMAIL_VALIDATOR_EMAIL,
+      to: email,
+      subject: "Verify your email for sign-up",
+      html: `<div style="font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+              <h2 style="color: #3498db; text-align: center;">Welcome, ${firstName}!</h2>
+              <p style="font-size: 16px; color: #333333; text-align: center;">Thank you for signing up. Please verify your email address to complete your registration.</p>
+              <p style="font-size: 16px; color: #333333; text-align: center;">To verify your email, please click the button below:</p>
+              <div style="text-align: center; margin: 20px;">
+                  <a href="${verificationLink}" style="background-color: #3498db; color: #ffffff; padding: 12px 30px; text-decoration: none; font-size: 16px; border-radius: 5px; box-shadow: 0 4px 8px rgba(52, 152, 219, 0.2);">Verify Email</a>
+              </div>
+              <p style="font-size: 14px; color: #777777; text-align: center;">If you did not sign up, please ignore this email.</p>
+              <footer style="font-size: 12px; color: #aaaaaa; text-align: center; margin-top: 30px;">
+                  <p>Best regards,</p>
+                  <p>Your Company Team</p>
+              </footer>
+          </div>
+      </div>`,
+    };
+  
+    await transporter.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    // Log the error but don't throw it
+    console.log('Error sending verification email:', {
+      email,
+      error: error.message,
+      code: error.code,
+      command: error.command
+    });
   }
-
-  const verificationLink = `http://localhost:3000/vsa/verify-email?token=${verificationToken}`;
-  // const verificationLink = `https://vaibhavskatingacademy.com/vsa/verify-email?token=${verificationToken}`;
-
-  const firstName = userCheck[0].full_name.split(" ")[0];
-  const mailOptions = {
-    from: process.env.NODE_MAILER_EMAIL_VALIDATOR_EMAIL,
-    to: email,
-    subject: "Verify your email for sign-up",
-    html: `<div style="font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
-            <h2 style="color: #3498db; text-align: center;">Welcome, ${firstName}!</h2>
-            <p style="font-size: 16px; color: #333333; text-align: center;">Thank you for signing up. Please verify your email address to complete your registration.</p>
-            <p style="font-size: 16px; color: #333333; text-align: center;">To verify your email, please click the button below:</p>
-            <div style="text-align: center; margin: 20px;">
-                <a href="${verificationLink}" style="background-color: #3498db; color: #ffffff; padding: 12px 30px; text-decoration: none; font-size: 16px; border-radius: 5px; box-shadow: 0 4px 8px rgba(52, 152, 219, 0.2);">Verify Email</a>
-            </div>
-            <p style="font-size: 14px; color: #777777; text-align: center;">If you did not sign up, please ignore this email.</p>
-            <footer style="font-size: 12px; color: #aaaaaa; text-align: center; margin-top: 30px;">
-                <p>Best regards,</p>
-                <p>Your Company Team</p>
-            </footer>
-        </div>
-    </div>`,
+  return { 
+    success: false, 
+    error: error.message,
+    shouldRetry: ['EAUTH', 'ECONNECTION', 'ETIMEDOUT'].includes(error.code)
   };
-
-  await transporter.sendMail(mailOptions);
 }
 
 async function isUserAdmin(password, user, isAdmin, res) {

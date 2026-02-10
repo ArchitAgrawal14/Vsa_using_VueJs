@@ -12,64 +12,64 @@
         <ul class="nav-list">
           <li class="nav-item">
             <a @click="navigateTo('/')" class="nav-link">
-              <i class="icon-home"></i>
+              <!-- <i class="icon-home"></i> -->
               <span>Home</span>
             </a>
           </li>
           <li class="nav-item">
             <a @click="navigateTo('/my-skater-detail')" class="nav-link">
-              <i class="icon-user"></i>
+              <!-- <i class="icon-user"></i> -->
               <span>My Skater</span>
             </a>
           </li>
           <li class="nav-item">
             <a @click="navigateTo('/join-us')" class="nav-link">
-              <i class="icon-users"></i>
+              <!-- <i class="icon-users"></i> -->
               <span>Join Us</span>
             </a>
           </li>
           <li class="nav-item">
             <a @click="navigateTo('/shop')" class="nav-link">
-              <i class="icon-shop"></i>
+              <!-- <i class="icon-shop"></i> -->
               <span>Shop</span>
             </a>
           </li>
           <li class="nav-item">
             <a @click="navigateTo('/cart')" class="nav-link">
-              <i class="icon-cart"></i>
+              <!-- <i class="icon-cart"></i> -->
               <span>Cart</span>
               <span v-if="cartCount > 0" class="cart-badge">{{ cartCount }}</span>
             </a>
           </li>
           <li class="nav-item user-menu" v-if="isLoggedIn">
             <a @click="toggleUserDropdown" class="nav-link user-toggle">
-              <i class="icon-user"></i>
+              <!-- <i class="icon-user"></i> -->
               <span>{{ username }}</span>
               <i class="icon-chevron" :class="{ 'rotated': isUserDropdownOpen }"></i>
             </a>
             <div class="dropdown-menu" :class="{ 'show': isUserDropdownOpen }">
               <a @click="navigateTo('/profile')" class="dropdown-item">
-                <i class="icon-profile"></i>
+                <!-- <i class="icon-profile"></i> -->
                 <span>Profile</span>
               </a>
               <a @click="navigateTo('/orders')" class="dropdown-item">
-                <i class="icon-orders"></i>
+                <!-- <i class="icon-orders"></i> -->
                 <span>Orders</span>
               </a>
               <a @click="navigateTo('/password-change')" class="dropdown-item">
-                <i class="icon-key"></i>
+                <!-- <i class="icon-key"></i> -->
                 <span>Change Password</span>
               </a>
               <div class="dropdown-divider"></div>
               <a @click="logout" class="dropdown-item logout">
-                <i class="icon-logout"></i>
+                <!-- <i class="icon-logout"></i> -->
                 <span>Logout</span>
               </a>
             </div>
           </li>
           <li class="nav-item" v-else>
             <a @click="navigateTo('/login')" class="nav-link login-btn">
-              <i class="icon-login"></i>
+              <!-- <i class="icon-login"></i> -->
               <span>Login</span>
             </a>
           </li>
@@ -90,31 +90,31 @@
         <ul class="mobile-nav-list">
           <li class="mobile-nav-item">
             <a @click="navigateToMobile('/')" class="mobile-nav-link">
-              <i class="icon-home"></i>
+              <!-- <i class="icon-home"></i> -->
               <span>Home</span>
             </a>
           </li>
           <li class="mobile-nav-item">
             <a @click="navigateToMobile('/my-skater-detail')" class="mobile-nav-link">
-              <i class="icon-user"></i>
+              <!-- <i class="icon-user"></i> -->
               <span>My Skater</span>
             </a>
           </li>
           <li class="mobile-nav-item">
             <a @click="navigateToMobile('/join-us')" class="mobile-nav-link">
-              <i class="icon-users"></i>
+              <!-- <i class="icon-users"></i> -->
               <span>Join Us</span>
             </a>
           </li>
           <li class="mobile-nav-item">
             <a @click="navigateToMobile('/shop')" class="mobile-nav-link">
-              <i class="icon-shop"></i>
+              <!-- <i class="icon-shop"></i> -->
               <span>Shop</span>
             </a>
           </li>
           <li class="mobile-nav-item">
             <a @click="navigateToMobile('/cart')" class="mobile-nav-link">
-              <i class="icon-cart"></i>
+              <!-- <i class="icon-cart"></i> -->
               <span>Cart</span>
               <span v-if="cartCount > 0" class="cart-badge">{{ cartCount }}</span>
             </a>
@@ -123,31 +123,31 @@
           <template v-if="isLoggedIn">
             <li class="mobile-nav-item user-section">
               <div class="user-info">
-                <i class="icon-user"></i>
+                <!-- <i class="icon-user"></i> -->
                 <span>{{ username }}</span>
               </div>
             </li>
             <li class="mobile-nav-item">
               <a @click="navigateToMobile('/profile')" class="mobile-nav-link sub-link">
-                <i class="icon-profile"></i>
+                <!-- <i class="icon-profile"></i> -->
                 <span>Profile</span>
               </a>
             </li>
             <li class="mobile-nav-item">
               <a @click="navigateToMobile('/orders')" class="mobile-nav-link sub-link">
-                <i class="icon-orders"></i>
+                <!-- <i class="icon-orders"></i> -->
                 <span>Orders</span>
               </a>
             </li>
             <li class="mobile-nav-item">
               <a @click="navigateToMobile('/password-change')" class="mobile-nav-link sub-link">
-                <i class="icon-key"></i>
+                <!-- <i class="icon-key"></i> -->
                 <span>Change Password</span>
               </a>
             </li>
             <li class="mobile-nav-item">
               <a @click="logout" class="mobile-nav-link logout">
-                <i class="icon-logout"></i>
+                <!-- <i class="icon-logout"></i> -->
                 <span>Logout</span>
               </a>
             </li>
@@ -155,7 +155,7 @@
           
           <li class="mobile-nav-item" v-else>
             <a @click="navigateToMobile('/login')" class="mobile-nav-link login-btn">
-              <i class="icon-login"></i>
+              <!-- <i class="icon-login"></i> -->
               <span>Login</span>
             </a>
           </li>

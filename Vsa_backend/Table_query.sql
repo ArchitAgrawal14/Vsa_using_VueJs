@@ -515,7 +515,7 @@ CREATE INDEX idx_schedule_day ON dashboard_schedule_data(day, discipline);
 
 -- Insert Stats
 INSERT INTO dashboard_stats_data (label, value, image, display_order) VALUES
-('Active Students', '100+', '/images/students-icon.jpg', 1),
+('Students Trained', '2200+', '/images/students-icon.jpg', 1),
 ('Expert Coaches', '3', '/images/coaches-icon.jpg', 2),
 ('Championships Won', '220+', '/images/VisheshtaPic.jpg', 3),
 ('Years Experience', '22', '/images/experience-icon.jpg', 4);

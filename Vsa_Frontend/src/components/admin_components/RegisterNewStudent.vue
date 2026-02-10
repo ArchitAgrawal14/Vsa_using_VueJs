@@ -136,7 +136,7 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label for="whatsappNumber">WhatsApp Number</label>
+            <label for="whatsappNumber">WhatsApp Number *</label>
             <input
               type="tel"
               id="whatsappNumber"
@@ -144,6 +144,7 @@
               :class="{ error: errors.whatsappNumber }"
               placeholder="1234567890"
               maxlength="10"
+              required
             />
             <span v-if="errors.whatsappNumber" class="error-text">{{ errors.whatsappNumber }}</span>
           </div>
@@ -278,7 +279,7 @@
               rows="3"
             ></textarea>
           </div>
-          
+
           <div class="form-group">
             <label for="cycleStartDate">Fee Cycle start date</label>
             <input type="date" id="cycleStartDate" v-model="formData.cycleStartDate" />
@@ -411,7 +412,7 @@ export default {
         amountPaid: 0,
         paymentMode: 'cash',
         remarks: '',
-        cycleStartDate : '',
+        cycleStartDate: '',
         transportation: false,
         status: 'Active',
         addressLine1: '',
@@ -428,6 +429,12 @@ export default {
       isSubmitting: false,
       successMessage: '',
       errorMessage: '',
+      toast: {
+        show: false,
+        message: '',
+        type: 'info', // 'success', 'error', 'info'
+        timeout: null,
+      },
     }
   },
   watch: {
@@ -439,6 +446,12 @@ export default {
             .filter((h) => h)
         : []
     },
+  },
+  beforeUnmount() {
+    // Clean up timeout when component is destroyed
+    if (this.toast.timeout) {
+      clearTimeout(this.toast.timeout)
+    }
   },
   methods: {
     handleImageSelect(event) {
@@ -539,44 +552,42 @@ export default {
 
     async submitForm() {
       if (!this.validateForm()) {
-        this.errorMessage = 'Please fix the errors before submitting.'
+        this.showToast('Please fix the errors before submitting.', 'error')
         return
       }
 
       this.isSubmitting = true
-      this.errorMessage = ''
-      this.successMessage = ''
 
       try {
         if (!this.formData.dateOfJoining) {
-            this.formData.dateOfJoining = new Date().toISOString().split('T')[0]
+          this.formData.dateOfJoining = new Date().toISOString().split('T')[0]
         }
 
         if (!this.formData.cycleStartDate) {
-            this.formData.cycleStartDate = new Date().toISOString().split('T')[0]
+          this.formData.cycleStartDate = new Date().toISOString().split('T')[0]
         }
 
-        const formData = new FormData();
-        Object.keys(this.formData).forEach(key => {
-        if (this.formData[key] !== null && this.formData[key] !== '') {
-            formData.append(key, this.formData[key]);
-        }
-        });
-        
+        const formData = new FormData()
+        Object.keys(this.formData).forEach((key) => {
+          if (this.formData[key] !== null && this.formData[key] !== '') {
+            formData.append(key, this.formData[key])
+          }
+        })
+
         if (this.selectedImage) {
-        formData.append('studentImage', this.selectedImage);
+          formData.append('studentImage', this.selectedImage)
         }
 
         // Set dateOfJoining to today if not provided
         if (!this.formData.dateOfJoining) {
           this.formData.dateOfJoining = new Date().toISOString().split('T')[0]
         }
-        
+
         // Set cycleStartDate to today if not provided
         if (!this.formData.cycleStartDate) {
           this.formData.cycleStartDate = new Date().toISOString().split('T')[0]
         }
-        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token')
         const response = await fetch('http://localhost:3000/vsa/admin/register-new-student', {
           method: 'POST',
           headers: {
@@ -588,20 +599,23 @@ export default {
         const result = await response.json()
 
         if (result.success) {
-          this.successMessage = `Student registered successfully! Student ID: ${result.data.studentId}`
-          this.errorMessage = '';
+          const successMsg =
+            result.message ||
+            `Student registered successfully! Student ID: ${result.data.studentId}`
+          this.showToast(successMsg, 'success', 6000)
           this.resetForm()
         } else {
-          if (result.validationErrors) {
-            result.validationErrors.forEach((error) => {
-              this.errorMessage += error + ' '
-            })
+          // Handle validation errors from backend
+          if (result.validationErrors && Array.isArray(result.validationErrors)) {
+            const errorMsg = result.validationErrors.join('. ')
+            this.showToast(errorMsg, 'error', 7000)
           } else {
-            this.errorMessage = result.message || 'Registration failed'
+            const errorMsg = result.message || 'Registration failed. Please try again.'
+            this.showToast(errorMsg, 'error')
           }
         }
       } catch (error) {
-        this.errorMessage = 'Network error. Please try again.'
+        this.showToast('Network error. Please check your connection and try again.', 'error')
         console.error('Registration error:', error)
       } finally {
         this.isSubmitting = false
@@ -629,7 +643,7 @@ export default {
         amountPaid: 0,
         paymentMode: 'cash',
         remarks: '',
-        cycleStartDate : '',
+        cycleStartDate: '',
         transportation: false,
         status: 'Active',
         addressLine1: '',
@@ -639,13 +653,35 @@ export default {
         postalCode: '',
         country: 'Bharat',
       }
-      this.hobbiesInput = '';
-      this.errors = {};
-      this.successMessage = '';
-      this.errorMessage = '';
-      this.selectedImage = null;
-      this.imagePreview = null;
-      this.$refs.imageInput.value = '';
+      this.hobbiesInput = ''
+      this.errors = {}
+      this.selectedImage = null
+      this.imagePreview = null
+      this.$refs.imageInput.value = ''
+    },
+
+    showToast(message, type = 'info', duration = 5000) {
+      // Clear existing timeout
+      if (this.toast.timeout) {
+        clearTimeout(this.toast.timeout)
+      }
+
+      this.toast.message = message
+      this.toast.type = type
+      this.toast.show = true
+
+      // Auto-hide after duration
+      this.toast.timeout = setTimeout(() => {
+        this.hideToast()
+      }, duration)
+    },
+
+    hideToast() {
+      this.toast.show = false
+      if (this.toast.timeout) {
+        clearTimeout(this.toast.timeout)
+        this.toast.timeout = null
+      }
     },
   },
 }

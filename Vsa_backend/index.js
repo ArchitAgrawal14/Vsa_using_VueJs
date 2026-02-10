@@ -1423,8 +1423,7 @@ app.get("/vsa/my-skater-details", middlewares.verifyToken, async (req, res) => {
       FROM student_fee WHERE student_id IN (?)`, [studentIds]);
       
     const [attendance] = await db.query(
-      `SELECT student_id, status, attendance_date FROM students_attendance WHERE student_id IN (?)
-      AND MONTH(attendance_date) = MONTH(CURRENT_DATE()) 
+      `SELECT student_id, status, attendance_date FROM students_attendance WHERE student_id IN (?) 
       AND YEAR(attendance_date) = YEAR(CURRENT_DATE())`, [studentIds]);
     // Group fees and attendance under each student
     const groupedData = students.map(student => {

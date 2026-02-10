@@ -18,9 +18,6 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <h3 class="text-lg font-semibold text-red-800 mb-2">{{ error }}</h3>
-        <!-- <button @click="navigateTo('/login')" class="mt-4 px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition">
-          Login
-        </button> -->
       </div>
 
       <!-- Skaters List -->
@@ -157,24 +154,63 @@
 
             <!-- Attendance Tab -->
             <div v-if="activeTab[skater.student_id] === 'attendance'">
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">This Month's Attendance</h3>
-              <div v-if="skater.attendance && skater.attendance.length > 0">
+              <!-- Filters -->
+              <div class="mb-6 flex flex-col sm:flex-row gap-4">
+                <div class="flex-1">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Month</label>
+                  <select 
+                    v-model="filters[skater.student_id].month"
+                    @change="applyFilters(skater.student_id)"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  >
+                    <option value="">All Months</option>
+                    <option v-for="month in months" :key="month.value" :value="month.value">
+                      {{ month.label }}
+                    </option>
+                  </select>
+                </div>
+                <div class="flex-1">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Year</label>
+                  <select 
+                    v-model="filters[skater.student_id].year"
+                    @change="applyFilters(skater.student_id)"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  >
+                    <option value="">All Years</option>
+                    <option v-for="year in availableYears" :key="year" :value="year">
+                      {{ year }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                Attendance Records
+                <span v-if="filters[skater.student_id].month || filters[skater.student_id].year" class="text-sm font-normal text-gray-600">
+                  ({{ getFilterLabel(skater.student_id) }})
+                </span>
+              </h3>
+              
+              <div v-if="getFilteredAttendance(skater.student_id).length > 0">
+                <!-- Summary Cards -->
                 <div class="mb-4 flex flex-wrap gap-4">
                   <div class="bg-green-50 rounded-lg p-4 flex-1 min-w-[150px]">
                     <p class="text-sm text-green-700 mb-1">Present</p>
-                    <p class="text-2xl font-bold text-green-800">{{ getAttendanceCount(skater.attendance, 'Present') }}</p>
+                    <p class="text-2xl font-bold text-green-800">{{ getAttendanceCount(getFilteredAttendance(skater.student_id), 'Present') }}</p>
                   </div>
                   <div class="bg-red-50 rounded-lg p-4 flex-1 min-w-[150px]">
                     <p class="text-sm text-red-700 mb-1">Absent</p>
-                    <p class="text-2xl font-bold text-red-800">{{ getAttendanceCount(skater.attendance, 'Absent') }}</p>
+                    <p class="text-2xl font-bold text-red-800">{{ getAttendanceCount(getFilteredAttendance(skater.student_id), 'Absent') }}</p>
                   </div>
                   <div class="bg-yellow-50 rounded-lg p-4 flex-1 min-w-[150px]">
                     <p class="text-sm text-yellow-700 mb-1">Sick</p>
-                    <p class="text-2xl font-bold text-yellow-800">{{ getAttendanceCount(skater.attendance, 'Sick') }}</p>
+                    <p class="text-2xl font-bold text-yellow-800">{{ getAttendanceCount(getFilteredAttendance(skater.student_id), 'Sick') }}</p>
                   </div>
                 </div>
-                <div class="space-y-2 max-h-64 overflow-y-auto">
-                  <div v-for="record in skater.attendance" :key="record.attendance_date" class="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+
+                <!-- Attendance Records with Pagination -->
+                <div class="space-y-2">
+                  <div v-for="record in getPaginatedAttendance(skater.student_id)" :key="record.attendance_date" class="flex items-center justify-between bg-gray-50 rounded-lg p-3">
                     <span class="text-gray-700">{{ formatDate(record.attendance_date) }}</span>
                     <span :class="[
                       'px-3 py-1 rounded-full text-xs font-medium',
@@ -185,12 +221,62 @@
                     </span>
                   </div>
                 </div>
+
+                <!-- Pagination Controls -->
+                <div v-if="getTotalPages(skater.student_id) > 1" class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <p class="text-sm text-gray-600">
+                    Showing {{ getStartIndex(skater.student_id) + 1 }} to {{ getEndIndex(skater.student_id) }} of {{ getFilteredAttendance(skater.student_id).length }} records
+                  </p>
+                  <div class="flex items-center gap-2">
+                    <button
+                      @click="changePage(skater.student_id, pagination[skater.student_id].currentPage - 1)"
+                      :disabled="pagination[skater.student_id].currentPage === 1"
+                      :class="[
+                        'px-4 py-2 rounded-lg font-medium transition-colors',
+                        pagination[skater.student_id].currentPage === 1
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-gray-900 text-white hover:bg-gray-800'
+                      ]"
+                    >
+                      Previous
+                    </button>
+                    
+                    <div class="flex gap-1">
+                      <button
+                        v-for="page in getPageNumbers(skater.student_id)"
+                        :key="page"
+                        @click="changePage(skater.student_id, page)"
+                        :class="[
+                          'w-10 h-10 rounded-lg font-medium transition-colors',
+                          pagination[skater.student_id].currentPage === page
+                            ? 'bg-black text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ]"
+                      >
+                        {{ page }}
+                      </button>
+                    </div>
+
+                    <button
+                      @click="changePage(skater.student_id, pagination[skater.student_id].currentPage + 1)"
+                      :disabled="pagination[skater.student_id].currentPage === getTotalPages(skater.student_id)"
+                      :class="[
+                        'px-4 py-2 rounded-lg font-medium transition-colors',
+                        pagination[skater.student_id].currentPage === getTotalPages(skater.student_id)
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-gray-900 text-white hover:bg-gray-800'
+                      ]"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
               </div>
               <div v-else class="text-center py-12 text-gray-500">
                 <svg class="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                <p>No attendance records for this month</p>
+                <p>No attendance records found for the selected filters</p>
               </div>
             </div>
           </div>
@@ -223,17 +309,39 @@ export default {
       loading: true,
       error: null,
       activeTab: {},
+      filters: {},
+      pagination: {},
+      itemsPerPage: 10,
       tabs: [
         { id: 'personal', label: 'Personal Info' },
         { id: 'address', label: 'Address' },
         { id: 'fee', label: 'Fee Details' },
         { id: 'attendance', label: 'Attendance' }
+      ],
+      months: [
+        { value: 1, label: 'January' },
+        { value: 2, label: 'February' },
+        { value: 3, label: 'March' },
+        { value: 4, label: 'April' },
+        { value: 5, label: 'May' },
+        { value: 6, label: 'June' },
+        { value: 7, label: 'July' },
+        { value: 8, label: 'August' },
+        { value: 9, label: 'September' },
+        { value: 10, label: 'October' },
+        { value: 11, label: 'November' },
+        { value: 12, label: 'December' }
       ]
     };
   },
   computed: {
-    getActiveTab() {
-      return (studentId) => this.activeTab[studentId] || 'personal';
+    availableYears() {
+      const currentYear = new Date().getFullYear();
+      const years = [];
+      // for (let i = currentYear; i >= currentYear - 5; i--) {
+        years.push(currentYear);
+      // }
+      return years;
     }
   },
   mounted() {
@@ -261,12 +369,20 @@ export default {
 
         if (data.success) {
           this.skaters = data.data;
-          // Initialize active tabs
+          // Initialize active tabs, filters, and pagination
           const tabs = {};
+          const filters = {};
+          const pagination = {};
+          
           data.data.forEach(skater => {
             tabs[skater.student_id] = 'personal';
+            filters[skater.student_id] = { month: '', year: '' };
+            pagination[skater.student_id] = { currentPage: 1 };
           });
+          
           this.activeTab = tabs;
+          this.filters = filters;
+          this.pagination = pagination;
         }
       } catch (err) {
         this.error = err.message;
@@ -275,12 +391,113 @@ export default {
       }
     },
     
-    navigateTo(path) {
-      this.$router.push(path);
-    },
-    
     setActiveTab(studentId, tabId) {
       this.activeTab = { ...this.activeTab, [studentId]: tabId };
+    },
+    
+    applyFilters(studentId) {
+      // Reset to page 1 when filters change
+      this.pagination = {
+        ...this.pagination,
+        [studentId]: { currentPage: 1 }
+      };
+    },
+    
+    getFilteredAttendance(studentId) {
+      const skater = this.skaters.find(s => s.student_id === studentId);
+      if (!skater || !skater.attendance) return [];
+      
+      let filtered = [...skater.attendance];
+      const filter = this.filters[studentId];
+      
+      if (filter.month) {
+        filtered = filtered.filter(record => {
+          const date = new Date(record.attendance_date);
+          return date.getMonth() + 1 === parseInt(filter.month);
+        });
+      }
+      
+      if (filter.year) {
+        filtered = filtered.filter(record => {
+          const date = new Date(record.attendance_date);
+          return date.getFullYear() === parseInt(filter.year);
+        });
+      }
+      
+      // Sort by date descending (most recent first)
+      return filtered.sort((a, b) => new Date(b.attendance_date) - new Date(a.attendance_date));
+    },
+    
+    getPaginatedAttendance(studentId) {
+      const filtered = this.getFilteredAttendance(studentId);
+      const currentPage = this.pagination[studentId]?.currentPage || 1;
+      const start = (currentPage - 1) * this.itemsPerPage;
+      const end = start + this.itemsPerPage;
+      return filtered.slice(start, end);
+    },
+    
+    getTotalPages(studentId) {
+      const filtered = this.getFilteredAttendance(studentId);
+      return Math.ceil(filtered.length / this.itemsPerPage);
+    },
+    
+    getStartIndex(studentId) {
+      const currentPage = this.pagination[studentId]?.currentPage || 1;
+      return (currentPage - 1) * this.itemsPerPage;
+    },
+    
+    getEndIndex(studentId) {
+      const filtered = this.getFilteredAttendance(studentId);
+      const currentPage = this.pagination[studentId]?.currentPage || 1;
+      const end = currentPage * this.itemsPerPage;
+      return Math.min(end, filtered.length);
+    },
+    
+    changePage(studentId, page) {
+      const totalPages = this.getTotalPages(studentId);
+      if (page >= 1 && page <= totalPages) {
+        this.pagination = {
+          ...this.pagination,
+          [studentId]: { currentPage: page }
+        };
+      }
+    },
+    
+    getPageNumbers(studentId) {
+      const totalPages = this.getTotalPages(studentId);
+      const currentPage = this.pagination[studentId]?.currentPage || 1;
+      const pages = [];
+      
+      // Show max 5 page numbers
+      let startPage = Math.max(1, currentPage - 2);
+      let endPage = Math.min(totalPages, startPage + 4);
+      
+      // Adjust start if we're near the end
+      if (endPage - startPage < 4) {
+        startPage = Math.max(1, endPage - 4);
+      }
+      
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+      
+      return pages;
+    },
+    
+    getFilterLabel(studentId) {
+      const filter = this.filters[studentId];
+      const parts = [];
+      
+      if (filter.month) {
+        const month = this.months.find(m => m.value === parseInt(filter.month));
+        parts.push(month.label);
+      }
+      
+      if (filter.year) {
+        parts.push(filter.year);
+      }
+      
+      return parts.join(' ');
     },
     
     getInitials(name) {

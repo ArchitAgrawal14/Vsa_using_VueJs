@@ -124,6 +124,36 @@
       </div>
     </section>
 
+        <!-- Achievements Section -->
+    <section class="py-20 bg-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+          <h2 class="text-4xl font-bold text-gray-900 mb-4">Our Achievements</h2>
+          <p class="text-xl text-gray-600">Celebrating the success of our students and academy.</p>
+        </div>
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div v-for="achievement in achievements" :key="achievement.title"
+            class="bg-gray-50 rounded-xl p-6 text-center hover:bg-gray-100 transform hover:scale-105 transition-all duration-200">
+            <img :src="achievement.icon" :alt="achievement.title" class="w-16 h-16 mx-auto mb-4 animate-pulse" />
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ achievement.title }}</h3>
+            <p class="text-gray-600 text-sm">{{ achievement.description }}</p>
+          </div>
+        </div>
+        <div class="text-center mt-12 space-x-4">
+          <button
+            class="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors duration-200 inline-block"
+            @click="navigateTo('/academy-achievements')">
+            Academy Achievements
+          </button>
+          <button
+            class="border-2 border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 inline-block"
+            @click="navigateTo('/students-achievements')">
+            Student Success Stories
+          </button>
+        </div>
+      </div>
+    </section>
+
     <!-- Speed Skating Training Schedule (Add before Join Us CTA) -->
     <section class="py-20 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -377,36 +407,6 @@
             class="bg-gray-900 text-white px-8 py-3 rounded-lg hover:bg-gray-800 transform hover:scale-105 transition-all duration-200 inline-block"
             @click="navigateTo('/meet-our-coaches')">
             View All Coaches
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Achievements Section -->
-    <section class="py-20 bg-white">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-16">
-          <h2 class="text-4xl font-bold text-gray-900 mb-4">Our Achievements</h2>
-          <p class="text-xl text-gray-600">Celebrating the success of our students and academy.</p>
-        </div>
-        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div v-for="achievement in achievements" :key="achievement.title"
-            class="bg-gray-50 rounded-xl p-6 text-center hover:bg-gray-100 transform hover:scale-105 transition-all duration-200">
-            <img :src="achievement.icon" :alt="achievement.title" class="w-16 h-16 mx-auto mb-4 animate-pulse" />
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ achievement.title }}</h3>
-            <p class="text-gray-600 text-sm">{{ achievement.description }}</p>
-          </div>
-        </div>
-        <div class="text-center mt-12 space-x-4">
-          <button
-            class="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors duration-200 inline-block"
-            @click="navigateTo('/academy-achievements')">
-            Academy Achievements
-          </button>
-          <button
-            class="border-2 border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 inline-block"
-            @click="navigateTo('/students-achievements')">
-            Student Success Stories
           </button>
         </div>
       </div>

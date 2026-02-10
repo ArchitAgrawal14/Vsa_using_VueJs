@@ -74,7 +74,7 @@
       <!-- Toggle Buttons -->
       <div class="toggle-container">
         <button :class="['toggle-btn', { active: isLogin }]" @click="switchMode(true)">
-          Sign In
+          Log In
         </button>
         <button :class="['toggle-btn', { active: !isLogin }]" @click="switchMode(false)">
           Sign Up
@@ -93,7 +93,7 @@
                   <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                   <polyline points="22,6 12,13 2,6"></polyline>
                 </svg>
-                <input v-model="loginForm.email" type="email" placeholder="Email" class="form-input" required />
+                <input v-model="loginForm.email" type="email" placeholder="Email" class="form-input" required ref="emailInput"/>
               </div>
             </div>
 
@@ -126,7 +126,7 @@
 
             <button type="submit" class="submit-btn" :disabled="isLoading">
               <span v-if="isLoading" class="loading-spinner"></span>
-              <span v-if="!isLoading">Sign In</span>
+              <span v-if="!isLoading">Log In</span>
               <span v-else>Signing In...</span>
             </button>
 
@@ -278,7 +278,7 @@
             <p class="form-footer">
               Already have an account?
               <button type="button" @click="switchMode(true)" class="switch-link">
-                Sign in here
+                Log in here
               </button>
             </p>
           </form>
@@ -301,6 +301,12 @@ export default {
       setTimeout(() => {
         this.checkVerificationStatus();
       }, 100);
+
+      // Auto focus + select email input
+      if (this.$refs.emailInput) {
+        this.$refs.emailInput.focus();
+        this.$refs.emailInput.select();
+      }
     });
     this.handleGoogleCallback();
     this.renderRecaptcha();

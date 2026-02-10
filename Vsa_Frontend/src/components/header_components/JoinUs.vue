@@ -12,7 +12,7 @@
       <div
         v-if="toast.show"
         :class="[
-          'fixed top-4 right-4 z-50 max-w-md w-full shadow-lg rounded-lg pointer-events-auto overflow-hidden mt-12',
+          'fixed top-4 right-4 z-50 max-w-md w-full shadow-lg rounded-lg pointer-events-auto overflow-hidden mt-16',
           toast.type === 'success' ? 'bg-green-50 border border-green-200' : 
           toast.type === 'error' ? 'bg-red-50 border border-red-200' : 
           'bg-blue-50 border border-blue-200'
@@ -331,10 +331,11 @@
               />
             </div>
             <div class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 mb-2">WhatsApp Number</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">WhatsApp Number *</label>
               <input
                 v-model="formData.whatsappNumber"
                 type="tel"
+                required
                 maxlength="10"
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all"
                 placeholder="10-digit WhatsApp number"

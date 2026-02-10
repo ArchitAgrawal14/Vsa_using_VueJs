@@ -50,7 +50,7 @@
           <div class="team-skater"></div>
           <div class="team-skater team-skater-2"></div>
           <div class="team-skater team-skater-3"></div>
-          <h2 class="section-title fade-in" ref="teamTitle">Our Champions</h2>
+          <h2 class="section-title fade-in" ref="teamTitle">Our Leaders</h2>
           <div class="team-grid">
             <div 
               v-for="(member, index) in aboutData.team || defaultTeam" 

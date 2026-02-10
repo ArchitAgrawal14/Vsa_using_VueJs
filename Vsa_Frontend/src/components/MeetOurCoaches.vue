@@ -170,7 +170,7 @@
       <div class="container mx-auto px-4 text-center">
         <p class="text-gray-600 text-sm flex items-center justify-center gap-2 flex-wrap">
           <span>⛸️</span>
-          <span>Vaibhav Skating Academy - Where Champions Are Made</span>
+          <span>Vaibhav Skating Academy - Passion To Win</span>
           <span>🛼</span>
         </p>
       </div>

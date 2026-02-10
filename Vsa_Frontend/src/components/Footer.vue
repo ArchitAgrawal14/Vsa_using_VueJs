@@ -102,10 +102,10 @@
                   9301139998
                 </a>
                 <a
-                  href="tel:+919753869938"
+                  href="tel:+919752869938"
                   class="text-m text-gray-700 hover:text-green-600 hover:underline transition-colors"
                 >
-                  9753869938
+                  9752869938
                 </a>
               </div>
             </div>
@@ -281,6 +281,7 @@
             <a
               @click="navigateTo('/')"
               class="flex items-center text-gray-700 hover:text-green-600 transition-all duration-300 group"
+              style="cursor: pointer"
             >
               <svg
                 class="w-4 h-4 mr-2 opacity-50 group-hover:opacity-100"
@@ -300,6 +301,7 @@
             <a
               @click="navigateTo('/my-skater-detail')"
               class="flex items-center text-gray-700 hover:text-green-600 transition-all duration-300 group"
+              style="cursor: pointer"
             >
               <svg
                 class="w-4 h-4 mr-2 opacity-50 group-hover:opacity-100"
@@ -319,6 +321,7 @@
             <a
               @click="navigateTo('/shop')"
               class="flex items-center text-gray-700 hover:text-green-600 transition-all duration-300 group"
+              style="cursor: pointer"
             >
               <svg
                 class="w-4 h-4 mr-2 opacity-50 group-hover:opacity-100"
@@ -340,6 +343,7 @@
             <a
               @click="navigateTo('/cart')"
               class="flex items-center text-gray-700 hover:text-green-600 transition-all duration-300 group"
+              style="cursor: pointer"
             >
               <svg
                 class="w-4 h-4 mr-2 opacity-50 group-hover:opacity-100"
@@ -356,6 +360,7 @@
             <a
               @click="navigateTo('/join-us')"
               class="flex items-center text-gray-700 hover:text-green-600 transition-all duration-300 group"
+              style="cursor: pointer"
             >
               <svg
                 class="w-4 h-4 mr-2 opacity-50 group-hover:opacity-100"

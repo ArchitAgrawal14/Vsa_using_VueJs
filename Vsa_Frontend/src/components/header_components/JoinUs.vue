@@ -1,5 +1,120 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4 sm:px-6 lg:px-8">
+    <!-- Toast Notification -->
+    <transition
+      enter-active-class="transition ease-out duration-300"
+      enter-from-class="opacity-0 translate-y-2"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition ease-in duration-200"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 translate-y-2"
+    >
+      <div
+        v-if="toast.show"
+        :class="[
+          'fixed top-4 right-4 z-50 max-w-md w-full shadow-lg rounded-lg pointer-events-auto overflow-hidden mt-12',
+          toast.type === 'success' ? 'bg-green-50 border border-green-200' : 
+          toast.type === 'error' ? 'bg-red-50 border border-red-200' : 
+          'bg-blue-50 border border-blue-200'
+        ]"
+      >
+        <div class="p-4">
+          <div class="flex items-start">
+            <div class="flex-shrink-0">
+              <!-- Success Icon -->
+              <svg
+                v-if="toast.type === 'success'"
+                class="h-6 w-6 text-green-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <!-- Error Icon -->
+              <svg
+                v-else-if="toast.type === 'error'"
+                class="h-6 w-6 text-red-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <!-- Info Icon -->
+              <svg
+                v-else
+                class="h-6 w-6 text-blue-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <div class="ml-3 w-0 flex-1">
+              <p
+                :class="[
+                  'text-sm font-medium',
+                  toast.type === 'success' ? 'text-green-800' :
+                  toast.type === 'error' ? 'text-red-800' :
+                  'text-blue-800'
+                ]"
+              >
+                {{ toast.title }}
+              </p>
+              <p
+                v-if="toast.message"
+                :class="[
+                  'mt-1 text-sm',
+                  toast.type === 'success' ? 'text-green-700' :
+                  toast.type === 'error' ? 'text-red-700' :
+                  'text-blue-700'
+                ]"
+              >
+                {{ toast.message }}
+              </p>
+            </div>
+            <div class="ml-4 flex flex-shrink-0">
+              <button
+                @click="closeToast"
+                :class="[
+                  'inline-flex rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2',
+                  toast.type === 'success' ? 'text-green-400 hover:text-green-500 focus:ring-green-500' :
+                  toast.type === 'error' ? 'text-red-400 hover:text-red-500 focus:ring-red-500' :
+                  'text-blue-400 hover:text-blue-500 focus:ring-blue-500'
+                ]"
+              >
+                <span class="sr-only">Close</span>
+                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path
+                    fill-rule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
     <div class="max-w-4xl mx-auto">
       <!-- Header -->
       <div class="text-center mb-8 mt-8">
@@ -417,6 +532,13 @@ export default {
       successMessage: '',
       imagePreview: null,
       selectedFile: null,
+      toast: {
+        show: false,
+        type: 'success', // 'success', 'error', 'info'
+        title: '',
+        message: '',
+        timeout: null,
+      },
       formData: {
         fullName: '',
         fatherName: '',
@@ -447,7 +569,41 @@ export default {
   mounted() {
     this.fetchUserDetails()
   },
+  beforeUnmount() {
+    // Clear any pending toast timeout
+    if (this.toast.timeout) {
+      clearTimeout(this.toast.timeout)
+    }
+  },
   methods: {
+    showToast(type, title, message = '', duration = 5000) {
+      // Clear any existing timeout
+      if (this.toast.timeout) {
+        clearTimeout(this.toast.timeout)
+      }
+
+      this.toast = {
+        show: true,
+        type,
+        title,
+        message,
+        timeout: null,
+      }
+
+      // Auto-hide after duration
+      this.toast.timeout = setTimeout(() => {
+        this.closeToast()
+      }, duration)
+    },
+
+    closeToast() {
+      this.toast.show = false
+      if (this.toast.timeout) {
+        clearTimeout(this.toast.timeout)
+        this.toast.timeout = null
+      }
+    },
+
     async fetchUserDetails() {
       this.loading = true
       try {
@@ -461,49 +617,71 @@ export default {
 
         const data = await response.json()
 
-        if (data.success && data.userDetail && data.userDetail.length > 0) {
-          const user = data.userDetail[0]
-          // Prefill user data
-          this.formData.email = user.email || this.formData.email
-          this.formData.mobileNumber = user.mobile || this.formData.mobileNumber
-          this.formData.addressLine1 = user.address_line1 || this.formData.addressLine1
-          this.formData.addressLine2 = user.address_line2 || this.formData.addressLine2
-          this.formData.city = user.city || this.formData.city
-          this.formData.state = user.state || this.formData.state
-          this.formData.postalCode = user.postal_code || this.formData.postalCode
-          this.formData.country = user.country || this.formData.country
-        }
-        // Store programs data
-        if (data.programsData && data.programsData.length > 0) {
-          this.programsData = data.programsData
-          
-          // Check if there's a programId in the URL query parameters
-          const queryProgramId = this.$route.query.programId
-          
-          if (queryProgramId) {
-            // Convert to number for comparison
-            const programId = parseInt(queryProgramId)
-            
-            // Find the program in the list
-            const selectedProgram = this.programsData.find(p => p.id === programId)
-            
-            if (selectedProgram) {
-              // Auto-select the program
-              this.formData.selectedProgramId = selectedProgram.id
-              this.formData.feeCycle = selectedProgram.fee_cycle
-              this.formData.feeStructure = selectedProgram.price
-              
-              console.log('Auto-selected program:', selectedProgram)
-            }
-          } else if (data.userDetail && data.userDetail.length > 0 && data.userDetail[0].program_id) {
-            // Fallback: If there's existing program data for the user, prefill it
-            this.formData.selectedProgramId = data.userDetail[0].program_id
-            this.formData.feeCycle = data.userDetail[0].fee_cycle
-            this.formData.feeStructure = data.userDetail[0].price
+        if (data.success) {
+          // Show success toast
+          // this.showToast('success', 'Data Loaded', data.message || 'User details loaded successfully')
+
+          if (data.userDetail && data.userDetail.length > 0) {
+            const user = data.userDetail[0]
+            // Prefill user data
+            this.formData.email = user.email || this.formData.email
+            this.formData.mobileNumber = user.mobile || this.formData.mobileNumber
+            this.formData.addressLine1 = user.address_line1 || this.formData.addressLine1
+            this.formData.addressLine2 = user.address_line2 || this.formData.addressLine2
+            this.formData.city = user.city || this.formData.city
+            this.formData.state = user.state || this.formData.state
+            this.formData.postalCode = user.postal_code || this.formData.postalCode
+            this.formData.country = user.country || this.formData.country
           }
+
+          // Store programs data
+          if (data.programsData && data.programsData.length > 0) {
+            this.programsData = data.programsData
+
+            // Check if there's a programId in the URL query parameters
+            const queryProgramId = this.$route.query.programId
+
+            if (queryProgramId) {
+              // Convert to number for comparison
+              const programId = parseInt(queryProgramId)
+
+              // Find the program in the list
+              const selectedProgram = this.programsData.find((p) => p.id === programId)
+
+              if (selectedProgram) {
+                // Auto-select the program
+                this.formData.selectedProgramId = selectedProgram.id
+                this.formData.feeCycle = selectedProgram.fee_cycle
+                this.formData.feeStructure = selectedProgram.price
+
+                this.showToast(
+                  'info',
+                  'Program Pre-selected',
+                  `${this.formatFeeCycle(selectedProgram.fee_cycle)} program has been selected`
+                )
+              }
+            } else if (
+              data.userDetail &&
+              data.userDetail.length > 0 &&
+              data.userDetail[0].program_id
+            ) {
+              // Fallback: If there's existing program data for the user, prefill it
+              this.formData.selectedProgramId = data.userDetail[0].program_id
+              this.formData.feeCycle = data.userDetail[0].fee_cycle
+              this.formData.feeStructure = data.userDetail[0].price
+            }
+          }
+        } else {
+          // Show error toast
+          let toastMessage = '';
+          if(data.message === 'Access denied. No token provided.') {
+            toastMessage = "Please login to fill this form."
+          }
+          this.showToast('error', 'Load Failed', toastMessage || 'Failed to load user details')
         }
       } catch (error) {
         console.error('Error fetching user details:', error)
+        this.showToast('error', 'Network Error', 'Failed to connect to the server')
       } finally {
         this.loading = false
       }
@@ -514,6 +692,7 @@ export default {
       if (file) {
         if (file.size > 5 * 1024 * 1024) {
           this.errors.push('Image size must be less than 5MB')
+          this.showToast('error', 'Image Too Large', 'Image size must be less than 5MB')
           return
         }
 
@@ -521,6 +700,7 @@ export default {
         const reader = new FileReader()
         reader.onload = (e) => {
           this.imagePreview = e.target.result
+          this.showToast('success', 'Image Selected', 'Student photo uploaded successfully')
         }
         reader.readAsDataURL(file)
       }
@@ -569,6 +749,10 @@ export default {
         this.errors.push('Fee cycle is required')
       }
 
+      if (this.errors.length > 0) {
+        this.showToast('error', 'Validation Failed', `Please fix ${this.errors.length} error(s)`)
+      }
+
       return this.errors.length === 0
     },
 
@@ -610,6 +794,10 @@ export default {
               this.successMessage += `. Next payment due: ${data.data.nextPaymentDate}`
             }
           }
+
+          // Show success toast
+          this.showToast('success', 'Registration Successful!', data.message, 6000)
+
           window.scrollTo({ top: 0, behavior: 'smooth' })
         } else {
           if (data.validationErrors) {
@@ -617,11 +805,23 @@ export default {
           } else {
             this.errors = [data.message || 'Registration failed. Please try again.']
           }
+
+          // Show error toast
+          this.showToast(
+            'error',
+            'Registration Failed',
+            data.message || 'Please check the form and try again'
+          )
+
           window.scrollTo({ top: 0, behavior: 'smooth' })
         }
       } catch (error) {
         console.error('Registration error:', error)
         this.errors = ['An error occurred during registration. Please try again.']
+
+        // Show error toast
+        this.showToast('error', 'Network Error', 'Failed to submit registration. Please try again.')
+
         window.scrollTo({ top: 0, behavior: 'smooth' })
       } finally {
         this.submitting = false
@@ -657,6 +857,9 @@ export default {
       this.selectedFile = null
       this.errors = []
       this.successMessage = ''
+
+      this.showToast('info', 'Form Reset', 'All fields have been cleared')
+
       this.fetchUserDetails()
     },
 
@@ -666,13 +869,19 @@ export default {
 
     updateFeeStructure(event) {
       const selectedProgramId = parseInt(event.target.value)
-      
+
       if (selectedProgramId) {
-        const selectedProgram = this.programsData.find(p => p.id === selectedProgramId)
-        
+        const selectedProgram = this.programsData.find((p) => p.id === selectedProgramId)
+
         if (selectedProgram) {
           this.formData.feeCycle = selectedProgram.fee_cycle
           this.formData.feeStructure = selectedProgram.price
+
+          this.showToast(
+            'info',
+            'Fee Updated',
+            `Fee set to ₹${selectedProgram.price} for ${this.formatFeeCycle(selectedProgram.fee_cycle)}`
+          )
         }
       } else {
         this.formData.feeCycle = ''
@@ -684,7 +893,7 @@ export default {
       // Capitalize first letter of each word
       return cycle
         .split('-')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ')
     },
   },

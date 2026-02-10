@@ -156,7 +156,7 @@
           </div>
 
           <!-- Ice Speed Schedule -->
-          <div class="bg-blue-50 rounded-2xl p-8">
+          <!-- <div class="bg-blue-50 rounded-2xl p-8">
             <div class="flex items-center mb-6">
               <img :src="iceIcon" alt="Ice Skating" class="w-12 h-12 mr-4" />
               <h3 class="text-2xl font-bold text-gray-900">Ice Speed Training</h3>
@@ -174,7 +174,7 @@
                 </div>
               </div>
             </div>
-          </div>
+          </div> -->
         </div>
       </div>
     </section>
@@ -465,7 +465,7 @@ export default {
       rollBallRecords: [],
       recentRecords: [],
       rollerSchedule: [],
-      iceSchedule: [],
+      // iceSchedule: [],
       rollBallSchedule: [],
       // Image sources
       images: {},
@@ -541,7 +541,7 @@ export default {
           // Update schedules
           if (data.schedule) {
             this.rollerSchedule = data.schedule.roller || []
-            this.iceSchedule = data.schedule.ice || []
+            // this.iceSchedule = data.schedule.ice || []s
             this.rollBallSchedule = data.schedule.rollBall || []
           }
 
@@ -603,7 +603,7 @@ export default {
     getScheduleByDiscipline(discipline) {
       const disciplineMap = {
         roller: this.rollerSchedule,
-        ice: this.iceSchedule,
+        // ice: this.iceSchedule,
         rollball: this.rollBallSchedule,
       }
       return disciplineMap[discipline.toLowerCase()] || []
@@ -643,7 +643,7 @@ export default {
         }
         if (response.data.schedules) {
           this.rollerSchedule = response.data.schedules.roller
-          this.iceSchedule = response.data.schedules.ice
+          // this.iceSchedule = response.data.schedules.ice
         }
       } catch (error) {
         console.error('Error fetching speed skating data:', error)

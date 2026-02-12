@@ -165,7 +165,7 @@
         </div>
         <div class="grid md:grid-cols-2 gap-8">
           <!-- Roller Speed Schedule -->
-          <div class="bg-red-50 rounded-2xl p-8">
+           <div class="bg-red-50 rounded-2xl p-8 w-full md:col-span-1 md:col-start-1 md:col-end-3 md:mx-auto md:max-w-[50%]">
             <div class="flex items-center mb-6">
               <img :src="rollerIcon" alt="Roller Skating" class="w-12 h-12 mr-4" />
               <h3 class="text-2xl font-bold text-gray-900">Roller Speed Training</h3>

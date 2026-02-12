@@ -385,7 +385,7 @@ async function isUserAdmin(password, user, isAdmin, res) {
       permissions: adminPermissions,
     },
     JWT_SECRET,
-    { expiresIn: "1d" }
+    { expiresIn: "7d" }
   );
   const refreshToken = jwt.sign(
     {
@@ -1760,6 +1760,7 @@ app.get(
         a.show_manage_disciplines
       FROM users u
       LEFT JOIN admin_access a ON u.id = a.user_id
+      WHERE u.created_by NOT IN ('google_oauth')
       ORDER BY u.created_at DESC
     `);
 

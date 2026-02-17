@@ -400,7 +400,7 @@ export default {
           description: 'Generate invoices for customers and transactions.',
           link: '/invoice',
           buttonIcon: 'fas fa-plus-circle',
-          buttonText: 'Create Invoice',
+          buttonText: 'Create And Edit Invoice',
           permission: 'show_invoice_generation'
         },
         {

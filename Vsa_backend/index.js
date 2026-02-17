@@ -2065,9 +2065,9 @@ app.post("/vsa/admin/sell-item-offline", middlewares.verifyToken, async (req, re
  
     // Insert the data in main table
     const [result] = await connection.query(`INSERT INTO item_sold_offline 
-      (invoice_number, full_name, mobile, whatsapp_number, email, amount_paid, total_amount, discount_applied, pending_amount, payment_type) 
-      VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [invoiceNumber, soldItemData.customer.fullName, soldItemData.customer.mobile, soldItemData.customer.whatsappNumber, soldItemData.customer.email, soldItemData.payment.amountPaid, soldItemData.payment.totalAmount, soldItemData.payment.discountApplied, pendingAmount, soldItemData.payment.paymentType]);
+      (invoice_number, full_name, mobile, whatsapp_number, email, amount_paid, total_amount, discount_applied, pending_amount, payment_type, status) 
+      VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [invoiceNumber, soldItemData.customer.fullName, soldItemData.customer.mobile, soldItemData.customer.whatsappNumber, soldItemData.customer.email, soldItemData.payment.amountPaid, soldItemData.payment.totalAmount, soldItemData.payment.discountApplied, pendingAmount, soldItemData.payment.paymentType, 'ACTIVE']);
 
     // get the latest id
     const soldOfflineId = result.insertId;
@@ -2122,6 +2122,465 @@ app.post("/vsa/admin/sell-item-offline", middlewares.verifyToken, async (req, re
     if (connection) {
       connection.release();
     }
+  }
+});
+
+// Endpoint to get all offline invoices with pagination
+app.get("/vsa/admin/get-offline-sold-item", middlewares.verifyToken, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = 25;
+    const offset = (page - 1) * limit;
+
+    const [invoices] = await db.query(
+      `SELECT 
+        id AS isoId,
+        invoice_number, 
+        full_name, 
+        mobile, 
+        whatsapp_number, 
+        email, 
+        amount_paid, 
+        total_amount, 
+        discount_applied, 
+        pending_amount, 
+        payment_type, 
+        created_at, 
+        updated_at
+      FROM item_sold_offline
+      WHERE status NOT IN ('DELETED')
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?`,
+      [limit, offset]
+    );
+
+    console.log(invoices);
+    
+    return res.status(200).json({
+      success: true,
+      message: invoices.length === 0 ? "No invoices found" : "Offline sold items fetched successfully",
+      invoices,
+      pagination: {
+        page,
+        limit,
+        hasMore: invoices.length === limit
+      }
+    });
+
+  } catch (error) {
+    console.error("Error fetching offline invoices:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Could not fetch offline sale data",
+    });
+  }
+});
+
+// Endpoint to delete existing invoice fully 
+app.delete("/vsa/admin/delete-existing-invoice/:isoId", middlewares.verifyToken, async (req, res) => {
+  let connection;
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const { isoId } = req.params; 
+
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    const [data] = await connection.query(
+      `SELECT * FROM item_sold_offline WHERE id = ? FOR UPDATE`,
+      [isoId]
+    );
+
+    if (data.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "No invoice exists with the given invoice id",
+      });
+    }
+
+    if (data[0].status === 'DELETED') {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Invoice is already deleted",
+      });
+    }
+
+    const [itemsData] = await connection.query(
+      `SELECT * FROM item_sold_offline_items WHERE item_sold_offline_id = ? FOR UPDATE`,
+      [isoId]
+    );
+
+    // Restore stock and log each movement BEFORE deleting rows
+    for (const item of itemsData) {
+      await connection.query(
+        `UPDATE ${item.item_type}_variation
+         SET quantity = quantity + ?
+         WHERE item_variation_id = ?`,
+        [item.quantity, item.item_variation_id]
+      );
+
+      await connection.query(
+        `INSERT INTO stock_movement
+          (reference_id, item_sold_offline_item_id, item_id, item_type, item_variation_id, quantity, reference_type)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          isoId,
+          item.id,
+          item.item_id,
+          item.item_type,
+          item.item_variation_id,
+          item.quantity,       // positive = restoring stock
+          'OFFLINE_DELETE'
+        ]
+      );
+    }
+
+    // Soft delete: mark invoice as deleted instead of hard deleting
+    // This preserves history and stock_movement references
+    await connection.query(
+      `UPDATE item_sold_offline
+       SET status = 'DELETED', is_deleted = TRUE, deleted_at = NOW()
+       WHERE id = ?`,
+      [isoId]
+    );
+
+    // Hard delete the items (stock is restored, movement is logged)
+    await connection.query(
+      `DELETE FROM item_sold_offline_items WHERE item_sold_offline_id = ?`,
+      [isoId]
+    );
+
+    await connection.commit();
+
+    return res.status(200).json({
+      success: true,
+      message: "Invoice deleted successfully and stock has been restored",
+    });
+
+  } catch (error) {
+    if (connection) await connection.rollback(); 
+    console.error("Error deleting invoice:", error);
+    return res.status(500).json({ 
+      success: false,
+      message: "Failed to delete invoice",
+      error: error.message,
+    });
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+// Endpoint to get invoice details with all items
+app.get("/vsa/admin/get-all-items-by-invoice/:isoId", middlewares.verifyToken, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const { isoId } = req.params; 
+
+    const [rows] = await db.query(
+      `SELECT 
+        iso.id AS isoId,
+        iso.invoice_number, 
+        iso.full_name, 
+        iso.mobile, 
+        iso.whatsapp_number, 
+        iso.email, 
+        iso.amount_paid, 
+        iso.total_amount, 
+        iso.discount_applied, 
+        iso.pending_amount, 
+        iso.payment_type, 
+        iso.created_at, 
+        iso.updated_at, 
+        isoi.id AS isoiId,
+        isoi.item_sold_offline_id, 
+        isoi.item_id, 
+        isoi.item_type, 
+        isoi.item_variation_id,
+        isoi.quantity, 
+        isoi.price_at_sale
+      FROM item_sold_offline AS iso 
+      LEFT JOIN item_sold_offline_items AS isoi ON iso.id = isoi.item_sold_offline_id
+      WHERE iso.id = ?`,
+      [isoId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Invoice not found",
+      });
+    }
+
+    // Structure the response better
+    const invoice = {
+      isoId: rows[0].isoId,
+      invoice_number: rows[0].invoice_number,
+      full_name: rows[0].full_name,
+      mobile: rows[0].mobile,
+      whatsapp_number: rows[0].whatsapp_number,
+      email: rows[0].email,
+      amount_paid: rows[0].amount_paid,
+      total_amount: rows[0].total_amount,
+      discount_applied: rows[0].discount_applied,
+      pending_amount: rows[0].pending_amount,
+      payment_type: rows[0].payment_type,
+      created_at: rows[0].created_at,
+      updated_at: rows[0].updated_at,
+      items: rows[0].item_id ? rows.map(row => ({
+        id: row.item_id,
+        item_sold_offline_id: row.item_sold_offline_id,
+        item_id: row.item_id,
+        item_type: row.item_type,
+        item_variation_id: row.item_variation_id,
+        quantity: row.quantity,
+        price_at_sale: row.price_at_sale
+      })) : []
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: "Successfully fetched invoice details",
+      invoice
+    });
+
+  } catch (error) {
+    console.error("Error fetching invoice items:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Could not fetch invoice details",
+    });
+  }
+});
+
+// Endpoint to edit invoices
+app.put("/vsa/admin/edit-invoice", middlewares.verifyToken, async (req, res) => {
+  let connection;
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const { editedItemData } = req.body;
+    const isoId = editedItemData.isoId;
+
+    if (!Array.isArray(editedItemData.items) || editedItemData.items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invoice must have at least one item",
+      });
+    }
+
+    if (editedItemData.amount_paid < 0 || editedItemData.discount_applied < 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment values cannot be negative",
+      });
+    }
+
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    const [invoiceData] = await connection.query(
+      `SELECT * FROM item_sold_offline WHERE id = ? FOR UPDATE`,
+      [isoId]
+    );
+
+    if (invoiceData.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ success: false, message: "Invoice not found" });
+    }
+
+    if (invoiceData[0].is_deleted) {
+      await connection.rollback();
+      return res.status(400).json({ success: false, message: "Cannot edit a deleted invoice" });
+    }
+
+    const [invoiceItemsData] = await connection.query(
+      `SELECT * FROM item_sold_offline_items WHERE item_sold_offline_id = ? FOR UPDATE`,
+      [isoId]
+    );
+
+    const itemsChanged = (() => {
+      if (invoiceItemsData.length !== editedItemData.items.length) return true;
+      for (const oldItem of invoiceItemsData) {
+        const incoming = editedItemData.items.find(i => i.isoiId === oldItem.id);
+        if (!incoming || incoming.quantity !== oldItem.quantity) return true;
+      }
+      return false;
+    })();
+
+    if (itemsChanged) {
+      for (const oldItem of invoiceItemsData) {
+        await connection.query(
+          `UPDATE ${oldItem.item_type}_variation
+           SET quantity = quantity + ?
+           WHERE item_variation_id = ?`,
+          [oldItem.quantity, oldItem.item_variation_id]
+        );
+
+        await connection.query(
+          `INSERT INTO stock_movement
+            (reference_id, item_sold_offline_item_id, item_id, item_type, item_variation_id, quantity, reference_type)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            isoId,
+            oldItem.id,
+            oldItem.item_id,
+            oldItem.item_type,
+            oldItem.item_variation_id,
+            oldItem.quantity,        // positive = restoring
+            'OFFLINE_EDIT_RESTORE'
+          ]
+        );
+      }
+
+      // Step 2: Validate new stock availability for ALL items before touching anything
+      for (const newItem of editedItemData.items) {
+        const [available] = await connection.query(
+          `SELECT quantity FROM ${newItem.item_type}_variation
+           WHERE item_variation_id = ? FOR UPDATE`,
+          [newItem.item_variation_id]
+        );
+
+        if (!available.length || available[0].quantity < newItem.quantity) {
+          await connection.rollback();
+          return res.status(400).json({
+            success: false,
+            message: `Insufficient stock for variation ${newItem.item_variation_id}`,
+          });
+        }
+      }
+
+      // Step 3: Delete old items and re-insert updated ones
+      await connection.query(
+        `DELETE FROM item_sold_offline_items WHERE item_sold_offline_id = ?`,
+        [isoId]
+      );
+
+      for (const newItem of editedItemData.items) {
+        const [insertResult] = await connection.query(
+          `INSERT INTO item_sold_offline_items
+            (item_sold_offline_id, item_id, item_type, item_variation_id, quantity, price_at_sale)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            isoId,
+            newItem.item_id,
+            newItem.item_type,
+            newItem.item_variation_id,
+            newItem.quantity,
+            newItem.price_at_sale,
+          ]
+        );
+
+        const newInsertedId = insertResult.insertId;
+
+        await connection.query(
+          `UPDATE ${newItem.item_type}_variation
+           SET quantity = quantity - ?
+           WHERE item_variation_id = ?`,
+          [newItem.quantity, newItem.item_variation_id]
+        );
+
+        await connection.query(
+          `INSERT INTO stock_movement
+            (reference_id, item_sold_offline_item_id, item_id, item_type, item_variation_id, quantity, reference_type)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            isoId,
+            newInsertedId,
+            newItem.item_id,           
+            newItem.item_type,
+            newItem.item_variation_id,
+            -newItem.quantity,         // negative = deducting
+            'OFFLINE_EDIT_DEDUCT'
+          ]
+        );
+      }
+    }
+
+    // Recalculate totals — always, regardless of itemsChanged
+    const [finalItems] = await connection.query(
+      `SELECT * FROM item_sold_offline_items WHERE item_sold_offline_id = ?`,
+      [isoId]
+    );
+
+    const newTotal = finalItems.reduce(
+      (sum, item) => sum + parseFloat(item.price_at_sale) * item.quantity,
+      0
+    );
+
+    if (editedItemData.discount_applied > newTotal) {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Discount cannot exceed total amount",
+      });
+    }
+
+    const payable = newTotal - editedItemData.discount_applied;
+
+    if (editedItemData.amount_paid > payable) {
+      await connection.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Amount paid cannot exceed payable amount",
+      });
+    }
+
+    const pending = payable - editedItemData.amount_paid;
+
+    const newStatus = pending <= 0 ? 'ACTIVE' : 'ADJUSTED';
+
+    await connection.query(
+      `UPDATE item_sold_offline
+       SET total_amount = ?,
+           discount_applied = ?,
+           amount_paid = ?,
+           pending_amount = ?,
+           status = ?
+       WHERE id = ?`,
+      [newTotal, editedItemData.discount_applied, editedItemData.amount_paid, pending, newStatus, isoId]
+    );
+
+    await connection.commit();
+    return res.status(200).json({
+      success: true,
+      message: "Invoice updated successfully",
+    });
+
+  } catch (error) {
+    if (connection) await connection.rollback();
+    console.error("Error editing invoice:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to edit invoice",
+    });
+  } finally {
+    if (connection) connection.release();
   }
 });
 

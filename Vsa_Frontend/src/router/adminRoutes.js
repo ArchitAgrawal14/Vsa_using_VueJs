@@ -2,6 +2,7 @@ import AddNewItemPage from "@/components/admin_components/AddNewItem.vue"
 import AttendancePage from "@/components/admin_components/AttendancePage.vue"
 import AttendanceRecords from "@/components/admin_components/AttendanceRecords.vue"
 import CreateInvoice from "@/components/admin_components/CreateInvoice.vue"
+import EditInvoice from "@/components/admin_components/EditInvoice.vue"
 import EditItem from "@/components/admin_components/EditItem.vue"
 import EditShop from "@/components/admin_components/EditShop.vue"
 import ManageAcademyAchievements from "@/components/admin_components/ManageAcademyAchievements.vue"
@@ -94,5 +95,10 @@ export default [
     path: '/admin/manage-skating-disciplines',
     name: 'ManageSkatingDisciplines',
     component: ManageSkatingDisciplines,
+  },
+  {
+    path: '/admin/edit-invoice',
+    name: 'EditInvoice',
+    component: EditInvoice,
   }
 ]

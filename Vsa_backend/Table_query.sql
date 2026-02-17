@@ -797,3 +797,22 @@ CREATE TABLE item_sold_offline_items (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (item_sold_offline_id) REFERENCES item_sold_offline(id) ON DELETE CASCADE
 );
+
+ALTER TABLE item_sold_offline
+ADD is_deleted BOOLEAN DEFAULT FALSE,
+ADD deleted_at TIMESTAMP,
+ADD status ENUM('ACTIVE','DELETED','ADJUSTED','PARTIAL_RETURN','FULL_RETURN');
+
+
+
+CREATE TABLE stock_movement(
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  reference_id INT,
+  item_sold_offline_item_id INT,
+  item_id VARCHAR(20) NOT NULL,
+  item_type ENUM("skates_and_boots", "wheels", "bearings", "helmets", "accessories"),
+  item_variation_id VARCHAR(100) NOT NULL, 
+  quantity INT NOT NULL DEFAULT 1,  -- positive = stock restored, negative = stock deducted
+  reference_type ENUM('OFFLINE_SALE','OFFLINE_EDIT','OFFLINE_DELETE', 'OFFLINE_EDIT_RESTORE', 'OFFLINE_EDIT_DEDUCT'),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

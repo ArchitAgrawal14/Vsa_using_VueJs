@@ -3,10 +3,19 @@
     <div class="max-w-7xl mx-auto">
       <!-- Header -->
       <div class="bg-white rounded-lg shadow-sm p-6 mb-6 mt-8">
-        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Create Invoice</h1>
-        <p class="text-gray-600 mt-1">Generate invoices for offline sales</p>
+        <div class="flex justify-between items-start">
+          <div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Create Invoice</h1>
+            <p class="text-gray-600 mt-1">Generate invoices for offline sales</p>
+          </div>
+          <button 
+            @click="navigateTo('/admin/edit-invoice')"
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Edit Invoice
+          </button>
+        </div>
       </div>
-
       <!-- Main Content -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Left Section - Item Selection (2/3 width on large screens) -->
@@ -545,7 +554,12 @@ export default {
       setTimeout(() => {
         this.message = null;
       }, 5000);
-    }
+    },
+
+    navigateTo(path) {
+      this.$router.push(path)
+    },
+
   }
 };
 </script>

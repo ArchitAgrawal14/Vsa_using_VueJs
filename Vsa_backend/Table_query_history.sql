@@ -1312,3 +1312,189 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+
+CREATE TABLE item_sold_offline_history (
+  history_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  original_id INT,
+  invoice_number VARCHAR(30),
+  full_name VARCHAR(255),
+  mobile VARCHAR(15),
+  whatsapp_number VARCHAR(15),
+  email VARCHAR(255),
+  amount_paid DECIMAL(10,2),
+  total_amount DECIMAL(10,2),
+  discount_applied DECIMAL(10,2),
+  pending_amount DECIMAL(10,2),
+  payment_type ENUM ('Cash', 'UPI', 'Credit Card', 'Debit Card', 'Others', 'Mixed'),
+  is_deleted BOOLEAN,
+  deleted_at TIMESTAMP NULL,
+  status ENUM('ACTIVE','DELETED','ADJUSTED','PARTIAL_RETURN','FULL_RETURN'),
+  created_at TIMESTAMP NULL,
+  updated_at TIMESTAMP NULL,
+
+  operation_type ENUM('INSERT','UPDATE','DELETE'),
+  operation_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  operated_by VARCHAR(100) NULL
+);
+
+
+DELIMITER $$
+
+CREATE TRIGGER trg_item_sold_offline_ai
+AFTER INSERT ON item_sold_offline
+FOR EACH ROW
+BEGIN
+  INSERT INTO item_sold_offline_history (
+    original_id, invoice_number, full_name, mobile, whatsapp_number, email,
+    amount_paid, total_amount, discount_applied, pending_amount,
+    payment_type, is_deleted, deleted_at, status,
+    created_at, updated_at,
+    operation_type
+  )
+  VALUES (
+    NEW.id, NEW.invoice_number, NEW.full_name, NEW.mobile, NEW.whatsapp_number, NEW.email,
+    NEW.amount_paid, NEW.total_amount, NEW.discount_applied, NEW.pending_amount,
+    NEW.payment_type, NEW.is_deleted, NEW.deleted_at, NEW.status,
+    NEW.created_at, NEW.updated_at,
+    'INSERT'
+  );
+END$$
+
+DELIMITER ;
+
+
+DELIMITER $$
+
+CREATE TRIGGER trg_item_sold_offline_au
+AFTER UPDATE ON item_sold_offline
+FOR EACH ROW
+BEGIN
+  INSERT INTO item_sold_offline_history (
+    original_id, invoice_number, full_name, mobile, whatsapp_number, email,
+    amount_paid, total_amount, discount_applied, pending_amount,
+    payment_type, is_deleted, deleted_at, status,
+    created_at, updated_at,
+    operation_type
+  )
+  VALUES (
+    NEW.id, NEW.invoice_number, NEW.full_name, NEW.mobile, NEW.whatsapp_number, NEW.email,
+    NEW.amount_paid, NEW.total_amount, NEW.discount_applied, NEW.pending_amount,
+    NEW.payment_type, NEW.is_deleted, NEW.deleted_at, NEW.status,
+    NEW.created_at, NEW.updated_at,
+    'UPDATE'
+  );
+END$$
+
+DELIMITER ;
+
+
+DELIMITER $$
+
+CREATE TRIGGER trg_item_sold_offline_ad
+AFTER DELETE ON item_sold_offline
+FOR EACH ROW
+BEGIN
+  INSERT INTO item_sold_offline_history (
+    original_id, invoice_number, full_name, mobile, whatsapp_number, email,
+    amount_paid, total_amount, discount_applied, pending_amount,
+    payment_type, is_deleted, deleted_at, status,
+    created_at, updated_at,
+    operation_type
+  )
+  VALUES (
+    OLD.id, OLD.invoice_number, OLD.full_name, OLD.mobile, OLD.whatsapp_number, OLD.email,
+    OLD.amount_paid, OLD.total_amount, OLD.discount_applied, OLD.pending_amount,
+    OLD.payment_type, OLD.is_deleted, OLD.deleted_at, OLD.status,
+    OLD.created_at, OLD.updated_at,
+    'DELETE'
+  );
+END$$
+
+DELIMITER ;
+
+
+CREATE TABLE item_sold_offline_items_history (
+  history_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  original_id INT,
+  item_sold_offline_id INT,
+  item_id VARCHAR(20),
+  item_type ENUM("skates_and_boots", "wheels", "bearings", "helmets", "accessories"),
+  item_variation_id VARCHAR(100),
+  quantity INT,
+  price_at_sale DECIMAL(10,2),
+  created_at TIMESTAMP NULL,
+  updated_at TIMESTAMP NULL,
+  change_type ENUM('INSERT','UPDATE','DELETE'),
+  change_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  operated_by VARCHAR(100) NULL
+);
+
+DELIMITER $$
+
+CREATE TRIGGER trg_item_sold_offline_items_ai
+AFTER INSERT ON item_sold_offline_items
+FOR EACH ROW
+BEGIN
+  INSERT INTO item_sold_offline_items_history (
+    original_id, item_sold_offline_id, item_id, item_type,
+    item_variation_id, quantity, price_at_sale,
+    created_at, updated_at,
+    operation_type
+  )
+  VALUES (
+    NEW.id, NEW.item_sold_offline_id, NEW.item_id, NEW.item_type,
+    NEW.item_variation_id, NEW.quantity, NEW.price_at_sale,
+    NEW.created_at, NEW.updated_at,
+    'INSERT'
+  );
+END$$
+
+DELIMITER ;
+
+
+DELIMITER $$
+
+CREATE TRIGGER trg_item_sold_offline_items_au
+AFTER UPDATE ON item_sold_offline_items
+FOR EACH ROW
+BEGIN
+  INSERT INTO item_sold_offline_items_history (
+    original_id, item_sold_offline_id, item_id, item_type,
+    item_variation_id, quantity, price_at_sale,
+    created_at, updated_at,
+    operation_type
+  )
+  VALUES (
+    NEW.id, NEW.item_sold_offline_id, NEW.item_id, NEW.item_type,
+    NEW.item_variation_id, NEW.quantity, NEW.price_at_sale,
+    NEW.created_at, NEW.updated_at,
+    'UPDATE'
+  );
+END$$
+
+DELIMITER ;
+
+
+
+DELIMITER $$
+
+CREATE TRIGGER trg_item_sold_offline_items_ad
+AFTER DELETE ON item_sold_offline_items
+FOR EACH ROW
+BEGIN
+  INSERT INTO item_sold_offline_items_history (
+    original_id, item_sold_offline_id, item_id, item_type,
+    item_variation_id, quantity, price_at_sale,
+    created_at, updated_at,
+    operation_type
+  )
+  VALUES (
+    OLD.id, OLD.item_sold_offline_id, OLD.item_id, OLD.item_type,
+    OLD.item_variation_id, OLD.quantity, OLD.price_at_sale,
+    OLD.created_at, OLD.updated_at,
+    'DELETE'
+  );
+END$$
+
+DELIMITER ;

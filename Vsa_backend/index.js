@@ -26,7 +26,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use("/images", express.static(path.join(__dirname, "public/images")));
 
 app.use("/vsa/shop", router); // Routes the request to shop.js used for shop related work
@@ -53,13 +53,13 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-transporter.verify((error, success) => {
-  if (error) {
-    console.log("SMTP Error:", error);
-  } else {
-    console.log("SMTP is ready to send emails");
-  }
-});
+// transporter.verify((error, success) => {
+//   if (error) {
+//     console.log("SMTP Error:", error);
+//   } else {
+//     console.log("SMTP is ready to send emails");
+//   }
+// });
 
 
 app.post(
@@ -4415,6 +4415,17 @@ app.put(
       addFieldUpdate("fee_structure", fee_structure);
       addFieldUpdate("fee_cycle", fee_cycle);
       
+      if(email) {
+        // Get user id as per new email and update users_user_id in students table to link the student to parent
+        const [data] = await connection.query(`SELECT id FROM users WHERE email = ?`, [email]);
+        if(data.length === 0) {
+          console.log("No user exists with this email setting the users_user_id as null ");
+          addFieldUpdate("users_user_id", null);
+        } else {
+          addFieldUpdate("users_user_id", data[0].id);
+        }
+      }
+
       // Handle next_payment_date: use calculated date if available, otherwise use provided date
       if (finalNextPaymentDate !== undefined) {
         addFieldUpdate("next_payment_date", finalNextPaymentDate);
@@ -8306,6 +8317,159 @@ app.delete("/vsa/admin/delete-skating-event/:id", middlewares.verifyToken, async
     if (connection) connection.release();
   }
 });
+
+// Endpoint to get all unique emails for SendMail.vue
+app.get("/vsa/admin/get-all-for-mail", middlewares.verifyToken, async (req, res) => {
+  try {
+
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    const [students] = await db.query(`
+      SELECT full_name, email, 'student' AS type
+      FROM students
+      WHERE email IS NOT NULL
+    `);
+
+    const [users] = await db.query(`
+      SELECT full_name, email, 'user' AS type
+      FROM users
+      WHERE email IS NOT NULL
+      AND email NOT IN (SELECT email FROM students WHERE email IS NOT NULL)
+    `);
+
+    const result = [...students, ...users];
+
+    res.status(200).json({
+      success: true,
+      message: "Fetched unique email list successfully",
+      data: result
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch email list",
+    });
+  }
+});
+
+// Endpoint to send mail in bulk 
+app.post(
+  "/vsa/admin/send-mail",
+  middlewares.verifyToken,
+  async (req, res) => {
+    try {
+      if (!req.user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Admins only.",
+        });
+      }
+
+      const { emails, subject, header, body, attachment } = req.body;
+      // attachment (optional) should be:
+      //   { filename: "name.pdf", content: "<base64 string>", contentType: "application/pdf" }
+
+      // ── Validation ──────────────────────────────────────────
+      if (!emails || !Array.isArray(emails) || emails.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Please provide at least one recipient email.",
+        });
+      }
+
+      if (emails.length > 50) {
+        return res.status(400).json({
+          success: false,
+          message: "Cannot send more than 50 emails at once.",
+        });
+      }
+
+      // At least one content field must be present
+      if (!subject && !header && !body && !attachment) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Please provide at least one of: subject, header, body, or attachment.",
+        });
+      }
+
+      // ── Build HTML email body ───────────────────────────────
+      const emailHeader = header
+        ? `<div style="background-color:#4F46E5;padding:24px;text-align:center;border-radius:8px 8px 0 0;">
+             <h1 style="color:white;margin:0;font-family:Arial,sans-serif;">${header}</h1>
+           </div>`
+        : `<div style="background-color:#4F46E5;padding:24px;text-align:center;border-radius:8px 8px 0 0;">
+             <h1 style="color:white;margin:0;font-family:Arial,sans-serif;">VSA — Message from Admin</h1>
+           </div>`;
+
+      const emailBodySection = body
+        ? `<div style="background-color:white;padding:30px;font-family:Arial,sans-serif;color:#374151;font-size:15px;line-height:1.7;">
+             ${body.replace(/\n/g, "<br/>")}
+           </div>`
+        : "";
+
+      const emailFooter = `
+        <div style="background-color:#F9FAFB;padding:16px;text-align:center;border-top:1px solid #E5E7EB;border-radius:0 0 8px 8px;">
+          <p style="color:#9CA3AF;font-size:12px;margin:0;font-family:Arial,sans-serif;">
+            This is an automated message from Vaibhav Skating Academy.<br/>
+            For queries: info@vaibhavskatingacademy.com | 9752869938, 9301139998
+          </p>
+        </div>`;
+
+      const fullHtml = `
+        <div style="max-width:600px;margin:0 auto;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden;">
+          ${emailHeader}
+          ${emailBodySection}
+          ${emailFooter}
+        </div>`;
+
+      // ── Build mail options ──────────────────────────────────
+      const mailOptions = {
+        from: process.env.NODE_MAILER_EMAIL_VALIDATOR_EMAIL,
+        to: emails.join(","),
+        subject: subject || "Message from VSA Admin",
+        html: fullHtml,
+      };
+
+      // Handle optional attachment (base64 content from frontend)
+      if (attachment && attachment.content) {
+        mailOptions.attachments = [
+          {
+            filename: attachment.filename || "attachment",
+            content: Buffer.from(attachment.content, "base64"),
+            contentType: attachment.contentType || "application/octet-stream",
+          },
+        ];
+      }
+
+      const info = await transporter.sendMail(mailOptions);
+
+      console.log(
+        `[send-mail] Sent to ${emails.length} recipient(s). MessageId: ${info.messageId}`
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: `Email sent successfully to ${emails.length} recipient(s).`,
+        messageId: info.messageId,
+        recipientCount: emails.length,
+      });
+    } catch (error) {
+      console.error("[send-mail] Error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send email.",
+        error: error.message,
+      });
+    }
+  }
+);
 
 // Admin functionality endpoints ends here
 

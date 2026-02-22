@@ -495,7 +495,7 @@ export default {
           headerIcon: 'fas fa-newspaper',
           icon: 'fas fa-envelope-open-text',
           description: 'Send Mails to platform users',
-          link: '/SendMail',
+          link: '/admin/send-mail',
           buttonIcon: 'fas fa-paper-plane',
           buttonText: 'Create & Send',
           permission: 'show_send_mails'

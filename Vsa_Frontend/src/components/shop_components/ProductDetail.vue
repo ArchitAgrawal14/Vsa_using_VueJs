@@ -323,7 +323,7 @@
           </div>
 
           <!-- Customizations Section -->
-          <div class="bg-white rounded-xl border-2 border-gray-200 overflow-hidden">
+          <!-- <div class="bg-white rounded-xl border-2 border-gray-200 overflow-hidden">
             <button
               @click="toggleCustomizations"
               class="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
@@ -366,9 +366,9 @@
               <div
                 v-if="showCustomizations"
                 class="border-t border-gray-200 p-4 space-y-4 bg-gradient-to-br from-sky-50 to-white"
-              >
+              > -->
                 <!-- Name Print -->
-                <div>
+                <!-- <div>
                   <label class="block text-sm font-bold text-gray-700 mb-2">
                     <span class="flex items-center justify-between">
                       <span>Name Print</span>
@@ -384,10 +384,10 @@
                     placeholder="Enter name to print"
                     class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-all"
                   />
-                </div>
+                </div> -->
 
                 <!-- Color Strip -->
-                <div>
+                <!-- <div>
                   <label class="block text-sm font-bold text-gray-700 mb-2">
                     <span class="flex items-center justify-between">
                       <span>Color Strip</span>
@@ -409,10 +409,10 @@
                       {{ color }}
                     </option>
                   </select>
-                </div>
+                </div> -->
 
                 <!-- Custom Text -->
-                <div>
+                <!-- <div>
                   <label class="block text-sm font-bold text-gray-700 mb-2">
                     <span class="flex items-center justify-between">
                       <span>Custom Text</span>
@@ -426,10 +426,10 @@
                     placeholder="Enter custom text"
                     class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-all"
                   />
-                </div>
+                </div> -->
 
                 <!-- Number -->
-                <div>
+                <!-- <div>
                   <label class="block text-sm font-bold text-gray-700 mb-2">
                     <span class="flex items-center justify-between">
                       <span>Number</span>
@@ -444,10 +444,10 @@
                     placeholder="Enter number"
                     class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-all"
                   />
-                </div>
+                </div> -->
 
                 <!-- Custom Color -->
-                <div>
+                <!-- <div>
                   <label class="block text-sm font-bold text-gray-700 mb-2">
                     <span class="flex items-center justify-between">
                       <span>Custom Color</span>
@@ -469,10 +469,10 @@
                       {{ customizations.custom_color.value }}
                     </span>
                   </div>
-                </div>
+                </div> -->
 
                 <!-- Customization Summary -->
-                <div
+                <!-- <div
                   v-if="hasCustomizations"
                   class="bg-white rounded-lg p-4 border-2 border-sky-200"
                 >
@@ -509,7 +509,7 @@
                 </div>
               </div>
             </transition>
-          </div>
+          </div> -->
           <!-- Stock Status -->
           <div class="flex items-center gap-2">
             <div v-if="selectedVariation?.availableQuantity > 0" class="flex items-center gap-2">

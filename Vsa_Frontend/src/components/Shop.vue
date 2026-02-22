@@ -211,7 +211,7 @@
                   </div>
 
                   <!-- Customizations Section -->
-                  <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                  <!-- <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                     <button
                       @click="toggleCustomizations"
                       class="w-full flex items-center justify-between p-4 sm:p-5 text-left hover:bg-gray-50 transition-colors duration-200"
@@ -246,9 +246,9 @@
                       <div
                         v-if="showCustomizations"
                         class="px-4 sm:px-5 pb-4 sm:pb-5 pt-2 space-y-4 bg-gray-50"
-                      >
+                      > -->
                         <!-- Name Print -->
-                        <div>
+                        <!-- <div>
                           <label class="block text-sm font-semibold text-gray-800 mb-2">
                             Name Print
                             <span class="text-blue-600 font-normal"
@@ -262,10 +262,10 @@
                             placeholder="Enter name"
                             class="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
                           />
-                        </div>
+                        </div> -->
 
                         <!-- Color Strip -->
-                        <div>
+                        <!-- <div>
                           <label class="block text-sm font-semibold text-gray-800 mb-2">
                             Color Strip
                             <span class="text-blue-600 font-normal"
@@ -285,10 +285,10 @@
                               {{ color }}
                             </option>
                           </select>
-                        </div>
+                        </div> -->
 
                         <!-- Custom Text -->
-                        <div>
+                        <!-- <div>
                           <label class="block text-sm font-semibold text-gray-800 mb-2">
                             Custom Text
                             <span class="text-blue-600 font-normal"
@@ -302,10 +302,10 @@
                             placeholder="Enter text"
                             class="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
                           />
-                        </div>
+                        </div> -->
 
                         <!-- Number -->
-                        <div>
+                        <!-- <div>
                           <label class="block text-sm font-semibold text-gray-800 mb-2">
                             Number
                             <span class="text-blue-600 font-normal"
@@ -318,10 +318,10 @@
                             placeholder="Enter number"
                             class="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
                           />
-                        </div>
+                        </div> -->
 
                         <!-- Custom Color -->
-                        <div>
+                        <!-- <div>
                           <label class="block text-sm font-semibold text-gray-800 mb-2">
                             Custom Color
                             <span class="text-blue-600 font-normal"
@@ -333,10 +333,10 @@
                             @input="updateCustomization('custom_color', $event.target.value)"
                             class="w-full h-12 border-2 border-gray-200 rounded-lg cursor-pointer bg-white"
                           />
-                        </div>
+                        </div> -->
 
                         <!-- Customization Summary -->
-                        <div
+                        <!-- <div
                           v-if="hasCustomizations"
                           class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border-2 border-blue-200 shadow-sm"
                         >
@@ -351,24 +351,24 @@
                             </svg>
                             Selected Customizations
                           </p>
-                          <ul class="text-sm text-blue-800 space-y-2">
-                            <li
+                          <ul class="text-sm text-blue-800 space-y-2"> -->
+                            <!-- <li
                               v-for="(custom, type) in customizations"
                               :key="type"
                               class="flex items-center justify-between bg-white/60 rounded-lg px-3 py-2"
                             >
                               <span class="font-medium"
                                 >{{ customizationOptions[type].label }}: {{ custom.value }}</span
-                              >
-                              <span class="font-semibold text-blue-600"
+                              > -->
+                              <!-- <span class="font-semibold text-blue-600"
                                 >+₹{{ custom.extraPrice }}</span
-                              >
-                            </li>
+                              > -->
+                            <!-- </li>
                           </ul>
                         </div>
-                      </div>
-                    </transition>
-                  </div>
+                      </div> -->
+                    <!-- </transition> -->
+                  <!-- </div> -->
 
                   <!-- Total Price Card -->
                   <div

@@ -2528,12 +2528,12 @@ export async function generateAdminReceiptAndNotifyUser(student, pending_fee, am
         width: 200,
       });
 
-    doc
-      .font("Helvetica-Bold")
-      .text("Class:", rightColumnX, currentY);
-    doc
-      .font("Helvetica")
-      .text(student.class || "N/A", rightColumnX + 90, currentY);
+    // doc
+    //   .font("Helvetica-Bold")
+    //   .text("Class:", rightColumnX, currentY);
+    // doc
+    //   .font("Helvetica")
+    //   .text(student.class || "N/A", rightColumnX + 90, currentY);
 
     currentY += 20;
     doc
@@ -2655,7 +2655,7 @@ export async function generateAdminReceiptAndNotifyUser(student, pending_fee, am
       .font("Helvetica-Oblique")
       .fillColor("gray")
       .text(
-        "This is a computer-generated receipt. For any queries, please contact the administration.",
+        "This is a computer-generated receipt. For any queries, please contact us at info@vaibhavskatingacademy.com OR Mobile no. - 9752869938, 9301139998.",
         50,
         doc.page.height - 100,
         { align: "center", width: 495 }
@@ -2735,12 +2735,12 @@ export async function generateAdminReceiptAndNotifyUser(student, pending_fee, am
           </p>
           
           <p style="color: #6B7280; font-size: 12px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #E5E7EB;">
-            If you have any questions regarding this receipt, please contact our administration office.
+            If you have any questions regarding this receipt, please contact us at info@vaibhavskatingacademy.com OR Mobile no. - 9752869938, 9301139998
           </p>
           
           <p style="color: #6B7280; font-size: 12px;">
             Best regards,<br>
-            <strong>VSA Administration</strong>
+            <strong>Team VSA</strong>
           </p>
         </div>
         

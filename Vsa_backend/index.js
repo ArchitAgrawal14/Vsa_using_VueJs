@@ -33,8 +33,18 @@ app.use("/vsa/shop", router); // Routes the request to shop.js used for shop rel
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+// const transporter = nodemailer.createTransport({
+//   host: "smtpout.secureserver.net",
+//   port: 465,
+//   secure: true,
+//   auth: {
+//     user: process.env.NODE_MAILER_EMAIL_VALIDATOR_EMAIL,
+//     pass: process.env.NODE_MAILER_EMAIL_VALIDATOR_PASSWORD,
+//   },
+// });
+
 const transporter = nodemailer.createTransport({
-  host: "smtpout.secureserver.net",
+  host: "mail.vaibhavskatingacademy.com",
   port: 465,
   secure: true,
   auth: {
@@ -42,6 +52,15 @@ const transporter = nodemailer.createTransport({
     pass: process.env.NODE_MAILER_EMAIL_VALIDATOR_PASSWORD,
   },
 });
+
+transporter.verify((error, success) => {
+  if (error) {
+    console.log("SMTP Error:", error);
+  } else {
+    console.log("SMTP is ready to send emails");
+  }
+});
+
 
 app.post(
   "/vsa/signup",
@@ -310,12 +329,12 @@ async function verifyUserEmail(email) {
       code: error.code,
       command: error.command
     });
+    return { 
+      success: false, 
+      error: error.message,
+      shouldRetry: ['EAUTH', 'ECONNECTION', 'ETIMEDOUT'].includes(error.code)
+    };
   }
-  return { 
-    success: false, 
-    error: error.message,
-    shouldRetry: ['EAUTH', 'ECONNECTION', 'ETIMEDOUT'].includes(error.code)
-  };
 }
 
 async function isUserAdmin(password, user, isAdmin, res) {

@@ -684,8 +684,8 @@ export function downloadAvailableStockPDF(stockData, res) {
     const colWidths = {
       category: 80,
       itemId: 50,
-      name: 110,
-      varId: 50,
+      name: 100,
+      varId: 70,
       color: 60,
       size: 45,
       pack: 45,
@@ -740,7 +740,7 @@ export function downloadAvailableStockPDF(stockData, res) {
 
       // Alternate row background
       if (index % 2 === 0) {
-        doc.rect(startX, currentY - 5, 765, 18).fill("#F0FDF4");
+        doc.rect(startX, currentY - 5, 765, 24).fill("#F0FDF4");
         doc.fillColor("black");
       }
 
@@ -777,9 +777,14 @@ export function downloadAvailableStockPDF(stockData, res) {
         ellipsis: true,
       });
       xPos += colWidths.name;
-      doc.text(item.item_variation_id || "-", xPos, currentY, {
+      doc.fontSize(7); // slightly smaller for IDs
+      doc.text(String(item.item_variation_id || "-"), xPos, currentY, {
         width: colWidths.varId - 10,
+        ellipsis: true,
+        lineBreak: false,
+        align: "center",
       });
+      doc.fontSize(8); // reset back after
       xPos += colWidths.varId;
       doc.text(color, xPos, currentY, {
         width: colWidths.color - 10,
@@ -799,7 +804,7 @@ export function downloadAvailableStockPDF(stockData, res) {
       xPos += colWidths.qty;
       doc.text(price, xPos, currentY, { width: colWidths.price - 10 });
 
-      currentY += 18;
+      currentY += 24;
     });
 
     // Footer with page numbers
@@ -1796,12 +1801,17 @@ export async function getStudentAttendance(db, studentId, month, year) {
   try {
     const [attendanceDetails] = await db.query(
       `
-      SELECT *
-      FROM students_attendance
-      WHERE student_id = ?
-        AND MONTH(attendance_date) = ?
-        AND YEAR(attendance_date) = ?
-      ORDER BY attendance_date ASC
+      SELECT 
+          sa.*,
+          u.full_name AS marked_by_name
+      FROM students_attendance sa
+      LEFT JOIN users u 
+          ON sa.marked_by = u.id 
+          OR sa.marked_by = u.email
+      WHERE sa.student_id = ?
+        AND MONTH(sa.attendance_date) = ?
+        AND YEAR(sa.attendance_date) = ?
+      ORDER BY sa.attendance_date ASC
       `,
       [studentId, month, year]
     );
@@ -1936,7 +1946,7 @@ async function generateAttendancePDF(attendanceDetails, studentId, month, year) 
         const date = new Date(record.attendance_date).toLocaleDateString();
         doc.text(date, 50, y, { width: colWidths.date });
         doc.text(record.status || 'N/A', 170, y, { width: colWidths.status });
-        doc.text(record.marked_by || '-', 270, y, { width: colWidths.markedBy });
+        doc.text(record.marked_by_name || '-', 270, y, { width: colWidths.markedBy });
         
         y += 20;
         
@@ -1975,7 +1985,7 @@ async function generateAttendanceCSV(attendanceDetails, studentId, month, year) 
       student_id: studentId,
       attendance_date: new Date(record.attendance_date).toLocaleDateString(),
       status: record.status || 'N/A',
-      marked_by: record.marked_by || '-',
+      marked_by: record.marked_by_name || '-',
       created_at: record.created_at ? new Date(record.created_at).toLocaleTimeString() : '-'
     }));
 

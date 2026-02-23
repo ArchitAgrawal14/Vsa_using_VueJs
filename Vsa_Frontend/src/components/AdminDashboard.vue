@@ -596,7 +596,7 @@ export default {
           headerIcon: 'fas fa-newspaper',
           icon: 'fas fa-envelope-open-text',
           description: 'Create and send monthly newsletters to students and parents.',
-          link: '/Create_newsLetter',
+          link: '/admin/create-and-send-news-letter',
           buttonIcon: 'fas fa-paper-plane',
           buttonText: 'Create & Send',
           permission: 'show_news_letter'
@@ -699,7 +699,7 @@ export default {
     async downloadFile(operationId, endpoint, fileType) {
       const loadingKey = `${operationId}_${fileType}`;
       try {
-        const baseURL = 'https://vaibhavskatingacademy.com';
+        const baseURL = 'http://localhost:3000';
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
         const response = await fetch(baseURL + endpoint, {

@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
     <div class="w-full max-w-md">
       <!-- Card Container -->
-      <div class="bg-white rounded-2xl shadow-xl p-8 space-y-6">
+      <div class="bg-white rounded-2xl shadow-xl p-8 space-y-6 mt-8">
         <!-- Header -->
         <div class="text-center space-y-2">
           <div class="w-16 h-16 bg-black rounded-full flex items-center justify-center mx-auto">

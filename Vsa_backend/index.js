@@ -19,6 +19,7 @@ import fs from "fs";
 import axios from "axios";
 import cron from "node-cron";
 import router from "./shop.js";
+import sanitizeHtml from "sanitize-html";
 
 dotenv.config();
 
@@ -45,8 +46,8 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 const transporter = nodemailer.createTransport({
   host: "mail.vaibhavskatingacademy.com",
-  port: 465,
-  secure: true,
+  port: 587,
+  secure: false,
   auth: {
     user: process.env.NODE_MAILER_EMAIL_VALIDATOR_EMAIL,
     pass: process.env.NODE_MAILER_EMAIL_VALIDATOR_PASSWORD,
@@ -1060,12 +1061,69 @@ app.post("/vsa/password-change/request", middlewares.verifyToken, async (req, re
     const mailOptions = {
       from: process.env.NODE_MAILER_EMAIL_VALIDATOR_EMAIL,
       to: email,
-      subject: "Your Password Change OTP",
+      subject: "Password Reset OTP – Vaibhav Skating Academy",
       html: `
-      <div style="font-family: Arial; padding:20px;">
-        <h2>Your OTP is: <strong>${otp}</strong></h2>
-        <p>This OTP is valid for 10 minutes.</p>
-      </div>`
+      <div style="margin:0; padding:50px 0; background:#f2f2f2; font-family:'Segoe UI', Arial, sans-serif;">
+        
+        <table align="center" width="100%" cellpadding="0" cellspacing="0"
+          style="max-width:600px; background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.06);">
+
+          <!-- TOP ACCENT LINE -->
+          <tr>
+            <td style="height:6px; background:#b30000;"></td>
+          </tr>
+
+          <!-- BODY -->
+          <tr>
+            <td style="padding:45px 40px; text-align:center; color:#222222;">
+
+              <h2 style="margin:0 0 20px 0; font-weight:600; font-size:20px;">
+                Password Verification
+              </h2>
+
+              <p style="font-size:15px; line-height:1.7; margin-bottom:35px; color:#555;">
+                We received a request to reset your password.  
+                Please use the verification code below to proceed.
+              </p>
+
+              <!-- OTP BOX -->
+              <div style="
+                display:inline-block;
+                padding:18px 50px;
+                font-size:30px;
+                font-weight:600;
+                letter-spacing:8px;
+                background:#fff6d6;
+                color:#000000;
+                border:1px solid #e6d18a;
+                border-radius:8px;
+              ">
+                ${otp}
+              </div>
+
+              <p style="margin-top:30px; font-size:14px; color:#666;">
+                This code will expire in 
+                <span style="color:#b30000; font-weight:600;">10 minutes</span>.
+              </p>
+
+              <div style="margin-top:35px; font-size:13px; color:#777; line-height:1.6;">
+                If you did not request a password reset, please ignore this email.<br/>
+                For security reasons, never share this code with anyone.
+              </div>
+
+            </td>
+          </tr>
+
+          <!-- FOOTER -->
+          <tr>
+            <td style="padding:25px; text-align:center; font-size:12px; color:#999; border-top:1px solid #eee;">
+              © ${new Date().getFullYear()} Vaibhav Skating Academy (REGD.)
+            </td>
+          </tr>
+
+        </table>
+      </div>
+      `
     };
 
     await transporter.sendMail(mailOptions);
@@ -3049,7 +3107,7 @@ app.get(
 
       // Getting the data from DB for all the completed sales
       const [saleData] = await db.query(
-        "SELECT * FROM orders WHERE status = ? ORDER BY created_at DESC",
+        "SELECT * FROM orders WHERE order_status = ? ORDER BY created_at DESC",
         ["Delivered"]
       );
 
@@ -8375,7 +8433,7 @@ app.post(
       // attachment (optional) should be:
       //   { filename: "name.pdf", content: "<base64 string>", contentType: "application/pdf" }
 
-      // ── Validation ──────────────────────────────────────────
+      // Validation 
       if (!emails || !Array.isArray(emails) || emails.length === 0) {
         return res.status(400).json({
           success: false,
@@ -8399,7 +8457,7 @@ app.post(
         });
       }
 
-      // ── Build HTML email body ───────────────────────────────
+      // Build HTML email body 
       const emailHeader = header
         ? `<div style="background-color:#4F46E5;padding:24px;text-align:center;border-radius:8px 8px 0 0;">
              <h1 style="color:white;margin:0;font-family:Arial,sans-serif;">${header}</h1>
@@ -8429,10 +8487,11 @@ app.post(
           ${emailFooter}
         </div>`;
 
-      // ── Build mail options ──────────────────────────────────
+      // Build mail options 
       const mailOptions = {
         from: process.env.NODE_MAILER_EMAIL_VALIDATOR_EMAIL,
-        to: emails.join(","),
+        to: process.env.NODE_MAILER_EMAIL_VALIDATOR_EMAIL,
+        bcc: emails.join(","),
         subject: subject || "Message from VSA Admin",
         html: fullHtml,
       };
@@ -8470,6 +8529,193 @@ app.post(
     }
   }
 );
+
+const MAX_RECIPIENTS_PER_SEND = 40;
+const MAX_ATTACHMENT_SIZE_BYTES = 10 * 1024 * 1024;
+
+const ALLOWED_ATTACHMENT_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "text/plain",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+];
+
+const SANITIZE_OPTIONS = {
+  allowedTags: ["b", "i", "u", "em", "strong", "br", "p", "ul", "ol", "li", "a"],
+  allowedAttributes: { a: ["href"] },
+  allowedSchemes: ["https", "mailto"],
+};
+
+// Endpoint: Send newsletter to all active subscribers
+app.post("/vsa/admin/send-news-letter", middlewares.verifyToken, async (req, res) => {
+  try {
+    // Auth check 
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admins only.",
+      });
+    }
+
+    // Fetch active subscribers 
+    const [data] = await db.query(
+      `SELECT email FROM newsletter_subscribers WHERE status = 'active' LIMIT 40`
+    );
+
+    if (data.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No one subscribed to our newsletter.",
+      });
+    }
+
+    const allEmails = data.map((row) => row.email);
+
+    // Recipient cap (SMTP rate limit safety)
+    // Our SMTP allows 60 emails/hour; reserving 20 for other
+    // transactional emails — capping newsletter blasts at 40.
+    if (allEmails.length > MAX_RECIPIENTS_PER_SEND) {
+      return res.status(400).json({
+        success: false,
+        message: `Too many recipients. Maximum allowed per send is ${MAX_RECIPIENTS_PER_SEND} (SMTP rate limit). You have ${allEmails.length} active subscribers — segment your list and send in batches.`,
+        totalSubscribers: allEmails.length,
+        limit: MAX_RECIPIENTS_PER_SEND,
+      });
+    }
+
+    // Extract and validate body fields 
+    const { subject, header, body, attachment } = req.body;
+
+    if (!subject && !header && !body && !attachment) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide at least one of: subject, header, body, or attachment.",
+      });
+    }
+
+    // subject is strongly recommended when there's no body
+    if (!subject) {
+      console.warn("[send-mail] Warning: Email sent without a subject line.");
+    }
+
+    // Attachment validation 
+    if (attachment) {
+      if (!attachment.content) {
+        return res.status(400).json({
+          success: false,
+          message: "Attachment provided but 'content' (base64) is missing.",
+        });
+      }
+
+      // Decode to check actual byte size
+      const attachmentBuffer = Buffer.from(attachment.content, "base64");
+
+      if (attachmentBuffer.length > MAX_ATTACHMENT_SIZE_BYTES) {
+        return res.status(400).json({
+          success: false,
+          message: `Attachment exceeds the 10 MB size limit (received ~${(attachmentBuffer.length / (1024 * 1024)).toFixed(2)} MB).`,
+        });
+      }
+
+      const contentType = attachment.contentType || "";
+      if (contentType && !ALLOWED_ATTACHMENT_TYPES.includes(contentType)) {
+        return res.status(400).json({
+          success: false,
+          message: `Attachment type '${contentType}' is not allowed. Permitted types: ${ALLOWED_ATTACHMENT_TYPES.join(", ")}.`,
+        });
+      }
+
+      // Store decoded buffer to reuse below (avoids decoding twice)
+      attachment._buffer = attachmentBuffer;
+    }
+
+    // Sanitize user-supplied HTML content 
+    const safeHeader = header ? sanitizeHtml(header, SANITIZE_OPTIONS) : null;
+    const safeBody   = body   ? sanitizeHtml(body,   SANITIZE_OPTIONS) : null;
+
+    // Build HTML email 
+    const emailHeader = safeHeader
+      ? `<div style="background-color:#4F46E5;padding:24px;text-align:center;border-radius:8px 8px 0 0">
+           <h1 style="color:white;margin:0;font-family:Arial,sans-serif;">${safeHeader}</h1>
+         </div>`
+      : `<div style="background-color:#4F46E5;padding:24px;text-align:center;border-radius:8px 8px 0 0">
+           <h1 style="color:white;margin:0;font-family:Arial,sans-serif;">VSA — Message from Admin</h1>
+         </div>`;
+
+    const emailBodySection = safeBody
+      ? `<div style="background-color:white;padding:30px;font-family:Arial,sans-serif;color:#374151;font-size:15px;line-height:1.7;">
+           ${safeBody.replace(/\n/g, "<br/>")}
+         </div>`
+      : "";
+
+    const emailFooter = `
+      <div style="background-color:#F9FAFB;padding:16px;text-align:center;border-top:1px solid #E5E7EB;border-radius:0 0 8px 8px;">
+        <p style="color:#9CA3AF;font-size:12px;margin:0;font-family:Arial,sans-serif;">
+          This is an automated message from Vaibhav Skating Academy.<br/>
+          For queries: info@vaibhavskatingacademy.com | 9752869938, 9301139998
+        </p>
+      </div>`;
+
+    const fullHtml = `
+      <div style="max-width:600px;margin:0 auto;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden;">
+        ${emailHeader}
+        ${emailBodySection}
+        ${emailFooter}
+      </div>`;
+
+    // BCC used so no subscriber can see other subscribers' emails.
+    const mailOptions = {
+      from: process.env.NODE_MAILER_EMAIL_VALIDATOR_EMAIL,
+      to: process.env.NODE_MAILER_EMAIL_VALIDATOR_EMAIL, // sender as visible To
+      bcc: allEmails.join(","),                           // recipients hidden
+      subject: subject || "Message from VSA Admin",
+      html: fullHtml,
+    };
+
+    // Attach file if provided 
+    if (attachment && attachment._buffer) {
+      // Ensure filename always has an extension
+      let filename = attachment.filename || "attachment.bin";
+      if (!filename.includes(".")) filename += ".bin";
+
+      mailOptions.attachments = [
+        {
+          filename,
+          content: attachment._buffer,
+          contentType: attachment.contentType || "application/octet-stream",
+        },
+      ];
+    }
+
+    // Send 
+    const info = await transporter.sendMail(mailOptions);
+
+    console.log(
+      `[send-mail] Newsletter sent to ${allEmails.length} recipient(s) via BCC. MessageId: ${info.messageId}`
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `Newsletter sent successfully to ${allEmails.length} recipient(s).`,
+      messageId: info.messageId,
+      recipientCount: allEmails.length,
+    });
+
+  } catch (error) {
+    console.error("[send-mail] Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to send newsletter.",
+      error: error.message,
+    });
+  }
+});
 
 // Admin functionality endpoints ends here
 

@@ -161,7 +161,7 @@
                       {{ record.status }}
                     </span>
                   </td>
-                  <td class="px-4 py-3 text-sm text-gray-700">{{ record.marked_by || 'N/A' }}</td>
+                  <td class="px-4 py-3 text-sm text-gray-700">{{ record.marked_by_name || record.marked_by || 'N/A' }}</td>
                   <td class="px-4 py-3 text-sm text-gray-500">{{ formatTime(record.created_at) }}</td>
                 </tr>
               </tbody>

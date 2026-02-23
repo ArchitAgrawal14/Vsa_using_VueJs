@@ -7,9 +7,9 @@ const route = useRoute();
 
 <template>
   <div>
-    <Header v-if="route.path !== '/login'" />
+    <Header v-if="route.path !== '/login' && route.path !== '/password-change'" />
     <router-view />    
-    <Footer v-if="route.path !== '/login' && route.path !== '/admin-dashboard'" ></Footer>
+    <Footer v-if="route.path !== '/login' && route.path !== '/admin-dashboard' && route.path !== '/password-change'" ></Footer>
   </div>
 </template>
 

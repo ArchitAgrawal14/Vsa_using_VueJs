@@ -16,6 +16,7 @@ import ManageStudents from "@/components/admin_components/ManageStudents.vue"
 import RegisterNewStudent from "@/components/admin_components/RegisterNewStudent.vue"
 import StudentAchievementDetail from "@/components/admin_components/StudentAchievementDetail.vue"
 import SendMail from "@/components/admin_components/SendMail.vue"
+import SendNewsLetter from "@/components/admin_components/SendNewsLetter.vue"
 
 export default [
   {
@@ -107,5 +108,10 @@ export default [
     path: '/admin/send-mail',
     name: 'SendEmail',
     component: SendMail,
+  },
+  {
+    path: '/admin/create-and-send-news-letter',
+    name: 'SendNewsLetter',
+    component: SendNewsLetter,
   }
 ]

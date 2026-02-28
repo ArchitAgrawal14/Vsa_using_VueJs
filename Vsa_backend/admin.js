@@ -1674,7 +1674,7 @@ export async function registerNewStudent(body, file, connection) {
     );
 
     // If initial payment was made, record it in student_fee table
-    if (initialPayment > 0) {
+    if (initialPayment >= 0) {
       const remarks = body.remarks || "Initial registration payment";
       await connection.query(
         `

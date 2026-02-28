@@ -5088,6 +5088,19 @@ app.get(
   }
 );
 
+// Multer config to upload image/files used in both admin and users side
+const imageStorage = multer.memoryStorage({
+  destination: path.join(__dirname, "public/images/students"),
+  filename: function (req, file, cb) {
+    const timestamp = Date.now();
+    const fileExt = path.extname(file.originalname);
+    const filename = `student-${timestamp}${fileExt}`;
+    cb(null, filename);
+  },
+});
+
+const imageUpload = multer({ storage: imageStorage });
+
 // Asset key for images
 const assestkeys = [
     "logo_image", "hero_image", "skate_icon", "check_icon", "roller_skate_image",
@@ -5099,7 +5112,7 @@ const uploadFields = assestkeys.map(key => ({name : key, maxCount : 1}));
 
 // Endpoint to update the values for images in the dasboard
 app.put("/vsa/admin/edit-image-assets", middlewares.verifyToken
-  , upload.fields(uploadFields), async (req, res) => {
+  , imageUpload.fields(uploadFields), middlewares.convertToWebP, async (req, res) => {
   let connection;
   try {
     if (!req.user.isAdmin) {

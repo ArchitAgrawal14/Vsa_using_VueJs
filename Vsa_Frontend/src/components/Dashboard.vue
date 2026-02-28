@@ -124,7 +124,7 @@
       </div>
     </section>
 
-        <!-- Achievements Section -->
+    <!-- Achievements Section -->
     <section class="py-20 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16">
@@ -150,6 +150,104 @@
             @click="navigateTo('/students-achievements')">
             Student Success Stories
           </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Disciplines -->
+    <section class="py-20 bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+          <h2 class="text-4xl font-bold text-gray-900 mb-4">Speed Skating Disciplines</h2>
+          <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+            Master both roller and ice speed skating with specialized training programs
+          </p>
+        </div>
+        <div class="grid lg:grid-cols-2 gap-12">
+          <!-- Roller Speed Skating -->
+          <div
+            class="bg-white rounded-2xl shadow-xl overflow-hidden transform hover:-translate-y-2 transition-all duration-300">
+            <div class="relative">
+              <img :src="rollerSpeedImage" alt="Roller Speed Skating" class="w-full h-64 object-cover" />
+              <div class="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                Roller Speed
+              </div>
+            </div>
+            <div class="p-8">
+              <h3 class="text-2xl font-bold text-gray-900 mb-4">Roller Speed Skating</h3>
+              <p class="text-gray-600 mb-6">
+                Experience the thrill of racing on wheels with professional roller speed skating
+                training.
+              </p>
+              <div class="space-y-3 mb-6">
+                <div class="flex items-center space-x-3">
+                  <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span class="text-gray-700">Track racing techniques</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                  <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span class="text-gray-700">Sprint & distance training</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                  <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span class="text-gray-700">Competition preparation</span>
+                </div>
+              </div>
+              <div class="flex justify-between items-center">
+                <div class="text-sm text-gray-500">
+                  <span class="font-semibold">Records:</span> {{ rollerRecords.length }} school
+                  records
+                </div>
+                <button
+                  class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors duration-200"
+                  @click="navigateTo('/roller-speed-skating-discipline')">
+                  Learn More
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ice Speed Skating -->
+          <div
+            class="bg-white rounded-2xl shadow-xl overflow-hidden transform hover:-translate-y-2 transition-all duration-300">
+            <div class="relative">
+              <img :src="iceSpeedImage" alt="Ice Speed Skating" class="w-full h-64 object-cover" />
+              <div class="absolute top-4 left-4 bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                Ice Speed
+              </div>
+            </div>
+            <div class="p-8">
+              <h3 class="text-2xl font-bold text-gray-900 mb-4">Ice Speed Skating</h3>
+              <p class="text-gray-600 mb-6">
+                Master the ice with precision and speed in our state-of-the-art ice rink facilities.
+              </p>
+              <div class="space-y-3 mb-6">
+                <div class="flex items-center space-x-3">
+                  <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span class="text-gray-700">Olympic-style training</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                  <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span class="text-gray-700">Long & short track</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                  <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span class="text-gray-700">International competitions</span>
+                </div>
+              </div>
+              <div class="flex justify-between items-center">
+                <div class="text-sm text-gray-500">
+                  <span class="font-semibold">Records:</span> {{ iceRecords.length }} regional
+                  records
+                </div>
+                <button
+                  class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200"
+                  @click="navigateTo('/ice-skating-discipline')">
+                  Learn More
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -280,103 +378,6 @@
               class="w-full h-64 object-cover rounded-xl shadow-lg animate-fade-in-up" />
             <img :src="iceSkateImage" alt="Ice Skates"
               class="w-full h-64 object-cover rounded-xl shadow-lg animate-fade-in-up delay-100" />
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="py-20 bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-16">
-          <h2 class="text-4xl font-bold text-gray-900 mb-4">Speed Skating Disciplines</h2>
-          <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-            Master both roller and ice speed skating with specialized training programs
-          </p>
-        </div>
-        <div class="grid lg:grid-cols-2 gap-12">
-          <!-- Roller Speed Skating -->
-          <div
-            class="bg-white rounded-2xl shadow-xl overflow-hidden transform hover:-translate-y-2 transition-all duration-300">
-            <div class="relative">
-              <img :src="rollerSpeedImage" alt="Roller Speed Skating" class="w-full h-64 object-cover" />
-              <div class="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                Roller Speed
-              </div>
-            </div>
-            <div class="p-8">
-              <h3 class="text-2xl font-bold text-gray-900 mb-4">Roller Speed Skating</h3>
-              <p class="text-gray-600 mb-6">
-                Experience the thrill of racing on wheels with professional roller speed skating
-                training.
-              </p>
-              <div class="space-y-3 mb-6">
-                <div class="flex items-center space-x-3">
-                  <div class="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span class="text-gray-700">Track racing techniques</span>
-                </div>
-                <div class="flex items-center space-x-3">
-                  <div class="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span class="text-gray-700">Sprint & distance training</span>
-                </div>
-                <div class="flex items-center space-x-3">
-                  <div class="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span class="text-gray-700">Competition preparation</span>
-                </div>
-              </div>
-              <div class="flex justify-between items-center">
-                <div class="text-sm text-gray-500">
-                  <span class="font-semibold">Records:</span> {{ rollerRecords.length }} school
-                  records
-                </div>
-                <button
-                  class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors duration-200"
-                  @click="navigateTo('/roller-speed-skating-discipline')">
-                  Learn More
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Ice Speed Skating -->
-          <div
-            class="bg-white rounded-2xl shadow-xl overflow-hidden transform hover:-translate-y-2 transition-all duration-300">
-            <div class="relative">
-              <img :src="iceSpeedImage" alt="Ice Speed Skating" class="w-full h-64 object-cover" />
-              <div class="absolute top-4 left-4 bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                Ice Speed
-              </div>
-            </div>
-            <div class="p-8">
-              <h3 class="text-2xl font-bold text-gray-900 mb-4">Ice Speed Skating</h3>
-              <p class="text-gray-600 mb-6">
-                Master the ice with precision and speed in our state-of-the-art ice rink facilities.
-              </p>
-              <div class="space-y-3 mb-6">
-                <div class="flex items-center space-x-3">
-                  <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span class="text-gray-700">Olympic-style training</span>
-                </div>
-                <div class="flex items-center space-x-3">
-                  <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span class="text-gray-700">Long & short track</span>
-                </div>
-                <div class="flex items-center space-x-3">
-                  <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span class="text-gray-700">International competitions</span>
-                </div>
-              </div>
-              <div class="flex justify-between items-center">
-                <div class="text-sm text-gray-500">
-                  <span class="font-semibold">Records:</span> {{ iceRecords.length }} regional
-                  records
-                </div>
-                <button
-                  class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200"
-                  @click="navigateTo('/ice-skating-discipline')">
-                  Learn More
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       </div>

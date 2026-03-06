@@ -505,6 +505,17 @@ INSERT INTO dashboard_image_assets (asset_key, asset_path, asset_type, descripti
 ('ice_icon', '/images/ice-skate-icon.png', 'icon', 'Ice Skate Icon'),
 ('ice_speed_image', '/images/student-1763448557038.jpeg', 'image', 'Roller Speed Image');
 
+INSERT INTO dashboard_image_assets (asset_key, asset_path, asset_type, description) VALUES
+('carousel_image_1', '/images/students/student-1772294141057-0-hero_image.webp', 'image', 'Training in Action'),
+('carousel_image_2', '/images/students/student-1772294141057-0-hero_image.webp', 'image', 'Championship Moments'),
+('carousel_image_3', '/images/students/student-1772294141057-0-hero_image.webp', 'image', 'Roller Skating'),
+('carousel_image_4', '/images/students/student-1772294141057-0-hero_image.webp', 'image', 'Ice Skating'),
+('carousel_image_5', '/images/students/student-1772294141057-0-hero_image.webp', 'image', 'Speed Trials'),
+('carousel_image_6', '/images/students/student-1772294141057-0-hero_image.webp', 'image', 'Academy Life');
+
+ALTER TABLE dashboard_image_assets 
+ADD COLUMN focal_point VARCHAR(20) DEFAULT '50% 50%';
+
 -- Add indexes for better query performance
 CREATE INDEX idx_stats_display_order ON dashboard_stats_data(display_order, id);
 CREATE INDEX idx_programs_display_order ON dashboard_programs_data(display_order, id);

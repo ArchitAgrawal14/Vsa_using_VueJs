@@ -2015,6 +2015,12 @@ export async function validateImageAssetKeys(assetKeys) {
     "roller_speed_image",
     "roller_icon",
     "ice_icon",
+    'carousel_image_1',
+    'carousel_image_2',
+    'carousel_image_3',
+    'carousel_image_4',
+    'carousel_image_5',
+    'carousel_image_6',
   ];
 
   for (const assetKey of assetKeysArray) {
@@ -2025,14 +2031,15 @@ export async function validateImageAssetKeys(assetKeys) {
 }
 
 // Function to update dashboard images
-export async function updatedDashboardImages(files, connection) {
+export async function updatedDashboardImages(files, body, connection) {
   let updatedCount = 0;
   for (const key of Object.keys(files)) {
     const file = files[key][0];
     const filePath = "/images/students/" + file.filename;
+    const focalPoint = body[`${key}_focal`] || '50% 50%';
     const [result] = await connection.query(
-      "UPDATE dashboard_image_assets SET asset_path = ? WHERE asset_key = ?",
-      [filePath, key]
+      "UPDATE dashboard_image_assets SET asset_path = ?, focal_point = ? WHERE asset_key = ?",
+      [filePath, focalPoint, key]
     );
     updatedCount += result.affectedRows;
   }

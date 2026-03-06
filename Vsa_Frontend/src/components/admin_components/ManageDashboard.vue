@@ -23,18 +23,39 @@
             </label>
 
             <!-- Current Image Preview -->
-            <div class="mb-3 border-2 border-gray-200 rounded overflow-hidden bg-gray-100">
+            <div class="mb-3 border-2 border-gray-200 rounded overflow-hidden bg-gray-100"
+              :style="{ aspectRatio: getAspectRatio(key) }">
               <img v-if="currentImages[key]" :src="'http://localhost:3000' + currentImages[key]" :alt="key"
-                class="w-full h-32 object-contain" />
-              <div v-else class="w-full h-32 flex items-center justify-center text-gray-400">
+                class="w-full h-full object-cover"
+                :style="{ objectPosition: imageFiles[key]?.focalPoint || '50% 50%' }" />
+              <div v-else class="w-full h-full flex items-center justify-center text-gray-400">
                 No Image
               </div>
             </div>
 
-            <!-- New Image Preview -->
-            <div v-if="imageFiles[key]?.preview" class="mb-3 border-2 border-black rounded overflow-hidden">
-              <img :src="imageFiles[key].preview" :alt="`New ${key}`" class="w-full h-32 object-contain" />
+            <!-- New Image Preview with focal point UI -->
+            <div v-if="imageFiles[key]?.preview"
+              class="mb-3 border-2 border-black rounded overflow-hidden relative cursor-crosshair"
+              :style="{ aspectRatio: getAspectRatio(key) }" @click="setFocalPoint(key, $event)"
+              title="Click to set focal point (where to center the crop)">
+              <img :src="imageFiles[key].preview" :alt="`New ${key}`"
+                class="w-full h-full object-cover pointer-events-none"
+                :style="{ objectPosition: imageFiles[key]?.focalPoint || '50% 50%' }" />
+              <!-- Focal point dot -->
+              <div v-if="imageFiles[key]?.focalPoint"
+                class="absolute w-5 h-5 rounded-full border-2 border-white bg-black/60 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                :style="getFocalDotStyle(imageFiles[key].focalPoint)">
+              </div>
+              <!-- Hint -->
+              <div class="absolute bottom-1 right-1 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
+                Click to reposition
+              </div>
             </div>
+
+            <!-- Aspect ratio hint -->
+            <p class="text-xs text-gray-400 mb-2">
+              Expected: {{ getAspectRatioLabel(key) }}
+            </p>
 
             <!-- File Input -->
             <input type="file" :id="`file-${key}`" accept="image/*" @change="handleImageChange(key, $event)"
@@ -376,7 +397,8 @@
                 </div>
 
                 <div class="md:col-span-2">
-                  <label class="block text-xs font-semibold text-black mb-1">Description (Min 10 words and no more the 10 words)</label>
+                  <label class="block text-xs font-semibold text-black mb-1">Description (Min 10 words and no more the
+                    10 words)</label>
                   <textarea :value="editedPrograms[program.id]?.description || program.description"
                     @input="trackProgramEdit(program.id, 'description', $event.target.value)" rows="2"
                     class="w-full px-3 py-2 border-2 border-gray-300 rounded focus:border-black focus:outline-none text-sm"></textarea>
@@ -491,7 +513,9 @@ export default {
       assetKeys: [
         "logo_image", "hero_image", "skate_icon", "check_icon",
         "roller_skate_image", "ice_skate_image", "skating_banner",
-        "roller_speed_image", "roller_icon", "ice_icon", "ice_speed_image"
+        "roller_speed_image", "roller_icon", "ice_icon", "ice_speed_image",
+        'carousel_image_1', 'carousel_image_2', 'carousel_image_3',
+        'carousel_image_4', 'carousel_image_5', 'carousel_image_6'
       ],
       currentImages: {},
       imageFiles: {},
@@ -538,7 +562,7 @@ export default {
       isUpdatingPrograms: false,
       programsMessage: null,
       programCategories: ['Roller', 'Ice', 'Roll Ball'],
-      feeCycles: ['monthly', 'quarterly', 'half-yearly','yearly'],
+      feeCycles: ['monthly', 'quarterly', 'half-yearly', 'yearly'],
 
       // Coaches
       coachesData: [],
@@ -995,7 +1019,67 @@ export default {
 
     isCoachEdited(coachId) {
       return !!this.editedCoaches[coachId];
-    }
+    },
+    getAspectRatio(key) {
+      const ratios = {
+        logo_image: '63/40',
+        hero_image: '459/384',        // ~6:5 portrait
+        skate_icon: '1/1',
+        check_icon: '1/1',
+        roller_skate_image: '218/256', // ~5:6 portrait
+        ice_skate_image: '218/256',
+        skating_banner: '950/256',    // ~4:1 ultra-wide banner
+        roller_speed_image: '451/256', // ~16:9 landscape
+        roller_icon: '1/1',
+        ice_icon: '1/1',
+        ice_speed_image: '451/256',
+        carousel_image_1: '950/560',  // ~17:10 landscape
+        carousel_image_2: '950/560',
+        carousel_image_3: '950/560',
+        carousel_image_4: '950/560',
+        carousel_image_5: '950/560',
+        carousel_image_6: '950/560',
+      }
+      return ratios[key] || '4/3'
+    },
+
+    getAspectRatioLabel(key) {
+      const labels = {
+        logo_image: '~3:2 — logo',
+        hero_image: '~6:5 portrait — hero banner',
+        skate_icon: '1:1 square — icon',
+        check_icon: '1:1 square — icon',
+        roller_skate_image: '~5:6 portrait — skate showcase',
+        ice_skate_image: '~5:6 portrait — skate showcase',
+        skating_banner: '~4:1 ultra-wide — join us banner',
+        roller_speed_image: '~16:9 landscape — speed program card',
+        roller_icon: '1:1 square — icon',
+        ice_icon: '1:1 square — icon',
+        ice_speed_image: '~16:9 landscape — speed program card',
+        carousel_image_1: '~17:10 landscape — carousel slide',
+        carousel_image_2: '~17:10 landscape — carousel slide',
+        carousel_image_3: '~17:10 landscape — carousel slide',
+        carousel_image_4: '~17:10 landscape — carousel slide',
+        carousel_image_5: '~17:10 landscape — carousel slide',
+        carousel_image_6: '~17:10 landscape — carousel slide',
+      }
+      return labels[key] || '4:3 — general'
+    },
+
+    setFocalPoint(key, event) {
+      const rect = event.currentTarget.getBoundingClientRect()
+      const x = ((event.clientX - rect.left) / rect.width * 100).toFixed(1)
+      const y = ((event.clientY - rect.top) / rect.height * 100).toFixed(1)
+      this.imageFiles[key] = {
+        ...this.imageFiles[key],
+        focalPoint: `${x}% ${y}%`
+      }
+    },
+
+    getFocalDotStyle(focalPoint) {
+      const [x, y] = focalPoint.split(' ')
+      return { left: x, top: y }
+    },
   }
 };
 </script>

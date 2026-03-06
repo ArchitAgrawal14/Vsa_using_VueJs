@@ -5105,7 +5105,7 @@ const imageUpload = multer({ storage: imageStorage });
 const assestkeys = [
     "logo_image", "hero_image", "skate_icon", "check_icon", "roller_skate_image",
     "ice_skate_image", "skating_banner", "roller_speed_image", "roller_icon", "ice_icon",
-    "ice_speed_image"
+    "ice_speed_image", 'carousel_image_1','carousel_image_2', 'carousel_image_3', 'carousel_image_4', 'carousel_image_5', 'carousel_image_6'
 ];
 
 const uploadFields = assestkeys.map(key => ({name : key, maxCount : 1}));
@@ -5150,7 +5150,7 @@ app.put("/vsa/admin/edit-image-assets", middlewares.verifyToken
     connection = await db.getConnection();
     await connection.beginTransaction();
 
-    const result = await admin.updatedDashboardImages(req.files, connection);
+    const result = await admin.updatedDashboardImages(req.files, req.body, connection);
 
     if(result.success) {
       await connection.commit();

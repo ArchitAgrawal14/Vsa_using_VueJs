@@ -6,7 +6,7 @@
         <div class="flex justify-between items-center h-16">
           <div class="flex items-center">
             <img :src="logoImage" alt="VSA Logo" class="h-10 w-auto" />
-            <span class="ml-2 text-xl font-bold text-gray-900">VSA Academy</span>
+            <span class="ml-2 text-xl font-bold text-gray-900">Vaibhav Skating Aacademy</span>
           </div>
           <button @click="toggleMobileMenu" class="md:hidden">
             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -421,7 +421,7 @@
         </div>
         <h2 class="text-4xl font-bold mb-6">Ready to Start Your Skating Journey?</h2>
         <p class="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
-          Join thousands of students who have transformed their skating skills at VSA Academy.
+          Join thousands of students who have transformed their skating skills at Vaibhav Skating Aacademy.
           Professional training, world-class facilities, and a supportive community await you.
         </p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">

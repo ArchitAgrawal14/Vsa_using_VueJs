@@ -75,11 +75,6 @@ app.post(
       const passwordRegex =
         /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{6,}$/;
 
-      console.log(`email: ${email}
-      password: ${password}
-      fullName: ${fullName}
-      mobile: ${mobile}`);
-
       if (!captchaToken) {
         return res.status(400).json({
           success: false,
@@ -127,20 +122,11 @@ app.post(
       }
 
       const [userDuplicacyCheck] = await db.query(
-        "SELECT * FROM users WHERE email = ?",
+        "SELECT id FROM users WHERE email = ?",
         [email]
       );
 
       if (userDuplicacyCheck.length > 0) {
-        const user = userDuplicacyCheck[0];
-        console.log(
-          "User already exist",
-          user.email,
-          user.password,
-          user.full_name,
-          user.mobile
-        );
-
         return res.status(400).json({
           success: false,
           message: "User already exists with this email, login to continue",
@@ -158,7 +144,7 @@ app.post(
 
       const userId = result.insertId;
 
-      verifyUserEmail(email);
+      verifyUserEmail(email, fullName);
       // Update the students table if the user has already registered student in offline mode
       await updateUsersUserIdForStudents(email, userId);
       await db.query(
@@ -203,15 +189,6 @@ app.post(
         })
       }
 
-      const isHuman = await verifyGoogleRecaptcha(captchaToken);
-
-      if (!isHuman) {
-        return res.status(400).json({
-          success: false,
-          message: 'Captcha verification failed'
-        })
-      }
-
       if (email == null || password == null) {
         return res.status(401).json({
           success: false,
@@ -227,16 +204,36 @@ app.post(
         });
       }
 
+      const isHuman = await verifyGoogleRecaptcha(captchaToken);
+
+      if (!isHuman) {
+        return res.status(400).json({
+          success: false,
+          message: 'Captcha verification failed'
+        })
+      }
+
       const [userCheck] = await db.query(
-        "SELECT * FROM users WHERE email = ?",
+        `SELECT id, full_name, email, password, mobile, is_verified, is_admin
+         FROM users WHERE email = ?`,
         [email]
       );
 
-      if (userCheck.length > 0) {
+      if (userCheck.length === 0) {
+        await db.query(
+          "INSERT INTO login_logs (user_id, email, success, failure_reason) VALUES (?, ?, ?, ?)",
+          [null, email, false, "User does not exist"]
+        );
+        return res.status(401).json({
+          success: false,
+          message: "User does not exist. Please sign up to continue.",
+        });
+      }
+
         const user = userCheck[0];
 
         if (user.is_verified !== 1) {
-          verifyUserEmail(email);
+          verifyUserEmail(email, user.full_name);
           return res.status(400).json({
             success: false,
             message:
@@ -253,52 +250,33 @@ app.post(
           await updateUsersUserIdForStudents(email, user.id);
           return await isUserAdmin(password, user, false, res);
         }
-      } else {
+      } catch (error) {
+        console.error("Login error:", error);
         await db.query(
           "INSERT INTO login_logs (user_id, email, success, failure_reason) VALUES (?, ?, ?, ?)",
-          [user?.id || null, email, false, "User does not exists"]
+          [user?.id || null, email, false, "Internal server error"]
         );
-
-        return res.status(401).json({
+        res.status(500).json({
           success: false,
-          message:
-            "User does not exist , Please Sign up to continue your journey",
+          message: "Internal server error. Please try again later.",
         });
       }
-    } catch (error) {
-      console.error("Login error:", error);
-      await db.query(
-        "INSERT INTO login_logs (user_id, email, success, failure_reason) VALUES (?, ?, ?, ?)",
-        [user?.id || null, email, false, "Internal server error"]
-      );
-      res.status(500).json({
-        success: false,
-        message: "Internal server error. Please try again later.",
-      });
-    }
   }
 );
 
-async function verifyUserEmail(email) {
+async function verifyUserEmail(email, full_name) {
   try {
     const verificationToken = crypto.randomBytes(32).toString("hex");
   
-    const [userCheck] = await db.query("SELECT email, full_name FROM users WHERE email = ?", [
+    await db.query("UPDATE users SET verification_token = ? WHERE email = ?", [
+      verificationToken,
       email,
     ]);
-  
-    if (userCheck.length > 0) {
-      const user = userCheck[0];
-      await db.query("UPDATE users SET verification_token = ? WHERE email = ?", [
-        verificationToken,
-        user.email,
-      ]);
-    }
   
     const verificationLink = `http://localhost:3000/vsa/verify-email?token=${verificationToken}`;
     // const verificationLink = `https://vaibhavskatingacademy.com/vsa/verify-email?token=${verificationToken}`;
   
-    const firstName = userCheck[0].full_name.split(" ")[0];
+    const firstName = full_name.split(" ")[0];
     const mailOptions = {
       from: process.env.NODE_MAILER_EMAIL_VALIDATOR_EMAIL,
       to: email,
@@ -670,13 +648,17 @@ app.post("/vsa/google-auth-exchange", async (req, res) => {
 
 // Function to update usersUserId in students table for login and /signup scenario
 async function updateUsersUserIdForStudents(email, userId) {
-  await db.query(
-    `UPDATE students 
-     SET users_user_id = ?
-     WHERE email = ?
-     AND users_user_id IS NULL`,
-    [userId, email]
-  );
+  try {
+    await db.query(
+      `UPDATE students 
+      SET users_user_id = ?
+      WHERE email = ?
+      AND users_user_id IS NULL`,
+      [userId, email]
+    ); 
+  } catch (error) {
+    console.error("Failed to link student record:", { email, userId, message: error.message });
+  }
 }
 
 // Endpoint to fetch all the data for user dashboard and also used in manage dashboard for admin page

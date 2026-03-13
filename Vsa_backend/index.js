@@ -8730,6 +8730,212 @@ app.post("/vsa/admin/send-news-letter", middlewares.verifyToken, async (req, res
   }
 });
 
+// Run every day at 9:00 PM to send birthday info to admin
+cron.schedule('0 21 * * *', async () => {
+  if (isRunning) {
+    console.warn(`[${new Date().toISOString()}] Cron job already running, skipping...`);
+    return;
+  }
+
+  isRunning = true;
+  const connection = await db.getConnection();
+  await connection.beginTransaction();
+
+  try {
+    // Get tomorrow's date
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+    const day = String(tomorrow.getDate()).padStart(2, '0');
+    const tomorrowLabel = `${day}/${month}`;
+
+    const [students] = await connection.query(
+      `SELECT full_name, email, dob 
+       FROM students 
+       WHERE MONTH(dob) = ? AND DAY(dob) = ?`,
+      [month, day]
+    );
+
+    if (students.length === 0) {
+      await connection.commit();
+      return;
+    }
+
+    // Build student rows for the email table
+    const studentRows = students
+      .map(
+        (s) => `
+        <tr>
+          <td style="padding:10px 16px;border-bottom:1px solid #E5E7EB;font-family:Arial,sans-serif;color:#374151;">${s.full_name}</td>
+          <td style="padding:10px 16px;border-bottom:1px solid #E5E7EB;font-family:Arial,sans-serif;color:#374151;">${s.email}</td>
+          <td style="padding:10px 16px;border-bottom:1px solid #E5E7EB;font-family:Arial,sans-serif;color:#374151;">${new Date(s.dob).toLocaleDateString('en-IN')}</td>
+        </tr>`
+      )
+      .join('');
+
+    // Build HTML — same format as /vsa/admin/send-mail
+    const emailHeader = `
+      <div style="background-color:#4F46E5;padding:24px;text-align:center;border-radius:8px 8px 0 0;">
+        <h1 style="color:white;margin:0;font-family:Arial,sans-serif;">🎂 Upcoming Birthdays — ${tomorrowLabel}</h1>
+      </div>`;
+
+    const emailBodySection = `
+      <div style="background-color:white;padding:30px;font-family:Arial,sans-serif;color:#374151;font-size:15px;line-height:1.7;">
+        <p>The following <strong>${students.length}</strong> student(s) have their birthday tomorrow:</p>
+        <table style="width:100%;border-collapse:collapse;margin-top:12px;">
+          <thead>
+            <tr style="background-color:#F3F4F6;">
+              <th style="padding:10px 16px;text-align:left;font-family:Arial,sans-serif;color:#6B7280;font-size:13px;">Name</th>
+              <th style="padding:10px 16px;text-align:left;font-family:Arial,sans-serif;color:#6B7280;font-size:13px;">Email</th>
+              <th style="padding:10px 16px;text-align:left;font-family:Arial,sans-serif;color:#6B7280;font-size:13px;">Date of Birth</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${studentRows}
+          </tbody>
+        </table>
+      </div>`;
+
+    const emailFooter = `
+      <div style="background-color:#F9FAFB;padding:16px;text-align:center;border-top:1px solid #E5E7EB;border-radius:0 0 8px 8px;">
+        <p style="color:#9CA3AF;font-size:12px;margin:0;font-family:Arial,sans-serif;">
+          This is an automated message from Vaibhav Skating Academy.<br/>
+          For queries: info@vaibhavskatingacademy.com | 9752869938, 9301139998
+        </p>
+      </div>`;
+
+    const fullHtml = `
+      <div style="max-width:600px;margin:0 auto;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden;">
+        ${emailHeader}
+        ${emailBodySection}
+        ${emailFooter}
+      </div>`;
+
+    const adminMails = ['singhvisheshta29@gmail.com', 'info@vaibhavskatingacademy.com', 'archit.uhr75@gmail.com'];
+    const mailOptions = {
+      from: process.env.NODE_MAILER_EMAIL_VALIDATOR_EMAIL,
+      to: adminMails.join(','),
+      subject: `🎂 ${students.length} Student Birthday(s) Tomorrow — ${tomorrowLabel}`,
+      html: fullHtml,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[${new Date().toISOString()}] Birthday email sent. MessageId: ${info.messageId}`);
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    console.error(`[${new Date().toISOString()}] Birthday cron error:`, error);
+  } finally {
+    connection.release();
+    isRunning = false;
+    console.log(`[${new Date().toISOString()}] Lock released`);
+  }
+});
+
+// test function - 
+// async function getBirthdays() {
+//   if (isRunning) {
+//     console.warn(`[${new Date().toISOString()}] Cron job already running, skipping...`);
+//     return;
+//   }
+
+//   isRunning = true;
+//   const connection = await db.getConnection();
+//   await connection.beginTransaction();
+
+//   try {
+//     // Get tomorrow's date
+//     const tomorrow = new Date();
+//     tomorrow.setDate(tomorrow.getDate() + 1);
+//     const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+//     const day = String(tomorrow.getDate()).padStart(2, '0');
+//     const tomorrowLabel = `${day}/${month}`;
+
+//     const [students] = await connection.query(
+//       `SELECT full_name, email, dob 
+//        FROM students 
+//        WHERE MONTH(dob) = ? AND DAY(dob) = ?`,
+//       [month, day]
+//     );
+
+//     if (students.length === 0) {
+//       await connection.commit();
+//       return;
+//     }
+
+//     // Build student rows for the email table
+//     const studentRows = students
+//       .map(
+//         (s) => `
+//         <tr>
+//           <td style="padding:10px 16px;border-bottom:1px solid #E5E7EB;font-family:Arial,sans-serif;color:#374151;">${s.full_name}</td>
+//           <td style="padding:10px 16px;border-bottom:1px solid #E5E7EB;font-family:Arial,sans-serif;color:#374151;">${s.email}</td>
+//           <td style="padding:10px 16px;border-bottom:1px solid #E5E7EB;font-family:Arial,sans-serif;color:#374151;">${new Date(s.dob).toLocaleDateString('en-IN')}</td>
+//         </tr>`
+//       )
+//       .join('');
+
+//     // Build HTML — same format as /vsa/admin/send-mail
+//     const emailHeader = `
+//       <div style="background-color:#4F46E5;padding:24px;text-align:center;border-radius:8px 8px 0 0;">
+//         <h1 style="color:white;margin:0;font-family:Arial,sans-serif;">🎂 Upcoming Birthdays — ${tomorrowLabel}</h1>
+//       </div>`;
+
+//     const emailBodySection = `
+//       <div style="background-color:white;padding:30px;font-family:Arial,sans-serif;color:#374151;font-size:15px;line-height:1.7;">
+//         <p>The following <strong>${students.length}</strong> student(s) have their birthday tomorrow:</p>
+//         <table style="width:100%;border-collapse:collapse;margin-top:12px;">
+//           <thead>
+//             <tr style="background-color:#F3F4F6;">
+//               <th style="padding:10px 16px;text-align:left;font-family:Arial,sans-serif;color:#6B7280;font-size:13px;">Name</th>
+//               <th style="padding:10px 16px;text-align:left;font-family:Arial,sans-serif;color:#6B7280;font-size:13px;">Email</th>
+//               <th style="padding:10px 16px;text-align:left;font-family:Arial,sans-serif;color:#6B7280;font-size:13px;">Date of Birth</th>
+//             </tr>
+//           </thead>
+//           <tbody>
+//             ${studentRows}
+//           </tbody>
+//         </table>
+//       </div>`;
+
+//     const emailFooter = `
+//       <div style="background-color:#F9FAFB;padding:16px;text-align:center;border-top:1px solid #E5E7EB;border-radius:0 0 8px 8px;">
+//         <p style="color:#9CA3AF;font-size:12px;margin:0;font-family:Arial,sans-serif;">
+//           This is an automated message from Vaibhav Skating Academy.<br/>
+//           For queries: info@vaibhavskatingacademy.com | 9752869938, 9301139998
+//         </p>
+//       </div>`;
+
+//     const fullHtml = `
+//       <div style="max-width:600px;margin:0 auto;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden;">
+//         ${emailHeader}
+//         ${emailBodySection}
+//         ${emailFooter}
+//       </div>`;
+
+//     const adminMails = ['singhvisheshta29@gmail.com', 'info@vaibhavskatingacademy.com', 'archit.uhr75@gmail.com'];
+//     const mailOptions = {
+//       from: process.env.NODE_MAILER_EMAIL_VALIDATOR_EMAIL,
+//       to: adminMails.join(','),
+//       subject: `🎂 ${students.length} Student Birthday(s) Tomorrow — ${tomorrowLabel}`,
+//       html: fullHtml,
+//     };
+
+//     const info = await transporter.sendMail(mailOptions);
+//     console.log(`[${new Date().toISOString()}] Birthday email sent. MessageId: ${info.messageId}`);
+
+//     await connection.commit();
+//   } catch (error) {
+//     await connection.rollback();
+//     console.error(`[${new Date().toISOString()}] Birthday cron error:`, error);
+//   } finally {
+//     connection.release();
+//     isRunning = false;
+//     console.log(`[${new Date().toISOString()}] Lock released`);
+//   }
+// }
+
 // Admin functionality endpoints ends here
 
 app.get("/vsa/:policyType", async (req, res) => {

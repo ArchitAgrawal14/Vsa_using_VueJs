@@ -1,39 +1,112 @@
 <template>
-  <div class="refund-policy-container">
-    <div class="policy-card">
-      <div class="policy-header-section">
-        <h2 class="policy-header">Cancellation and Refunds</h2>
-        <button v-if="showCloseButton" @click="closePolicy" class="close-button">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
+  <div class="page-root">
 
-      <div class="policy-content">
-        <ul class="refund-list">
-          <li v-for="item in refundItems" :key="item.id" class="refund-item">
-            <div class="item-icon">
-              <i class="fas fa-circle"></i>
+    <!-- Decorative top bar -->
+    <div class="top-bar"></div>
+
+    <!-- Subtle dot pattern bg -->
+    <div class="dot-bg"></div>
+
+    <div class="page-wrapper">
+
+      <!-- ── HEADER ── -->
+      <header class="page-header">
+        <div class="eyebrow">
+          <span class="eyebrow-line"></span>
+          Legal Documentation
+          <span class="eyebrow-line"></span>
+        </div>
+
+        <h1 class="headline">
+          Cancellation <em>&amp; Refunds</em>
+        </h1>
+
+        <p class="subheadline">
+          We believe in fair and transparent refund practices.
+          Please read the following carefully to understand your rights and our obligations.
+        </p>
+
+        <div class="header-meta">
+          <span class="meta-badge">
+            <span class="pulse-dot"></span>
+            Policy Active
+          </span>
+          <span class="meta-divider">·</span>
+          <span class="meta-date">Last updated {{ lastUpdated }}</span>
+
+          <!-- Close button in meta row (when used as modal) -->
+          <button v-if="showCloseButton" class="meta-close-btn" @click="closePolicy" aria-label="Close">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+            Close
+          </button>
+        </div>
+      </header>
+
+      <!-- ── CARD ── -->
+      <main class="policy-card">
+
+        <!-- Loading -->
+        <div v-if="loading" class="state-box">
+          <div class="spinner">
+            <span v-for="i in 3" :key="i" class="dot" :style="`animation-delay:${(i-1)*0.18}s`"></span>
+          </div>
+          <p class="state-label">Loading policy…</p>
+        </div>
+
+        <!-- Error -->
+        <div v-else-if="error" class="state-box">
+          <div class="error-icon">
+            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            </svg>
+          </div>
+          <p class="state-label error-text">{{ error }}</p>
+          <button class="retry-btn" @click="fetchRefundPolicy">Try again</button>
+        </div>
+
+        <!-- Policy list -->
+        <ul v-else class="policy-list">
+          <li
+            v-for="(item, index) in refundItems"
+            :key="item.id"
+            class="policy-item"
+            :style="`animation-delay:${index * 70}ms`"
+          >
+            <div class="item-index">{{ String(index + 1).padStart(2, '0') }}</div>
+            <div class="item-body">
+              <h2 class="item-heading">{{ item.heading }}</h2>
+              <p class="item-content">{{ item.description }}</p>
             </div>
-            <div class="item-content">
-              <strong>{{ item.heading }}:</strong>
-              {{ item.description }}
+            <div class="item-arrow">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
             </div>
           </li>
         </ul>
+      </main>
 
-        <div v-if="loading">Loading refund policy...</div>
-        <div v-if="error">{{ error }}</div>
-      </div>
+      <!-- ── FOOTER ── -->
+      <footer class="page-footer">
+        <p>Questions about cancellations? <a href="mailto:info@vaibhavskatingacademy.com" class="footer-link">Contact support</a></p>
 
-      <div class="policy-footer" v-if="showCloseButton">
-        <button @click="closePolicy" class="close-policy-button">Close</button>
-      </div>
+        <!-- Modal close button in footer -->
+        <button v-if="showCloseButton" class="close-policy-button" @click="closePolicy">
+          Close Policy
+        </button>
+
+        <p class="footer-copy">© {{ new Date().getFullYear() }} Vaibhav Skating Academy. All rights reserved.</p>
+      </footer>
+
     </div>
   </div>
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 export default {
   name: 'RefundPolicy',
@@ -48,12 +121,18 @@ export default {
     const loading = ref(true)
     const error = ref(null)
     const apiBaseURL = 'http://localhost:3000/vsa'
+
+    const lastUpdated = computed(() =>
+      new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    )
+
     const fetchRefundPolicy = async () => {
+      loading.value = true
+      error.value = null
       try {
         const response = await fetch(`${apiBaseURL}/refund-policy`)
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`)
-        const data = await response.json()
-        refundItems.value = data
+        refundItems.value = await response.json()
       } catch (err) {
         console.error(err)
         error.value = 'Failed to load refund policy.'
@@ -66,208 +145,361 @@ export default {
       emit('close-policy')
     }
 
-    onMounted(() => {
-      fetchRefundPolicy()
-    })
+    onMounted(fetchRefundPolicy)
 
-    return {
-      refundItems,
-      loading,
-      error,
-      closePolicy,
-      props,
-    }
-  },
+    return { refundItems, loading, error, fetchRefundPolicy, closePolicy, lastUpdated }
+  }
 }
 </script>
 
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+</style>
+
 <style scoped>
-.refund-policy-container {
-  max-width: 700px;
-  margin: 0 auto;
-  padding: 20px;
-  background-color: #ffffff;
-  font-family: 'Arial', sans-serif;
-  margin-top: 80px;
-}
 
-.policy-card {
+/* ── ROOT ── */
+.page-root {
+  min-height: 100vh;
   background-color: #ffffff;
-  border: 1px solid #e5e5e5;
-  border-radius: 12px;
-  padding: 30px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  font-family: 'Inter', sans-serif;
   position: relative;
+  overflow-x: hidden;
 }
 
-.policy-header-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-  border-bottom: 2px solid #f0f0f0;
-  padding-bottom: 15px;
+.top-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #b8973a 0%, #e8c96a 50%, #b8973a 100%);
+  z-index: 100;
 }
 
-.policy-header {
-  color: #333333;
-  font-size: 28px;
-  font-weight: 600;
-  margin: 0;
-  flex: 1;
+.dot-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, #d8d8e8 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.4;
 }
 
-.close-button {
-  background: none;
-  border: none;
-  font-size: 20px;
-  color: #666666;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 50%;
+/* ── LAYOUT ── */
+.page-wrapper {
+  position: relative;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: clamp(80px, 10vw, 120px) clamp(16px, 5vw, 32px) clamp(48px, 8vw, 80px);
+}
+
+/* ── HEADER ── */
+.page-header {
+  text-align: center;
+  margin-bottom: clamp(32px, 6vw, 56px);
+}
+
+.eyebrow {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  transition: all 0.3s ease;
-}
-
-.close-button:hover {
-  background-color: #f5f5f5;
-  color: #333333;
-}
-
-.policy-content {
-  color: #555555;
-  line-height: 1.6;
-}
-
-.refund-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.refund-item {
+  gap: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(9px, 1.8vw, 11px);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #b8973a;
   margin-bottom: 20px;
-  padding: 20px;
-  background-color: #fafafa;
-  border: 1px solid #e8e8e8;
+  font-weight: 500;
+}
+.eyebrow-line {
+  display: block;
+  width: clamp(24px, 5vw, 48px);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #b8973a);
+}
+.eyebrow-line:last-child {
+  background: linear-gradient(90deg, #b8973a, transparent);
+}
+
+.headline {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(32px, 8vw, 62px);
+  font-weight: 700;
+  color: #1a1a2e;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 20px;
+}
+.headline em {
+  font-style: italic;
+  color: #b8973a;
+}
+
+.subheadline {
+  font-size: clamp(13px, 2.5vw, 15px);
+  color: #6b6b8a;
+  line-height: 1.8;
+  max-width: 540px;
+  margin: 0 auto 28px;
+  font-weight: 300;
+}
+
+.header-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #6b6b8a;
+}
+
+.meta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 100px;
+  border: 1px solid #e4e4f0;
+  background: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: #4a4a6a;
+  box-shadow: 0 1px 6px rgba(26,26,46,0.06);
+}
+
+.pulse-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.meta-divider { color: #c8c8dd; }
+
+.meta-date {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: #9898b8;
+}
+
+.meta-close-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  border-radius: 100px;
+  border: 1px solid #e4e4f0;
+  background: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: #9898b8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 6px rgba(26,26,46,0.06);
+}
+.meta-close-btn:hover {
+  border-color: #b8973a;
+  color: #b8973a;
+}
+
+/* ── CARD ── */
+.policy-card {
+  background: #ffffff;
+  border: 1px solid #e4e4f0;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow:
+    0 1px 2px rgba(26,26,46,0.04),
+    0 8px 24px rgba(26,26,46,0.06),
+    0 32px 80px rgba(26,26,46,0.08);
+}
+
+/* ── STATES ── */
+.state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 80px 24px;
+}
+
+.spinner { display: flex; gap: 7px; }
+.dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: #b8973a;
+  animation: bounce 1.2s ease-in-out infinite;
+  display: block;
+}
+
+.state-label {
+  font-size: 12px;
+  color: #9898b8;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.06em;
+}
+
+.error-icon {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  display: flex; align-items: center; justify-content: center;
+  color: #ef4444;
+}
+.error-text { color: #ef4444; }
+
+.retry-btn {
+  padding: 8px 24px;
   border-radius: 8px;
+  border: 1px solid #b8973a;
+  background: transparent;
+  color: #b8973a;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.retry-btn:hover {
+  background: #b8973a;
+  color: #fff;
+}
+
+/* ── LIST ── */
+.policy-list { list-style: none; }
+
+.policy-item {
   display: flex;
   align-items: flex-start;
-  transition: all 0.3s ease;
+  gap: clamp(12px, 3vw, 24px);
+  padding: clamp(18px, 4vw, 26px) clamp(16px, 5vw, 36px);
+  border-bottom: 1px solid #f0f0f8;
+  cursor: default;
+  transition: background 0.22s ease;
+  animation: slideUp 0.45s ease both;
+  position: relative;
 }
+.policy-item:last-child { border-bottom: none; }
 
-.refund-item:hover {
-  background-color: #f5f5f5;
-  border-color: #ddd;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.policy-item::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #b8973a, #e8c96a);
+  opacity: 0;
+  transition: opacity 0.22s ease;
 }
+.policy-item:hover { background: #fdf8ee; }
+.policy-item:hover::before { opacity: 1; }
+.policy-item:hover .item-arrow { opacity: 1; transform: translateX(3px); }
+.policy-item:hover .item-heading { color: #96761e; }
 
-.item-icon {
-  background-color: #333333;
-  color: #ffffff;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 15px;
+.item-index {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(10px, 2vw, 12px);
+  font-weight: 500;
+  color: #b8973a;
+  opacity: 0.55;
   flex-shrink: 0;
-  font-size: 16px;
+  margin-top: 3px;
+  min-width: 22px;
+}
+
+.item-body { flex: 1; min-width: 0; }
+
+.item-heading {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(15px, 3vw, 18px);
+  font-weight: 600;
+  color: #1a1a2e;
+  margin-bottom: 8px;
+  line-height: 1.35;
+  transition: color 0.2s ease;
 }
 
 .item-content {
-  flex: 1;
-  padding-top: 2px;
+  font-size: clamp(13px, 2.2vw, 14px);
+  color: #6b6b8a;
+  line-height: 1.8;
+  font-weight: 300;
 }
 
-.item-content strong {
-  color: #333333;
-  display: block;
-  margin-bottom: 5px;
-  font-size: 16px;
+.item-arrow {
+  flex-shrink: 0;
+  color: #b8973a;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  margin-top: 4px;
 }
 
-.policy-footer {
-  margin-top: 30px;
+/* ── FOOTER ── */
+.page-footer {
+  margin-top: clamp(24px, 5vw, 40px);
   text-align: center;
-  border-top: 1px solid #e5e5e5;
-  padding-top: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #9898b8;
 }
+.footer-link {
+  color: #b8973a;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+.footer-link:hover { border-color: #b8973a; }
 
 .close-policy-button {
-  background-color: #333333;
-  color: #ffffff;
-  border: none;
-  padding: 12px 30px;
-  border-radius: 6px;
-  font-size: 16px;
-  font-weight: 500;
+  padding: 10px 32px;
+  border-radius: 10px;
+  border: 1px solid #b8973a;
+  background: transparent;
+  color: #b8973a;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.08em;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
-
 .close-policy-button:hover {
-  background-color: #555555;
-  transform: translateY(-1px);
+  background: #b8973a;
+  color: #fff;
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
-  .refund-policy-container {
-    padding: 10px;
-  }
+.footer-copy { color: #c8c8dd; font-size: 11px; }
 
-  .policy-card {
-    padding: 20px;
-  }
-
-  .policy-header {
-    font-size: 24px;
-  }
-
-  .refund-item {
-    padding: 15px;
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .item-icon {
-    margin-right: 0;
-    margin-bottom: 10px;
-    align-self: center;
-  }
-
-  .item-content {
-    padding-top: 0;
-  }
+/* ── ANIMATIONS ── */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes bounce {
+  0%, 80%, 100% { transform: translateY(0); }
+  40%           { transform: translateY(-9px); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.45; transform: scale(0.82); }
 }
 
-/* Font Awesome fallback styling */
-.fas {
-  font-family: 'Font Awesome 5 Free';
-  font-weight: 900;
+/* ── RESPONSIVE ── */
+@media (max-width: 600px) {
+  .item-arrow { display: none; }
 }
-
-/* If Font Awesome is not available, use text fallbacks */
-.fa-undo-alt::before {
-  content: '↺';
-}
-.fa-exclamation-triangle::before {
-  content: '⚠';
-}
-.fa-plus-circle::before {
-  content: '⊕';
-}
-.fa-clock::before {
-  content: '⏰';
-}
-.fa-times::before {
-  content: '×';
+@media (max-width: 400px) {
+  .header-meta { flex-direction: column; gap: 8px; }
+  .eyebrow-line { width: 20px; }
 }
 </style>

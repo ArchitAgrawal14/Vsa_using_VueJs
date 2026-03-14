@@ -1,0 +1,196 @@
+Here's the complete design system description you can reuse anytime:
+
+---
+
+## Design System: Classy White & Gold Legal Policy Pages
+
+### Core Aesthetic
+White background (`#ffffff`), editorial feel, antique gold accent, serif + mono typography. Inspired by luxury legal documents — authoritative yet modern.
+
+---
+
+### Fonts (Google Fonts)
+```
+Playfair Display — headings (serif, italic gold accent)
+Inter — body text (light weight 300 for content)
+JetBrains Mono — labels, indices, meta info, buttons
+```
+Import via:
+```
+https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap
+```
+
+---
+
+### Color Tokens
+| Token | Value | Usage |
+|---|---|---|
+| Gold primary | `#b8973a` | Accents, indices, borders, links |
+| Gold light | `#e8c96a` | Gradient end on top bar & left accent |
+| Gold pale | `#fdf8ee` | Row hover background |
+| Ink dark | `#1a1a2e` | Headings, strong text |
+| Ink mid | `#6b6b8a` | Body/paragraph text |
+| Ink soft | `#9898b8` | Meta dates, state labels |
+| Ink faint | `#c8c8dd` | Dividers, footer copy |
+| Border | `#e4e4f0` | Card border, badge borders |
+| Row divider | `#f0f0f8` | Between list items |
+| Error bg | `#fef2f2` | Error icon background |
+| Error border | `#fecaca` | Error icon border |
+| Error text | `#ef4444` | Error messages |
+| Green pulse | `#22c55e` | Active status dot |
+
+---
+
+### Global Structure
+
+**Fixed top bar** — 4px tall, full width, pinned to top (`z-index: 100`):
+```css
+background: linear-gradient(90deg, #b8973a 0%, #e8c96a 50%, #b8973a 100%);
+```
+
+**Dot grid background** — fixed, full viewport, pointer-events none:
+```css
+background-image: radial-gradient(circle, #d8d8e8 1px, transparent 1px);
+background-size: 28px 28px;
+opacity: 0.4;
+```
+
+**Page wrapper** — centered, max-width `800px` (860px for T&C), responsive padding:
+```css
+padding: clamp(80px, 10vw, 120px) clamp(16px, 5vw, 32px) clamp(48px, 8vw, 80px);
+```
+
+---
+
+### Header Section (centered, above card)
+
+**Eyebrow** — flanked by gradient lines, JetBrains Mono, `0.22em` letter-spacing, gold `#b8973a`, `11px`, uppercase. Lines are `48px` wide, 1px tall, fade from transparent to gold (mirrored on right side).
+
+**Headline** — Playfair Display, `clamp(38px, 9vw, 68px)`, weight 700, color `#1a1a2e`. The second word (or phrase) is wrapped in `<em>` for italic gold styling (`color: #b8973a`). Format: `Page Title <em>Keyword</em>`.
+
+**Subheadline** — Inter 300, `clamp(13px, 2.5vw, 15px)`, color `#6b6b8a`, max-width `540px`, line-height `1.8`, centered.
+
+**Meta row** — flex, centered, gap `10px`, wraps on small screens:
+- **"Policy Active" badge** — pill shape, border `1px solid #e4e4f0`, JetBrains Mono `10px`, shadow `0 1px 6px rgba(26,26,46,0.06)`. Contains a `7px` green pulsing dot (animation below).
+- **Divider** — `·` in `#c8c8dd`
+- **Date** — JetBrains Mono `10px`, color `#9898b8`, computed from `new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })`
+
+---
+
+### Policy Card
+
+White background, border `1px solid #e4e4f0`, `border-radius: 20px`, `overflow: hidden`, layered shadow:
+```css
+box-shadow:
+  0 1px 2px rgba(26,26,46,0.04),
+  0 8px 24px rgba(26,26,46,0.06),
+  0 32px 80px rgba(26,26,46,0.08);
+```
+
+---
+
+### Loading State
+Centered column inside card, `padding: 80px 24px`. Three `9px` gold dots side by side, each `bounce` animated with staggered delays (`0s`, `0.18s`, `0.36s`). Label below in JetBrains Mono `12px`, color `#9898b8`.
+
+### Error State
+Centered column. `48px` circle icon container (`#fef2f2` bg, `#fecaca` border) with a warning SVG in `#ef4444`. Error text in `#ef4444`, JetBrains Mono. **"Try again"** button: transparent bg, `1px solid #b8973a` border, gold text, hover fills gold with white text.
+
+---
+
+### List Items
+
+Each item is a `<li>` (or `<div>`) with `display: flex`, `align-items: flex-start`, responsive gap and padding:
+```css
+gap: clamp(12px, 3vw, 24px);
+padding: clamp(18px, 4vw, 26px) clamp(16px, 5vw, 36px);
+border-bottom: 1px solid #f0f0f8;
+```
+
+**Three children per row:**
+
+1. **Index** — JetBrains Mono, `12px`, gold `#b8973a` at `0.55` opacity, zero-padded to 2 digits (`01`, `02`…), `min-width: 22px`, `flex-shrink: 0`
+
+2. **Body** — `flex: 1`, contains:
+   - **Heading** — Playfair Display, `clamp(15px, 3vw, 18px)`, weight 600, color `#1a1a2e`, `margin-bottom: 8px`
+   - **Content** — Inter 300, `clamp(13px, 2.2vw, 14px)`, color `#6b6b8a`, line-height `1.8`
+
+3. **Arrow chevron** — 16px SVG (`›` direction), gold `#b8973a`, `opacity: 0` by default, hidden on mobile (`≤600px`)
+
+**Hover state on each item:**
+- Background → `#fdf8ee` (gold pale)
+- Left border accent (3px, `position: absolute`, `left:0 top:0 bottom:0`) fades in via `opacity: 0 → 1`:
+  ```css
+  background: linear-gradient(180deg, #b8973a, #e8c96a);
+  ```
+- Arrow becomes `opacity: 1` and shifts `translateX(3px)`
+- Heading color shifts to `#96761e` (darker gold)
+
+**Entrance animation** — each item has `slideUp` with staggered `animation-delay: index * 70ms`.
+
+---
+
+### v-html Content Styling (via `:deep()`)
+For components that render raw HTML content, these nested elements are styled using Vue's `:deep()` selector to match the design system:
+
+| Element | Style |
+|---|---|
+| `p` | color `#6b6b8a`, line-height `1.8` |
+| `ul li` | No default marker. Gold `5px` circle bullet via `::before`, `opacity: 0.6` |
+| `.subsection-header` | Playfair Display, `18px`, weight 600, `#1a1a2e` |
+| `.pickup-section` | `#fdf8ee` bg, `3px solid #b8973a` left border, rounded right corners |
+| `a` / `.external-link` | Gold `#b8973a`, no underline, subtle `border-bottom: 1px solid rgba(184,151,58,0.3)`, hover solidifies border |
+| `strong` | `#1a1a2e`, weight 600 |
+
+---
+
+### Footer
+Centered column, `margin-top: clamp(24px, 5vw, 40px)`, `gap: 6px`, font-size `12px`:
+- First line: plain text + gold anchor link with transparent `border-bottom` that appears on hover
+- Last line: copyright in `#c8c8dd`, `font-size: 11px`
+
+---
+
+### Animations
+
+```css
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* Duration: 0.45s ease both — applied to each list item */
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-9px); }
+}
+/* Duration: 1.2s ease-in-out infinite — loading dots */
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.82); }
+}
+/* Duration: 2s ease-in-out infinite — green status dot */
+```
+
+---
+
+### Responsive Breakpoints
+| Breakpoint | Change |
+|---|---|
+| `≤ 600px` | Arrow chevron hidden (`display: none`) |
+| `≤ 400px` | Header meta goes `flex-direction: column`, eyebrow lines shrink to `20px` |
+
+All sizing uses `clamp()` throughout — no hard pixel jumps between breakpoints.
+
+---
+
+### Script Pattern (consistent across all pages)
+- `loading` starts `true`, resets to `true` on retry
+- `error` resets to `null` on each fetch attempt
+- `lastUpdated` is a `computed` using `toLocaleDateString`
+- `fetchPolicies` is returned and wired to the retry button's `@click`
+- `onMounted` calls fetch once on load
+
+---
+
+Save this and paste it as context the next time — any component handed to you can be restyled to this exact system.
